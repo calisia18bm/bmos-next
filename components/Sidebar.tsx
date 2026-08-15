@@ -1,0 +1,92 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+const NAV_GROUPS = [
+  {
+    label: "MAIN",
+    items: [{ href: "/", label: "Dashboard", icon: "📊" }],
+  },
+  {
+    label: "MASTER",
+    items: [
+      { href: "/students", label: "Students", icon: "🧑‍🎓" },
+      { href: "/teachers", label: "Teachers", icon: "👩‍🏫" },
+      { href: "/classes", label: "Classes", icon: "📚" },
+    ],
+  },
+  {
+    label: "OPERATIONS",
+    items: [
+      { href: "/attendance", label: "Attendance", icon: "✅" },
+      { href: "/payments", label: "Payments", icon: "💳" },
+      { href: "/payroll", label: "Payroll", icon: "🏦" },
+    ],
+  },
+];
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen sticky top-0 flex flex-col">
+      <div className="p-5 flex items-center gap-3 border-b border-bmos-border">
+        <div className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center text-lg">
+          🙂
+        </div>
+        <div>
+          <p className="font-extrabold text-bmos-text leading-tight">BMOS</p>
+          <p className="text-xs text-bmos-text-light">BM Masterclass</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto p-4 space-y-5">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="text-[11px] font-bold tracking-wide text-bmos-text-light mb-2 px-2">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
+                      active
+                        ? "bg-bmos-primary text-white font-semibold"
+                        : "text-bmos-text hover:bg-bmos-primary-soft"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-bmos-border">
+        <button
+          onClick={handleLogout}
+          className="w-full text-sm text-bmos-text-light hover:text-bmos-text text-left px-2 py-2"
+        >
+          Keluar
+        </button>
+      </div>
+    </aside>
+  );
+}
