@@ -1,20 +1,10 @@
+// Menu di sini HANYA yang halamannya udah beneran dibangun.
+// Setiap kali nambah halaman baru, tambahin menu key-nya di sini juga.
 export const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  OWNER: [
-    "dashboard",
-    "students",
-    "teachers",
-    "classes",
-    "attendance",
-    "payments",
-    "payroll",
-    "my-class",
-    "my-attendance",
-    "my-payments",
-    "my-students",
-  ],
-  ADMIN: ["dashboard", "students", "teachers", "classes", "attendance", "payments"],
-  TEACHER: ["dashboard", "attendance", "my-students"],
-  STUDENT: ["dashboard", "my-class", "my-attendance", "my-payments"],
+  OWNER: ["dashboard", "students", "teachers", "classes", "attendance"],
+  ADMIN: ["dashboard", "students", "teachers", "classes", "attendance"],
+  TEACHER: ["dashboard", "attendance"],
+  STUDENT: ["dashboard"],
 };
 
 export function getMenusForRoles(roles: string[]): string[] {
