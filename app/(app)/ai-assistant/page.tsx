@@ -1,5 +1,7 @@
 import ChatBox from "./ChatBox";
 
+export const dynamic = "force-dynamic";
+
 export default function AIAssistantPage() {
   return (
     <div>

@@ -24,6 +24,7 @@ export async function updateClass(
     endTime: string;
     capacityMax: string;
     active: boolean;
+    waGroupId: string;
   }
 ) {
   const supabase = await createClient();
@@ -43,6 +44,7 @@ export async function updateClass(
       end_time: formData.endTime || null,
       capacity_max: Number(formData.capacityMax) || 6,
       active: formData.active,
+      wa_group_id: formData.waGroupId || null,
     })
     .eq("id", id);
 

@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddFollowUpButton from "./AddFollowUpButton";
 import FollowUpCheckbox from "./FollowUpCheckbox";
 
+export const dynamic = "force-dynamic";
+
 export default async function FollowUpPage() {
   const supabase = await createClient();
 

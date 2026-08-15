@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendWeeklyChoicePolls } from "@/lib/weeklyChoicePoll";
 
 function getMondayOfWeek(): string {
   const d = new Date();
@@ -36,4 +37,23 @@ export async function confirmChoice(
 
   revalidatePath("/weekly-choice");
   return { success: true, message: "Pilihan berhasil dikonfirmasi." };
+}
+
+export async function sendPollsNow() {
+  try {
+    const { sentCount, results } = await sendWeeklyChoicePolls();
+    revalidatePath("/weekly-choice");
+    return {
+      success: true,
+      message: sentCount > 0
+        ? `${sentCount} pesan vote terkirim ke WhatsApp.`
+        : "Nggak ada kelas fleksibel dengan ID Grup WA yang di-set.",
+      details: results,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Gagal kirim vote.",
+    };
+  }
 }

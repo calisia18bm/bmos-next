@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import IncomeChart from "@/components/IncomeChart";
+
+export const dynamic = "force-dynamic";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -41,6 +44,10 @@ export default async function DashboardPage() {
     .toISOString()
     .slice(0, 10);
 
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+    .toISOString()
+    .slice(0, 10);
+
   const [
     { count: studentCount },
     { count: classCount },
@@ -51,6 +58,7 @@ export default async function DashboardPage() {
     { data: recentStudents },
     { data: recentPayments },
     { count: trialsCount },
+    { data: paymentsLast6Months },
   ] = await Promise.all([
     supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "ACTIVE"),
     supabase.from("classes").select("*", { count: "exact", head: true }).eq("active", true),
@@ -61,6 +69,7 @@ export default async function DashboardPage() {
     supabase.from("students").select("id, name, created_at").order("created_at", { ascending: false }).limit(3),
     supabase.from("payments").select("id, student_name, amount, payment_date").order("payment_date", { ascending: false }).limit(5),
     supabase.from("trials").select("*", { count: "exact", head: true }).eq("status", "SCHEDULED"),
+    supabase.from("payments").select("amount, payment_date").gte("payment_date", sixMonthsAgo),
   ]);
 
   // ===== Class Occupancy =====
@@ -88,12 +97,31 @@ export default async function DashboardPage() {
     ((fullCount * 100 + mediumCount * 65 + lowCount * 25) / (totalClasses * 100)) * 100
   );
 
-  // ===== Income Overview =====
+  // ===== Income Overview (chart 6 bulan) =====
   const totalIncomeThisMonth = (paymentsThisMonth ?? []).reduce((s, p) => s + Number(p.amount), 0);
   const totalIncomeLastMonth = (paymentsLastMonth ?? []).reduce((s, p) => s + Number(p.amount), 0);
   const incomeChangePct = totalIncomeLastMonth > 0
     ? Math.round(((totalIncomeThisMonth - totalIncomeLastMonth) / totalIncomeLastMonth) * 100)
     : totalIncomeThisMonth > 0 ? 100 : 0;
+
+  const monthLabels: { key: string; label: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthLabels.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: d.toLocaleDateString("id-ID", { month: "short" }),
+    });
+  }
+  const incomeByMonthKey: Record<string, number> = {};
+  (paymentsLast6Months ?? []).forEach((p) => {
+    const d = new Date(p.payment_date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    incomeByMonthKey[key] = (incomeByMonthKey[key] || 0) + Number(p.amount);
+  });
+  const incomeChartData = monthLabels.map((m) => ({
+    month: m.label,
+    income: incomeByMonthKey[m.key] || 0,
+  }));
 
   // ===== Revenue by Category (per kelas) =====
   const studentIds = [...new Set((paymentsThisMonth ?? []).map((p) => p.student_id).filter(Boolean))];
@@ -260,19 +288,16 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div className="bg-white border border-bmos-border rounded-2xl p-6">
-          <h2 className="font-bold text-bmos-text text-lg mb-4">Income Overview</h2>
-          <p className="text-sm text-bmos-text-light">Total Income</p>
-          <p className="text-3xl font-extrabold text-bmos-text mt-1">
-            {formatCurrency(totalIncomeThisMonth)}
-          </p>
+          <h2 className="font-bold text-bmos-text text-lg mb-1">Income Overview</h2>
           <p
-            className={`text-sm mt-1 ${
+            className={`text-xs mb-1 ${
               incomeChangePct >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
-            {incomeChangePct >= 0 ? "↑" : "↓"}
+            {formatCurrency(totalIncomeThisMonth)} bulan ini · {incomeChangePct >= 0 ? "↑" : "↓"}
             {Math.abs(incomeChangePct)}% vs last month
           </p>
+          <IncomeChart data={incomeChartData} />
         </div>
 
         <div className="bg-white border border-bmos-border rounded-2xl p-6">

@@ -8,6 +8,7 @@ export async function addContent(formData: {
   platform: string;
   scheduledDate: string;
   notes: string;
+  imageUrl: string;
 }) {
   const supabase = await createClient();
 
@@ -16,6 +17,7 @@ export async function addContent(formData: {
     platform: formData.platform,
     scheduled_date: formData.scheduledDate,
     notes: formData.notes,
+    image_url: formData.imageUrl || null,
     status: "PLANNED",
   });
 

@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import ChoiceSelector from "./ChoiceSelector";
+import SendPollsButton from "./SendPollsButton";
+
+export const dynamic = "force-dynamic";
 
 function getMondayOfWeek(): string {
   const d = new Date();
@@ -70,16 +73,21 @@ export default async function WeeklyChoicePage() {
 
   return (
     <div>
-      <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-        Schedule
-      </p>
-      <h1 className="text-3xl font-extrabold text-bmos-text mb-1">
-        Weekly Choice
-      </h1>
-      <p className="text-bmos-text-light text-sm mb-6">
-        Kelas fleksibel dengan lebih dari satu laoshi -- murid konfirmasi
-        tiap minggu mau ikut sesi siapa.
-      </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
+            Schedule
+          </p>
+          <h1 className="text-3xl font-extrabold text-bmos-text mb-1">
+            Weekly Choice
+          </h1>
+          <p className="text-bmos-text-light text-sm">
+            Kelas fleksibel dengan lebih dari satu laoshi -- murid konfirmasi
+            tiap minggu mau ikut sesi siapa.
+          </p>
+        </div>
+        <SendPollsButton />
+      </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-bmos-border rounded-2xl p-5">

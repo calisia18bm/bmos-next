@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import ClassDateSelector from "./ClassDateSelector";
 import AttendanceForm from "./AttendanceForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function AttendancePage({
   searchParams,
 }: {

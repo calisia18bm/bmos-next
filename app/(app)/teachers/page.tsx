@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddTeacherButton from "./AddTeacherButton";
 import EditTeacherButton from "./EditTeacherButton";
 
+export const dynamic = "force-dynamic";
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

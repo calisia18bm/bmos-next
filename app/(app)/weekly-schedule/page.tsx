@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import WeekNavigator from "./WeekNavigator";
 import GenerateSessionsButton from "./GenerateSessionsButton";
 
+export const dynamic = "force-dynamic";
+
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
 const STATUS_STYLE: Record<string, string> = {

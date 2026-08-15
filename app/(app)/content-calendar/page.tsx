@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddContentButton from "./AddContentButton";
 import ContentStatusSelect from "./ContentStatusSelect";
 
+export const dynamic = "force-dynamic";
+
 export default async function ContentCalendarPage() {
   const supabase = await createClient();
 
@@ -31,6 +33,7 @@ export default async function ContentCalendarPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-bmos-text-light border-b border-bmos-border">
+              <th className="px-5 py-3 font-medium w-20"></th>
               <th className="px-5 py-3 font-medium">Konten</th>
               <th className="px-5 py-3 font-medium">Platform</th>
               <th className="px-5 py-3 font-medium">Tanggal</th>
@@ -40,6 +43,19 @@ export default async function ContentCalendarPage() {
           <tbody>
             {(content ?? []).map((c) => (
               <tr key={c.id} className="border-b border-bmos-border last:border-0">
+                <td className="px-5 py-3">
+                  {c.image_url ? (
+                    <img
+                      src={c.image_url}
+                      alt={c.title}
+                      className="w-12 h-12 object-cover rounded-lg border border-bmos-border"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-bmos-primary-soft flex items-center justify-center text-lg">
+                      📷
+                    </div>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   <p className="font-semibold text-bmos-text">{c.title}</p>
                   {c.notes && (
@@ -65,7 +81,7 @@ export default async function ContentCalendarPage() {
             {(!content || content.length === 0) && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-5 py-10 text-center text-bmos-text-light"
                 >
                   Belum ada konten dijadwalkan.

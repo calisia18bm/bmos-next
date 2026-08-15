@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import AddExpenseButton from "./AddExpenseButton";
 
+export const dynamic = "force-dynamic";
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

@@ -17,6 +17,7 @@ type ClassData = {
   end_time: string | null;
   capacity_max: number | null;
   active: boolean;
+  wa_group_id: string | null;
 };
 
 export default function EditClassButton({
@@ -35,6 +36,7 @@ export default function EditClassButton({
   const [endTime, setEndTime] = useState(cls.end_time?.slice(0, 5) || "");
   const [capacity, setCapacity] = useState(String(cls.capacity_max || 6));
   const [active, setActive] = useState(cls.active);
+  const [waGroupId, setWaGroupId] = useState(cls.wa_group_id || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,6 +56,7 @@ export default function EditClassButton({
       endTime,
       capacityMax: capacity,
       active,
+      waGroupId,
     });
 
     setLoading(false);
@@ -182,6 +185,18 @@ export default function EditClassButton({
                   <option value="Y">Aktif</option>
                   <option value="N">Non-Aktif</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  ID Grup WA (khusus kelas fleksibel)
+                </label>
+                <input
+                  value={waGroupId}
+                  onChange={(e) => setWaGroupId(e.target.value)}
+                  placeholder="6281234567890-1234567890@g.us"
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
               </div>
 
               {error && (

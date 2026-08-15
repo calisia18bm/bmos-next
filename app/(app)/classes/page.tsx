@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddClassButton from "./AddClassButton";
 import EditClassButton from "./EditClassButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClassesPage() {
   const supabase = await createClient();
 

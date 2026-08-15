@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import GeneratePayrollButton from "./GeneratePayrollButton";
 import PayrollRowActions from "./PayrollRowActions";
 
+export const dynamic = "force-dynamic";
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

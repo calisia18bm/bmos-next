@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddLeadButton from "./AddLeadButton";
 import LeadStatusSelect from "./LeadStatusSelect";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeadsPage() {
   const supabase = await createClient();
 

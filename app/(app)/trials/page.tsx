@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import AddTrialButton from "./AddTrialButton";
 import TrialRowActions from "./TrialRowActions";
 
+export const dynamic = "force-dynamic";
+
 export default async function TrialsPage() {
   const supabase = await createClient();
 
