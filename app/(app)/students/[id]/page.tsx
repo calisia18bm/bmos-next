@@ -141,7 +141,7 @@ export default async function StudentDetailPage({
           <div>
             <p className="text-xs text-bmos-text-light">Terdaftar Sejak</p>
             <p className="text-sm font-semibold text-bmos-text mt-0.5">
-              {formatDate(student.created_at)}
+              {student.registered_at ? formatDate(student.registered_at) : "-"}
             </p>
           </div>
           <div>
