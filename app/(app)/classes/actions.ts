@@ -13,6 +13,45 @@ const DAYS = [
   "Minggu",
 ];
 
+export async function updateClass(
+  id: string,
+  formData: {
+    name: string;
+    teacherId: string;
+    teacherName: string;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+    capacityMax: string;
+    active: boolean;
+  }
+) {
+  const supabase = await createClient();
+
+  if (formData.dayOfWeek && !DAYS.includes(formData.dayOfWeek)) {
+    return { success: false, message: "Hari tidak valid." };
+  }
+
+  const { error } = await supabase
+    .from("classes")
+    .update({
+      name: formData.name,
+      teacher_id: formData.teacherId || null,
+      teacher_name: formData.teacherName || null,
+      day_of_week: formData.dayOfWeek || null,
+      start_time: formData.startTime || null,
+      end_time: formData.endTime || null,
+      capacity_max: Number(formData.capacityMax) || 6,
+      active: formData.active,
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/classes");
+  return { success: true, message: "Data kelas berhasil diperbarui." };
+}
+
 export async function addClass(formData: {
   name: string;
   teacherId: string;

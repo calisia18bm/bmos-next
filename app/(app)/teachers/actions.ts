@@ -3,6 +3,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+export async function updateTeacher(
+  id: string,
+  formData: {
+    name: string;
+    phone: string;
+    ratePerSession: string;
+    sessionsPerPayout: string;
+    active: boolean;
+  }
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("teachers")
+    .update({
+      name: formData.name,
+      phone: formData.phone || null,
+      rate_per_session: Number(formData.ratePerSession) || 0,
+      sessions_per_payout: Number(formData.sessionsPerPayout) || 8,
+      active: formData.active,
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/teachers");
+  return { success: true, message: "Data laoshi berhasil diperbarui." };
+}
+
 export async function addTeacher(formData: {
   name: string;
   phone: string;

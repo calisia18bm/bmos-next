@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AddTeacherButton from "./AddTeacherButton";
+import EditTeacherButton from "./EditTeacherButton";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -40,6 +41,7 @@ export default async function TeachersPage() {
               <th className="px-5 py-3 font-medium">Kontak</th>
               <th className="px-5 py-3 font-medium">Rate / Sesi</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -66,13 +68,16 @@ export default async function TeachersPage() {
                     {t.active ? "Aktif" : "Non-Aktif"}
                   </span>
                 </td>
+                <td className="px-5 py-3">
+                  <EditTeacherButton teacher={t} />
+                </td>
               </tr>
             ))}
 
             {(!teachers || teachers.length === 0) && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-5 py-10 text-center text-bmos-text-light"
                 >
                   Belum ada data laoshi.

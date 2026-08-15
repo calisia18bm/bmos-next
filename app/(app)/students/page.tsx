@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import AddStudentButton from "./AddStudentButton";
 
 export default async function StudentsPage() {
@@ -36,12 +37,17 @@ export default async function StudentsPage() {
           </thead>
           <tbody>
             {(students ?? []).map((s) => (
-              <tr key={s.id} className="border-b border-bmos-border last:border-0">
+              <tr
+                key={s.id}
+                className="border-b border-bmos-border last:border-0 hover:bg-bmos-primary-soft/30 cursor-pointer"
+              >
                 <td className="px-5 py-3">
-                  <p className="font-semibold text-bmos-text">{s.name}</p>
-                  <p className="text-xs text-bmos-text-light">
-                    {s.student_code}
-                  </p>
+                  <Link href={`/students/${s.id}`} className="block">
+                    <p className="font-semibold text-bmos-text">{s.name}</p>
+                    <p className="text-xs text-bmos-text-light">
+                      {s.student_code}
+                    </p>
+                  </Link>
                 </td>
                 <td className="px-5 py-3 text-bmos-text">
                   {s.class_name || "-"}

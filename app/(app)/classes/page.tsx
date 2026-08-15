@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AddClassButton from "./AddClassButton";
+import EditClassButton from "./EditClassButton";
 
 export default async function ClassesPage() {
   const supabase = await createClient();
@@ -33,6 +34,7 @@ export default async function ClassesPage() {
               <th className="px-5 py-3 font-medium">Jadwal</th>
               <th className="px-5 py-3 font-medium">Kapasitas</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -68,13 +70,16 @@ export default async function ClassesPage() {
                     {c.active ? "Aktif" : "Non-Aktif"}
                   </span>
                 </td>
+                <td className="px-5 py-3">
+                  <EditClassButton cls={c} teachers={teachers ?? []} />
+                </td>
               </tr>
             ))}
 
             {(!classes || classes.length === 0) && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-5 py-10 text-center text-bmos-text-light"
                 >
                   Belum ada data kelas.
