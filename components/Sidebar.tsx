@@ -57,6 +57,48 @@ const NAV_GROUPS = [
       },
       { href: "/payments", menu: "payments", label: "Payments", icon: "💳" },
       { href: "/payroll", menu: "payroll", label: "Payroll", icon: "🏦" },
+      { href: "/expenses", menu: "expenses", label: "Expenses", icon: "🧾" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { href: "/leads", menu: "leads", label: "Leads", icon: "📋" },
+      { href: "/trials", menu: "trials", label: "Trials", icon: "🎯" },
+      {
+        href: "/follow-up",
+        menu: "follow-up",
+        label: "Follow Up",
+        icon: "✔️",
+      },
+    ],
+  },
+  {
+    label: "SCHEDULE",
+    items: [
+      {
+        href: "/content-calendar",
+        menu: "content-calendar",
+        label: "Content Calendar",
+        icon: "📅",
+      },
+    ],
+  },
+  {
+    label: "REPORT",
+    items: [
+      { href: "/reports", menu: "reports", label: "Reports", icon: "📈" },
+    ],
+  },
+  {
+    label: "SYSTEM",
+    items: [
+      {
+        href: "/ai-assistant",
+        menu: "ai-assistant",
+        label: "AI Assistant",
+        icon: "🤖",
+      },
     ],
   },
 ];
