@@ -13,6 +13,8 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "trials",
     "follow-up",
     "content-calendar",
+    "weekly-schedule",
+    "weekly-choice",
     "expenses",
     "reports",
     "ai-assistant",

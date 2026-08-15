@@ -77,6 +77,18 @@ const NAV_GROUPS = [
     label: "SCHEDULE",
     items: [
       {
+        href: "/weekly-schedule",
+        menu: "weekly-schedule",
+        label: "Weekly Schedule",
+        icon: "🗓️",
+      },
+      {
+        href: "/weekly-choice",
+        menu: "weekly-choice",
+        label: "Weekly Choice",
+        icon: "🔄",
+      },
+      {
         href: "/content-calendar",
         menu: "content-calendar",
         label: "Content Calendar",
