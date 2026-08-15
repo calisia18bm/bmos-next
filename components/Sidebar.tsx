@@ -7,27 +7,69 @@ import { createClient } from "@/lib/supabase/client";
 const NAV_GROUPS = [
   {
     label: "MAIN",
-    items: [{ href: "/", label: "Dashboard", icon: "📊" }],
+    items: [{ href: "/", menu: "dashboard", label: "Dashboard", icon: "📊" }],
+  },
+  {
+    label: "PORTAL MURID",
+    items: [
+      { href: "/my-class", menu: "my-class", label: "My Class", icon: "📖" },
+      {
+        href: "/my-attendance",
+        menu: "my-attendance",
+        label: "My Attendance",
+        icon: "✅",
+      },
+      {
+        href: "/my-payments",
+        menu: "my-payments",
+        label: "My Payments",
+        icon: "💳",
+      },
+    ],
+  },
+  {
+    label: "PORTAL LAOSHI",
+    items: [
+      {
+        href: "/my-students",
+        menu: "my-students",
+        label: "My Students",
+        icon: "🧑‍🎓",
+      },
+    ],
   },
   {
     label: "MASTER",
     items: [
-      { href: "/students", label: "Students", icon: "🧑‍🎓" },
-      { href: "/teachers", label: "Teachers", icon: "👩‍🏫" },
-      { href: "/classes", label: "Classes", icon: "📚" },
+      { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
+      { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
+      { href: "/classes", menu: "classes", label: "Classes", icon: "📚" },
     ],
   },
   {
     label: "OPERATIONS",
     items: [
-      { href: "/attendance", label: "Attendance", icon: "✅" },
-      { href: "/payments", label: "Payments", icon: "💳" },
-      { href: "/payroll", label: "Payroll", icon: "🏦" },
+      {
+        href: "/attendance",
+        menu: "attendance",
+        label: "Attendance",
+        icon: "✅",
+      },
+      { href: "/payments", menu: "payments", label: "Payments", icon: "💳" },
+      { href: "/payroll", menu: "payroll", label: "Payroll", icon: "🏦" },
     ],
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  roles,
+  menus,
+  email,
+}: {
+  roles: string[];
+  menus: string[];
+  email: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -51,35 +93,46 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-5">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label}>
-            <p className="text-[11px] font-bold tracking-wide text-bmos-text-light mb-2 px-2">
-              {group.label}
-            </p>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
-                      active
-                        ? "bg-bmos-primary text-white font-semibold"
-                        : "text-bmos-text hover:bg-bmos-primary-soft"
-                    }`}
-                  >
-                    <span>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                );
-              })}
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter((item) =>
+            menus.includes(item.menu)
+          );
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div key={group.label}>
+              <p className="text-[11px] font-bold tracking-wide text-bmos-text-light mb-2 px-2">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {visibleItems.map((item) => {
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
+                        active
+                          ? "bg-bmos-primary text-white font-semibold"
+                          : "text-bmos-text hover:bg-bmos-primary-soft"
+                      }`}
+                    >
+                      <span>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="p-4 border-t border-bmos-border">
+        <p className="text-xs text-bmos-text-light truncate mb-1">{email}</p>
+        <p className="text-[11px] text-bmos-primary font-semibold mb-2">
+          {roles.join(", ")}
+        </p>
         <button
           onClick={handleLogout}
           className="w-full text-sm text-bmos-text-light hover:text-bmos-text text-left px-2 py-2"
