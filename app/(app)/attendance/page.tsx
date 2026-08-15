@@ -25,10 +25,10 @@ export default async function AttendancePage({
   let existing: { student_id: string; status: string }[] = [];
 
   if (classId) {
-    const [studentsResult, attendanceResult] = await Promise.all([
+    const [enrollmentResult, attendanceResult] = await Promise.all([
       supabase
-        .from("students")
-        .select("id, name, student_code")
+        .from("enrollments")
+        .select("students(id, name, student_code, status)")
         .eq("class_id", classId)
         .eq("status", "ACTIVE"),
       supabase
@@ -37,7 +37,20 @@ export default async function AttendancePage({
         .eq("class_id", classId)
         .eq("attendance_date", date),
     ]);
-    students = studentsResult.data ?? [];
+
+    type EnrolledStudent = { id: string; name: string; student_code: string; status: string };
+    const enrolledRows = (enrollmentResult.data ?? []) as unknown as { students: EnrolledStudent | null }[];
+    const seen = new Set<string>();
+    students = enrolledRows
+      .map((r) => r.students)
+      .filter((s): s is EnrolledStudent => Boolean(s) && s!.status === "ACTIVE")
+      .filter((s) => {
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      })
+      .map((s) => ({ id: s.id, name: s.name, student_code: s.student_code }));
+
     existing = attendanceResult.data ?? [];
   }
 

@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import EditStudentButton from "./EditStudentButton";
+import TransferClassButton from "./TransferClassButton";
+import AddAdditionalClassButton from "./AddAdditionalClassButton";
+import EndEnrollmentButton from "./EndEnrollmentButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +40,7 @@ export default async function StudentDetailPage({
 
   if (!student) notFound();
 
-  const [{ data: payments }, { data: attendance }, { data: classesList }] = await Promise.all([
+  const [{ data: payments }, { data: attendance }, { data: classesList }, { data: enrollments }] = await Promise.all([
     supabase
       .from("payments")
       .select("*")
@@ -49,6 +52,11 @@ export default async function StudentDetailPage({
       .eq("student_id", id)
       .order("attendance_date", { ascending: false }),
     supabase.from("classes").select("id, name, teacher_name").eq("active", true),
+    supabase
+      .from("enrollments")
+      .select("*, classes(name, teacher_name)")
+      .eq("student_id", id)
+      .order("started_at", { ascending: false }),
   ]);
 
   const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
@@ -93,6 +101,18 @@ export default async function StudentDetailPage({
             {student.status}
           </span>
           <EditStudentButton student={student} classes={classesList ?? []} />
+          <AddAdditionalClassButton studentId={student.id} classes={classesList ?? []} />
+          <TransferClassButton
+            studentId={student.id}
+            activeEnrollments={(enrollments ?? [])
+              .filter((e) => e.status === "ACTIVE")
+              .map((e) => ({
+                id: e.id,
+                class_id: e.class_id,
+                className: e.classes?.name || "-",
+              }))}
+            classes={classesList ?? []}
+          />
         </div>
       </div>
 
@@ -156,6 +176,72 @@ export default async function StudentDetailPage({
           </div>
         )}
       </div>
+
+      {(() => {
+        const activeEnrollments = (enrollments ?? []).filter((e) => e.status === "ACTIVE");
+        if (activeEnrollments.length === 0) return null;
+        return (
+          <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden mb-6">
+            <div className="px-5 py-3 border-b border-bmos-border">
+              <h2 className="font-bold text-bmos-text">
+                Kelas yang Diikuti Sekarang ({activeEnrollments.length})
+              </h2>
+            </div>
+            <div className="divide-y divide-bmos-border">
+              {activeEnrollments.map((e) => (
+                <div key={e.id} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-bmos-text">{e.classes?.name || "-"}</p>
+                    <p className="text-xs text-bmos-text-light">
+                      {e.classes?.teacher_name} · sejak {formatDate(e.started_at)}
+                    </p>
+                  </div>
+                  <EndEnrollmentButton enrollmentId={e.id} studentId={student.id} />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {enrollments && enrollments.length > 0 && (
+        <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden mb-6">
+          <div className="px-5 py-3 border-b border-bmos-border">
+            <h2 className="font-bold text-bmos-text">Riwayat Kelas Lengkap</h2>
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              {enrollments.map((e) => (
+                <tr key={e.id} className="border-b border-bmos-border last:border-0">
+                  <td className="px-5 py-2.5">
+                    <p className="font-semibold text-bmos-text">
+                      {e.classes?.name || "-"}
+                    </p>
+                    <p className="text-xs text-bmos-text-light">
+                      {e.classes?.teacher_name}
+                    </p>
+                  </td>
+                  <td className="px-5 py-2.5 text-bmos-text-light text-xs">
+                    {formatDate(e.started_at)} —{" "}
+                    {e.ended_at ? formatDate(e.ended_at) : "Sekarang"}
+                  </td>
+                  <td className="px-5 py-2.5 text-right">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        e.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {e.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Ringkasan angka */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

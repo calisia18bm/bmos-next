@@ -18,11 +18,13 @@ export default async function ReportsPage() {
     { data: expenses },
     { data: students },
     { data: classes },
+    { data: activeEnrollments },
   ] = await Promise.all([
     supabase.from("payments").select("amount, payment_date"),
     supabase.from("expenses").select("amount, category, expense_date"),
     supabase.from("students").select("id, status, class_name"),
     supabase.from("classes").select("id, name"),
+    supabase.from("enrollments").select("classes(name)").eq("status", "ACTIVE"),
   ]);
 
   const totalIncome = (payments ?? []).reduce(
@@ -46,10 +48,13 @@ export default async function ReportsPage() {
       (expenseByCategory[e.category] || 0) + Number(e.amount);
   });
 
-  // Breakdown murid per kelas
+  // Breakdown murid per kelas -- pakai enrollments, biar murid yang
+  // ikut 2+ kelas kehitung di SEMUA kelasnya, bukan cuma 1.
+  type EnrollmentRow = { classes: { name: string } | null };
   const studentsByClass: Record<string, number> = {};
-  (students ?? []).forEach((s) => {
-    const name = s.class_name || "Belum ada kelas";
+  (activeEnrollments ?? []).forEach((e) => {
+    const row = e as unknown as EnrollmentRow;
+    const name = row.classes?.name || "Belum ada kelas";
     studentsByClass[name] = (studentsByClass[name] || 0) + 1;
   });
 

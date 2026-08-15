@@ -124,18 +124,35 @@ export default async function DashboardPage() {
   }));
 
   // ===== Revenue by Category (per kelas) =====
+  // Kalau murid ikut 2+ kelas sekaligus, pemasukannya dibagi rata ke
+  // tiap kelas -- biar total tetap akurat (nggak dobel hitung) tapi
+  // tetap adil ke masing-masing kelas.
   const studentIds = [...new Set((paymentsThisMonth ?? []).map((p) => p.student_id).filter(Boolean))];
-  const { data: studentsForRevenue } = studentIds.length
-    ? await supabase.from("students").select("id, class_name").in("id", studentIds)
+  const { data: enrollmentsForRevenue } = studentIds.length
+    ? await supabase
+        .from("enrollments")
+        .select("student_id, classes(name)")
+        .in("student_id", studentIds)
+        .eq("status", "ACTIVE")
     : { data: [] };
-  const studentClassMap: Record<string, string> = {};
-  (studentsForRevenue ?? []).forEach((s) => {
-    studentClassMap[s.id] = s.class_name || "Lainnya";
+
+  type EnrollmentRow = { student_id: string; classes: { name: string } | null };
+  const classesByStudent: Record<string, string[]> = {};
+  (enrollmentsForRevenue ?? []).forEach((e) => {
+    const row = e as unknown as EnrollmentRow;
+    const className = row.classes?.name || "Lainnya";
+    if (!classesByStudent[row.student_id]) classesByStudent[row.student_id] = [];
+    classesByStudent[row.student_id].push(className);
   });
+
   const revenueByClass: Record<string, number> = {};
   (paymentsThisMonth ?? []).forEach((p) => {
-    const cls = studentClassMap[p.student_id] || "Lainnya";
-    revenueByClass[cls] = (revenueByClass[cls] || 0) + Number(p.amount);
+    if (!p.student_id) return;
+    const studentClasses = classesByStudent[p.student_id] || ["Lainnya"];
+    const splitAmount = Number(p.amount) / studentClasses.length;
+    studentClasses.forEach((cls) => {
+      revenueByClass[cls] = (revenueByClass[cls] || 0) + splitAmount;
+    });
   });
   const revenueEntries = Object.entries(revenueByClass).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
