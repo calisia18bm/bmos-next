@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 import IncomeChart from "@/components/IncomeChart";
+import { CHARACTERS } from "@/lib/characters";
 
 export const dynamic = "force-dynamic";
 
@@ -238,14 +239,32 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text">
           Selamat datang
         </h1>
-        <Image
-          src="/characters/banner_full.png"
-          alt="BM Mandarin"
-          width={280}
-          height={95}
-          className="h-14 w-auto object-contain shrink-0"
-          priority
-        />
+        <div className="flex items-center gap-1 shrink-0">
+          <Image
+            src="/characters/bm_logo.png"
+            alt="BM Mandarin"
+            width={56}
+            height={56}
+            className="h-12 w-auto object-contain mr-1"
+          />
+          <Image
+            src="/characters/xuebao_logo.png"
+            alt="xuebao"
+            width={100}
+            height={44}
+            className="h-9 w-auto object-contain mr-1"
+          />
+          {CHARACTERS.map((c) => (
+            <Image
+              key={c.key}
+              src={c.file}
+              alt={c.label}
+              width={72}
+              height={72}
+              className="h-16 w-auto object-contain"
+            />
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
