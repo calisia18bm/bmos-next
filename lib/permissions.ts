@@ -18,6 +18,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "expenses",
     "reports",
     "ai-assistant",
+    "branding",
   ],
   ADMIN: ["dashboard", "students", "teachers", "classes", "attendance", "payments"],
   TEACHER: ["dashboard", "attendance"],

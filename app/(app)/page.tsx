@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 import IncomeChart from "@/components/IncomeChart";
-import { CHARACTERS } from "@/lib/characters";
+import { BANNER_CATALOG } from "@/lib/characters";
+import { getBannerLayout } from "./settings/branding/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ function getMondayOfWeek(): string {
 export default async function DashboardPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
+  const savedBannerLayout = await getBannerLayout();
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -230,6 +232,13 @@ export default async function DashboardPage() {
     }
   }
 
+  const bannerItems = savedBannerLayout && savedBannerLayout.length > 0
+    ? [
+        ...savedBannerLayout,
+        ...BANNER_CATALOG.filter((c) => !savedBannerLayout.some((s) => s.key === c.key)),
+      ]
+    : BANNER_CATALOG;
+
   return (
     <div>
       <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
@@ -239,35 +248,17 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text">
           Selamat datang
         </h1>
-        <div className="flex items-center gap-1 shrink-0">
-          <div className="w-9 h-9 flex items-center justify-center mr-1">
+        <div className="flex items-end gap-1.5 shrink-0">
+          {bannerItems.map((it) => (
             <Image
-              src="/characters/bm_logo.png"
-              alt="BM Mandarin"
-              width={36}
-              height={36}
-              className="max-w-full max-h-full object-contain"
+              key={it.key}
+              src={it.file}
+              alt={it.label}
+              width={it.heightPx * 1.4}
+              height={it.heightPx}
+              style={{ height: it.heightPx }}
+              className="w-auto object-contain"
             />
-          </div>
-          <div className="w-9 h-9 flex items-center justify-center mr-1">
-            <Image
-              src="/characters/xuebao_logo.png"
-              alt="xuebao"
-              width={36}
-              height={36}
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-          {CHARACTERS.map((c) => (
-            <div key={c.key} className="w-9 h-9 flex items-center justify-center">
-              <Image
-                src={c.file}
-                alt={c.label}
-                width={36}
-                height={36}
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
           ))}
         </div>
       </div>

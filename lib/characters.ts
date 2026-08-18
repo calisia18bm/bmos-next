@@ -20,3 +20,15 @@ export const CHARACTERS = [
 export function getCharacterFile(key: string | null | undefined) {
   return CHARACTERS.find((c) => c.key === key)?.file || CHARACTERS[0].file;
 }
+
+// Semua elemen yang bisa muncul di banner dashboard Home (logo + karakter),
+// dipakai sbg katalog default buat halaman "Atur Banner". Owner bisa ubah
+// ukuran & urutannya sendiri lewat halaman itu -- hasilnya disimpan di
+// app_settings.banner_layout (lihat database/add_banner_layout.sql).
+export type BannerItem = { key: string; label: string; file: string; heightPx: number };
+
+export const BANNER_CATALOG: BannerItem[] = [
+  { key: "bm_logo", label: "Logo BM", file: "/characters/bm_logo.png", heightPx: 40 },
+  { key: "xuebao_logo", label: "Logo xuebao", file: "/characters/xuebao_logo.png", heightPx: 36 },
+  ...CHARACTERS.map((c) => ({ key: c.key, label: c.label, file: c.file, heightPx: 64 })),
+];
