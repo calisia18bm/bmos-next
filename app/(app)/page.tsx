@@ -239,29 +239,33 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text">
           Selamat datang
         </h1>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-end gap-1.5 shrink-0">
           <Image
             src="/characters/bm_logo.png"
             alt="BM Mandarin"
             width={56}
             height={56}
-            className="h-12 w-auto object-contain mr-1"
+            className="h-12 w-auto object-contain mr-1 mb-1"
           />
           <Image
             src="/characters/xuebao_logo.png"
             alt="xuebao"
             width={100}
             height={44}
-            className="h-9 w-auto object-contain mr-1"
+            className="h-9 w-auto object-contain mr-1 mb-2"
           />
           {CHARACTERS.map((c) => (
             <Image
               key={c.key}
               src={c.file}
               alt={c.label}
-              width={72}
-              height={72}
-              className="h-16 w-auto object-contain"
+              width={80}
+              height={80}
+              className={`w-auto object-contain ${
+                c.key === "coffee_yellow" || c.key === "blanket_gray"
+                  ? "h-20"
+                  : "h-16"
+              }`}
             />
           ))}
         </div>
