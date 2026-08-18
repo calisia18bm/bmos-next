@@ -259,13 +259,10 @@ export default async function DashboardPage() {
               key={c.key}
               src={c.file}
               alt={c.label}
-              width={80}
-              height={80}
-              className={`w-auto object-contain ${
-                c.key === "coffee_yellow" || c.key === "blanket_gray"
-                  ? "h-20"
-                  : "h-16"
-              }`}
+              width={90}
+              height={90}
+              style={{ height: c.heightPx }}
+              className="w-auto object-contain"
             />
           ))}
         </div>
