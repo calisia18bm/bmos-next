@@ -152,6 +152,7 @@ export default async function WeeklyChoicePage() {
                           id: g.id,
                           teacher_name: g.teacher_name,
                           day_of_week: g.day_of_week,
+                          start_time: g.start_time,
                         }))}
                         currentChoice={existing?.chosen_class_id || ""}
                         confirmed={existing?.confirmed || false}

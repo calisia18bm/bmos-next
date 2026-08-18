@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import CharacterPicker from "./CharacterPicker";
 
 const NAV_GROUPS = [
   {
     label: "MAIN",
-    items: [{ href: "/", menu: "dashboard", label: "Dashboard", icon: "📊" }],
+    items: [{ href: "/", menu: "dashboard", label: "Home", icon: "📊" }],
   },
   {
     label: "PORTAL MURID",
@@ -119,10 +120,12 @@ export default function Sidebar({
   roles,
   menus,
   email,
+  characterKey,
 }: {
   roles: string[];
   menus: string[];
   email: string;
+  characterKey: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -137,12 +140,10 @@ export default function Sidebar({
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen sticky top-0 flex flex-col">
       <div className="p-5 flex items-center gap-3 border-b border-bmos-border">
-        <div className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center text-lg">
-          🙂
-        </div>
+        <CharacterPicker characterKey={characterKey} />
         <div>
           <p className="font-extrabold text-bmos-text leading-tight">BMOS</p>
-          <p className="text-xs text-bmos-text-light">BM Masterclass</p>
+          <p className="text-xs text-bmos-text-light">BM Mandarin</p>
         </div>
       </div>
 

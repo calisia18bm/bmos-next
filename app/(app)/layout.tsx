@@ -18,7 +18,12 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar roles={profile.roles} menus={menus} email={profile.email} />
+      <Sidebar
+        roles={profile.roles}
+        menus={menus}
+        email={profile.email}
+        characterKey={profile.character_key}
+      />
       <main className="flex-1 p-8">{children}</main>
     </div>
   );

@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmChoice } from "./actions";
 
-type ClassOption = { id: string; teacher_name: string | null; day_of_week: string | null };
+type ClassOption = {
+  id: string;
+  teacher_name: string | null;
+  day_of_week: string | null;
+  start_time: string | null;
+};
 
 export default function ChoiceSelector({
   studentId,
@@ -41,7 +46,8 @@ export default function ChoiceSelector({
         <option value="">Pilih jadwal</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
-            {o.teacher_name} ({o.day_of_week})
+            {o.teacher_name} ({o.day_of_week}
+            {o.start_time ? `, ${o.start_time.slice(0, 5)}` : ""})
           </option>
         ))}
       </select>

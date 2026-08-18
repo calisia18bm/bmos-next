@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import Image from "next/image";
 import IncomeChart from "@/components/IncomeChart";
 
 export const dynamic = "force-dynamic";
@@ -233,9 +234,19 @@ export default async function DashboardPage() {
       <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
         Overview
       </p>
-      <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
-        Selamat datang 👋
-      </h1>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-extrabold text-bmos-text">
+          Selamat datang
+        </h1>
+        <Image
+          src="/characters/banner_full.png"
+          alt="BM Mandarin"
+          width={280}
+          height={95}
+          className="h-14 w-auto object-contain shrink-0"
+          priority
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Students" value={studentCount ?? 0} icon="🧑‍🎓" />
