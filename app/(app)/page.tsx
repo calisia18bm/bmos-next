@@ -239,31 +239,35 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text">
           Selamat datang
         </h1>
-        <div className="flex items-end gap-1.5 shrink-0">
-          <Image
-            src="/characters/bm_logo.png"
-            alt="BM Mandarin"
-            width={56}
-            height={56}
-            className="h-12 w-auto object-contain mr-1 mb-1"
-          />
-          <Image
-            src="/characters/xuebao_logo.png"
-            alt="xuebao"
-            width={100}
-            height={44}
-            className="h-9 w-auto object-contain mr-1 mb-2"
-          />
-          {CHARACTERS.map((c) => (
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="w-9 h-9 flex items-center justify-center mr-1">
             <Image
-              key={c.key}
-              src={c.file}
-              alt={c.label}
-              width={90}
-              height={90}
-              style={{ height: c.heightPx }}
-              className="w-auto object-contain"
+              src="/characters/bm_logo.png"
+              alt="BM Mandarin"
+              width={36}
+              height={36}
+              className="max-w-full max-h-full object-contain"
             />
+          </div>
+          <div className="w-9 h-9 flex items-center justify-center mr-1">
+            <Image
+              src="/characters/xuebao_logo.png"
+              alt="xuebao"
+              width={36}
+              height={36}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+          {CHARACTERS.map((c) => (
+            <div key={c.key} className="w-9 h-9 flex items-center justify-center">
+              <Image
+                src={c.file}
+                alt={c.label}
+                width={36}
+                height={36}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
           ))}
         </div>
       </div>
