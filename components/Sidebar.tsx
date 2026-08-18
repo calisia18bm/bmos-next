@@ -112,12 +112,6 @@ const NAV_GROUPS = [
         label: "AI Assistant",
         icon: "🤖",
       },
-      {
-        href: "/settings/branding",
-        menu: "branding",
-        label: "Atur Banner",
-        icon: "🎨",
-      },
     ],
   },
 ];

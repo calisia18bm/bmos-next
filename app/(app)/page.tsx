@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import Image from "next/image";
 import IncomeChart from "@/components/IncomeChart";
 import { BANNER_CATALOG } from "@/lib/characters";
 import { getBannerLayout } from "./settings/branding/actions";
+import { getCurrentProfile } from "@/lib/auth";
+import HomeBanner from "./HomeBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,8 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
   const savedBannerLayout = await getBannerLayout();
+  const profile = await getCurrentProfile();
+  const canEditBanner = profile?.roles?.includes("OWNER") ?? false;
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -248,19 +251,7 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text">
           Selamat datang
         </h1>
-        <div className="flex items-end gap-1.5 shrink-0">
-          {bannerItems.map((it) => (
-            <Image
-              key={it.key}
-              src={it.file}
-              alt={it.label}
-              width={it.heightPx * 1.4}
-              height={it.heightPx}
-              style={{ height: it.heightPx }}
-              className="w-auto object-contain"
-            />
-          ))}
-        </div>
+        <HomeBanner items={bannerItems} canEdit={canEditBanner} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -25,7 +25,29 @@ export function getCharacterFile(key: string | null | undefined) {
 // dipakai sbg katalog default buat halaman "Atur Banner". Owner bisa ubah
 // ukuran & urutannya sendiri lewat halaman itu -- hasilnya disimpan di
 // app_settings.banner_layout (lihat database/add_banner_layout.sql).
-export type BannerItem = { key: string; label: string; file: string; heightPx: number };
+export type BannerItem = {
+  key: string;
+  label: string;
+  file: string;
+  heightPx: number;
+  // Posisi bebas (geser tarik) di dalam area banner Home, dalam px relatif
+  // ke pojok kiri-atas area banner. Kalau belum pernah diatur (undefined),
+  // dipakai urutan baris default (lihat defaultBannerPositions()).
+  x?: number;
+  y?: number;
+};
+
+// Susun posisi default berjejer rapi (dipakai kalau item belum pernah
+// digeser manual sama sekali).
+export function defaultBannerPositions(items: BannerItem[]): BannerItem[] {
+  let x = 0;
+  const rowHeight = Math.max(...items.map((it) => it.heightPx), 40);
+  return items.map((it) => {
+    const withPos = { ...it, x: it.x ?? x, y: it.y ?? rowHeight - it.heightPx };
+    x += it.heightPx * 1.4 + 6;
+    return withPos;
+  });
+}
 
 export const BANNER_CATALOG: BannerItem[] = [
   { key: "bm_logo", label: "Logo BM", file: "/characters/bm_logo.png", heightPx: 40 },
