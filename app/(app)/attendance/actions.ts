@@ -3,6 +3,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Koreksi 1 baris absensi yang sudah tersimpan (misal salah pencet
+// Hadir/Izin/Alpha). Dipakai dari halaman detail murid supaya bisa
+// dibetulkan langsung tanpa harus balik ke form Attendance per kelas.
+export async function updateAttendanceRecord(
+  id: string,
+  status: string,
+  studentId: string
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("attendance")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/attendance");
+  return { success: true, message: "Absensi berhasil diperbarui." };
+}
+
 export async function saveAttendance(
   classId: string,
   date: string,

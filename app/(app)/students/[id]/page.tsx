@@ -5,6 +5,7 @@ import EditStudentButton from "./EditStudentButton";
 import TransferClassButton from "./TransferClassButton";
 import AddAdditionalClassButton from "./AddAdditionalClassButton";
 import EndEnrollmentButton from "./EndEnrollmentButton";
+import AttendanceStatusEditor from "./AttendanceStatusEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -319,17 +320,11 @@ export default async function StudentDetailPage({
                       {formatDate(a.attendance_date)}
                     </td>
                     <td className="px-5 py-2.5 text-right">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          a.status === "HADIR"
-                            ? "bg-green-100 text-green-700"
-                            : a.status === "IZIN"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {a.status}
-                      </span>
+                      <AttendanceStatusEditor
+                        attendanceId={a.id}
+                        studentId={student.id}
+                        status={a.status}
+                      />
                     </td>
                   </tr>
                 ))}
