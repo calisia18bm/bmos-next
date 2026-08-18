@@ -25,10 +25,21 @@ export default async function AttendancePage({
   let existing: { student_id: string; status: string }[] = [];
 
   if (classId) {
-    const [enrollmentResult, attendanceResult] = await Promise.all([
+    // Murid bisa "kedaftar" di suatu kelas lewat dua cara di data yang ada
+    // sekarang: (a) baris di tabel `enrollments` (dipakai kalau murid ikut
+    // banyak kelas / pindah kelas), atau (b) langsung lewat
+    // `students.class_id` (dipakai waktu murid ditambah/diedit dari
+    // halaman Students, tanpa bikin baris enrollment). Supaya murid nggak
+    // "hilang" dari Attendance, kita gabung dua sumber ini.
+    const [enrollmentResult, directResult, attendanceResult] = await Promise.all([
       supabase
         .from("enrollments")
         .select("students(id, name, student_code, status)")
+        .eq("class_id", classId)
+        .eq("status", "ACTIVE"),
+      supabase
+        .from("students")
+        .select("id, name, student_code, status")
         .eq("class_id", classId)
         .eq("status", "ACTIVE"),
       supabase
@@ -40,16 +51,20 @@ export default async function AttendancePage({
 
     type EnrolledStudent = { id: string; name: string; student_code: string; status: string };
     const enrolledRows = (enrollmentResult.data ?? []) as unknown as { students: EnrolledStudent | null }[];
-    const seen = new Set<string>();
-    students = enrolledRows
+    const fromEnrollments = enrolledRows
       .map((r) => r.students)
-      .filter((s): s is EnrolledStudent => Boolean(s) && s!.status === "ACTIVE")
+      .filter((s): s is EnrolledStudent => Boolean(s) && s!.status === "ACTIVE");
+    const fromDirect = (directResult.data ?? []) as EnrolledStudent[];
+
+    const seen = new Set<string>();
+    students = [...fromEnrollments, ...fromDirect]
       .filter((s) => {
         if (seen.has(s.id)) return false;
         seen.add(s.id);
         return true;
       })
-      .map((s) => ({ id: s.id, name: s.name, student_code: s.student_code }));
+      .map((s) => ({ id: s.id, name: s.name, student_code: s.student_code }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     existing = attendanceResult.data ?? [];
   }

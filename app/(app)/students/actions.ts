@@ -39,6 +39,62 @@ export async function addStudent(formData: {
   return { success: true, message: "Murid berhasil ditambahkan." };
 }
 
+// Cek apakah nama/no. HP yang diinput cocok dengan murid yang PERNAH
+// terdaftar (status INACTIVE) -- biasanya karena murid ini dulu berhenti
+// dan sekarang mau daftar lagi. Dipakai AddStudentButton buat nawarin
+// "aktifkan lagi data lama" biar riwayat absensi & pembayaran lama nggak
+// putus / kebentuk baris murid baru yang terpisah.
+export async function findRejoinCandidates(name: string, phone: string) {
+  const supabase = await createClient();
+  const trimmedName = name.trim();
+  const trimmedPhone = phone.trim();
+
+  if (!trimmedName && !trimmedPhone) return [];
+
+  const orParts: string[] = [];
+  if (trimmedPhone) orParts.push(`phone.eq.${trimmedPhone}`);
+  if (trimmedName) orParts.push(`name.ilike.${trimmedName}`);
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("id, student_code, name, phone, class_name, teacher_name, status, created_at")
+    .eq("status", "INACTIVE")
+    .or(orParts.join(","))
+    .limit(5);
+
+  if (error) return [];
+  return data ?? [];
+}
+
+// Aktifkan lagi murid lama (bukan bikin baris baru) -- supaya semua
+// riwayat lama (absensi, pembayaran, enrollment) tetap nempel ke
+// student_id yang sama persis.
+export async function reactivateStudent(
+  id: string,
+  formData: { name: string; phone: string }
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      name: formData.name,
+      phone: formData.phone || null,
+      status: "ACTIVE",
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/students");
+  revalidatePath(`/students/${id}`);
+  return {
+    success: true,
+    message:
+      "Murid berhasil diaktifkan kembali. Riwayat absensi & pembayaran lama tetap tersimpan. Silakan edit murid ini untuk atur kelas barunya.",
+  };
+}
+
 export async function addAdditionalClass(
   studentId: string,
   classId: string

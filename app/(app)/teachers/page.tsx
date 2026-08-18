@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import AddTeacherButton from "./AddTeacherButton";
 import EditTeacherButton from "./EditTeacherButton";
 
@@ -48,12 +49,17 @@ export default async function TeachersPage() {
           </thead>
           <tbody>
             {(teachers ?? []).map((t) => (
-              <tr key={t.id} className="border-b border-bmos-border last:border-0">
+              <tr
+                key={t.id}
+                className="border-b border-bmos-border last:border-0 hover:bg-bmos-primary-soft/30"
+              >
                 <td className="px-5 py-3">
-                  <p className="font-semibold text-bmos-text">{t.name}</p>
-                  <p className="text-xs text-bmos-text-light">
-                    {t.teacher_code}
-                  </p>
+                  <Link href={`/teachers/${t.id}`} className="block">
+                    <p className="font-semibold text-bmos-text">{t.name}</p>
+                    <p className="text-xs text-bmos-text-light">
+                      {t.teacher_code}
+                    </p>
+                  </Link>
                 </td>
                 <td className="px-5 py-3 text-bmos-text">{t.phone || "-"}</td>
                 <td className="px-5 py-3 text-bmos-text">

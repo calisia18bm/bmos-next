@@ -124,7 +124,7 @@ export default async function WeeklyChoicePage() {
               <tr className="text-left text-bmos-text-light border-b border-bmos-border">
                 <th className="px-5 py-3 font-medium">Murid</th>
                 <th className="px-5 py-3 font-medium">Kelas</th>
-                <th className="px-5 py-3 font-medium">Pilih Laoshi Minggu Ini</th>
+                <th className="px-5 py-3 font-medium">Pilih Jadwal Minggu Ini</th>
               </tr>
             </thead>
             <tbody>

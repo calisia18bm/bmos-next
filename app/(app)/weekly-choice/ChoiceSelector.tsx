@@ -38,7 +38,7 @@ export default function ChoiceSelector({
         onChange={(e) => setSelected(e.target.value)}
         className="text-xs border border-bmos-border rounded-lg px-2 py-1.5 focus:outline-none"
       >
-        <option value="">Pilih laoshi</option>
+        <option value="">Pilih jadwal</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.teacher_name} ({o.day_of_week})
