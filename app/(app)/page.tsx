@@ -244,18 +244,19 @@ export default async function DashboardPage() {
     : BANNER_CATALOG;
 
   return (
-    <div>
+    <div className="relative">
+      {/* Overlay ini nutupin seluruh halaman Home -- logo & karakter bisa
+          ditaruh dimana aja di dalamnya, ga cuma di satu kotak. */}
+      <HomeBanner items={bannerItems} canEdit={canEditBanner} />
+
       <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
         Overview
       </p>
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-extrabold text-bmos-text leading-tight">
-            Selamat Datang
-          </h1>
-          <NameEditor fullName={profile?.full_name ?? null} />
-        </div>
-        <HomeBanner items={bannerItems} canEdit={canEditBanner} />
+      <div className="mb-6">
+        <h1 className="text-3xl font-extrabold text-bmos-text leading-tight">
+          Selamat Datang
+        </h1>
+        <NameEditor fullName={profile?.full_name ?? null} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

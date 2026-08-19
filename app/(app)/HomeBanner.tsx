@@ -6,22 +6,6 @@ import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
 
-const CONTAINER_HEIGHT = 130;
-// Lebar maksimum area banner -- item ga boleh digeser sampai keluar dari
-// batas ini, biar ga ada karakter yang "ilang" kepotong di luar layar.
-const CONTAINER_MAX_WIDTH = 480;
-
-function clampItem(it: BannerItem): BannerItem {
-  const itemWidth = it.heightPx * 1.4;
-  const maxX = Math.max(0, CONTAINER_MAX_WIDTH - itemWidth);
-  const maxY = Math.max(0, CONTAINER_HEIGHT - it.heightPx);
-  return {
-    ...it,
-    x: Math.min(Math.max(it.x ?? 0, 0), maxX),
-    y: Math.min(Math.max(it.y ?? 0, 0), maxY),
-  };
-}
-
 export default function HomeBanner({
   items,
   canEdit,
@@ -32,7 +16,7 @@ export default function HomeBanner({
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<BannerItem[]>(
-    defaultBannerPositions(items).map(clampItem)
+    defaultBannerPositions(items)
   );
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,12 +47,24 @@ export default function HomeBanner({
     const { key, startX, startY, origX, origY } = dragState.current;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
+    // Batas gesernya ngikutin ukuran area sebenarnya (seluruh halaman
+    // Home), diukur langsung dari DOM -- jadi item ga bisa "ilang" keluar
+    // dari area, tapi bebas ditaruh dimana aja di dalamnya.
+    const rect = containerRef.current?.getBoundingClientRect();
+    const maxW = rect ? rect.width : Infinity;
+    const maxH = rect ? rect.height : Infinity;
     setLocalItems((prev) =>
-      prev.map((it) =>
-        it.key === key
-          ? clampItem({ ...it, x: origX + dx, y: origY + dy })
-          : it
-      )
+      prev.map((it) => {
+        if (it.key !== key) return it;
+        const itemWidth = it.heightPx * 1.4;
+        const maxX = Math.max(0, maxW - itemWidth);
+        const maxY = Math.max(0, maxH - it.heightPx);
+        return {
+          ...it,
+          x: Math.min(Math.max(origX + dx, 0), maxX),
+          y: Math.min(Math.max(origY + dy, 0), maxY),
+        };
+      })
     );
   }
 
@@ -85,26 +81,26 @@ export default function HomeBanner({
   }
 
   function handleCancel() {
-    setLocalItems(defaultBannerPositions(items).map(clampItem));
+    setLocalItems(defaultBannerPositions(items));
     setEditMode(false);
   }
 
   return (
-    <div className="shrink-0">
+    <>
       {canEdit && (
-        <div className="flex justify-end mb-1">
+        <div className="fixed top-4 right-6 z-50 flex items-center gap-3 bg-white/95 backdrop-blur border border-bmos-border rounded-xl px-3 py-2 shadow-sm">
           {!editMode ? (
             <button
               type="button"
               onClick={() => setEditMode(true)}
               className="text-xs font-semibold text-bmos-primary hover:underline"
             >
-              Atur posisi & ukuran
+              Atur posisi karakter
             </button>
           ) : (
-            <div className="flex items-center gap-3">
+            <>
               <span className="text-xs text-bmos-text-light">
-                Tarik buat geser
+                Tarik buat geser, taruh dimana aja
               </span>
               <button
                 type="button"
@@ -121,22 +117,29 @@ export default function HomeBanner({
               >
                 {saving ? "Menyimpan..." : "Simpan"}
               </button>
-            </div>
+            </>
           )}
         </div>
       )}
+      {/* Area geser menutupi seluruh halaman Home -- item bisa ditaruh
+          dimana aja di dalam halaman, ga cuma di satu kotak kecil. */}
       <div
         ref={containerRef}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className={`relative ${editMode ? "border-2 border-dashed border-bmos-primary-light rounded-xl bg-bmos-primary-soft/10" : ""}`}
-        style={{ height: CONTAINER_HEIGHT, width: CONTAINER_MAX_WIDTH, maxWidth: "100%" }}
+        className={`absolute inset-0 ${
+          editMode
+            ? "pointer-events-auto border-2 border-dashed border-bmos-primary-light rounded-xl bg-bmos-primary-soft/5 z-40"
+            : "pointer-events-none"
+        }`}
       >
         {localItems.map((it) => (
           <div
             key={it.key}
             onPointerDown={(e) => onPointerDown(e, it.key)}
-            className={`absolute ${editMode ? "cursor-move select-none" : ""}`}
+            className={`absolute ${
+              editMode ? "cursor-move select-none pointer-events-auto" : ""
+            }`}
             style={{ left: it.x, top: it.y }}
           >
             <Image
@@ -151,6 +154,6 @@ export default function HomeBanner({
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }
