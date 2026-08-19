@@ -7,6 +7,20 @@ import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
 
 const CONTAINER_HEIGHT = 130;
+// Lebar maksimum area banner -- item ga boleh digeser sampai keluar dari
+// batas ini, biar ga ada karakter yang "ilang" kepotong di luar layar.
+const CONTAINER_MAX_WIDTH = 480;
+
+function clampItem(it: BannerItem): BannerItem {
+  const itemWidth = it.heightPx * 1.4;
+  const maxX = Math.max(0, CONTAINER_MAX_WIDTH - itemWidth);
+  const maxY = Math.max(0, CONTAINER_HEIGHT - it.heightPx);
+  return {
+    ...it,
+    x: Math.min(Math.max(it.x ?? 0, 0), maxX),
+    y: Math.min(Math.max(it.y ?? 0, 0), maxY),
+  };
+}
 
 export default function HomeBanner({
   items,
@@ -18,7 +32,7 @@ export default function HomeBanner({
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<BannerItem[]>(
-    defaultBannerPositions(items)
+    defaultBannerPositions(items).map(clampItem)
   );
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,23 +65,15 @@ export default function HomeBanner({
     const dy = e.clientY - startY;
     setLocalItems((prev) =>
       prev.map((it) =>
-        it.key === key ? { ...it, x: origX + dx, y: origY + dy } : it
+        it.key === key
+          ? clampItem({ ...it, x: origX + dx, y: origY + dy })
+          : it
       )
     );
   }
 
   function onPointerUp() {
     dragState.current = null;
-  }
-
-  function resize(key: string, delta: number) {
-    setLocalItems((prev) =>
-      prev.map((it) =>
-        it.key === key
-          ? { ...it, heightPx: Math.max(16, Math.min(160, it.heightPx + delta)) }
-          : it
-      )
-    );
   }
 
   async function handleSave() {
@@ -79,7 +85,7 @@ export default function HomeBanner({
   }
 
   function handleCancel() {
-    setLocalItems(defaultBannerPositions(items));
+    setLocalItems(defaultBannerPositions(items).map(clampItem));
     setEditMode(false);
   }
 
@@ -98,7 +104,7 @@ export default function HomeBanner({
           ) : (
             <div className="flex items-center gap-3">
               <span className="text-xs text-bmos-text-light">
-                Tarik buat geser · +/- buat ukuran
+                Tarik buat geser
               </span>
               <button
                 type="button"
@@ -124,7 +130,7 @@ export default function HomeBanner({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         className={`relative ${editMode ? "border-2 border-dashed border-bmos-primary-light rounded-xl bg-bmos-primary-soft/10" : ""}`}
-        style={{ height: CONTAINER_HEIGHT, minWidth: 320 }}
+        style={{ height: CONTAINER_HEIGHT, width: CONTAINER_MAX_WIDTH, maxWidth: "100%" }}
       >
         {localItems.map((it) => (
           <div
@@ -142,26 +148,6 @@ export default function HomeBanner({
               className="w-auto object-contain pointer-events-none"
               draggable={false}
             />
-            {editMode && (
-              <div className="flex justify-center gap-1 mt-0.5">
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => resize(it.key, -6)}
-                  className="w-5 h-5 text-xs rounded bg-white border border-bmos-border hover:bg-bmos-primary-soft"
-                >
-                  −
-                </button>
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => resize(it.key, 6)}
-                  className="w-5 h-5 text-xs rounded bg-white border border-bmos-border hover:bg-bmos-primary-soft"
-                >
-                  +
-                </button>
-              </div>
-            )}
           </div>
         ))}
       </div>

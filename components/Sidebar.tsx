@@ -138,7 +138,7 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen sticky top-0 flex flex-col">
+    <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen fixed inset-y-0 left-0 flex flex-col z-20">
       <div className="p-5 flex items-center gap-3 border-b border-bmos-border">
         <CharacterPicker characterKey={characterKey} />
         <div>

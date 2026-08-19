@@ -24,7 +24,7 @@ export default async function AppLayout({
         email={profile.email}
         characterKey={profile.character_key}
       />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 p-8 ml-64">{children}</main>
     </div>
   );
 }

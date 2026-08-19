@@ -5,6 +5,7 @@ import { BANNER_CATALOG } from "@/lib/characters";
 import { getBannerLayout } from "./settings/branding/actions";
 import { getCurrentProfile } from "@/lib/auth";
 import HomeBanner from "./HomeBanner";
+import NameEditor from "./NameEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -248,9 +249,12 @@ export default async function DashboardPage() {
         Overview
       </p>
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-extrabold text-bmos-text">
-          Selamat datang
-        </h1>
+        <div>
+          <h1 className="text-3xl font-extrabold text-bmos-text leading-tight">
+            Selamat Datang
+          </h1>
+          <NameEditor fullName={profile?.full_name ?? null} />
+        </div>
         <HomeBanner items={bannerItems} canEdit={canEditBanner} />
       </div>
 

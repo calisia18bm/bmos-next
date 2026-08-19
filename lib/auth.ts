@@ -6,6 +6,7 @@ export type UserProfile = {
   roles: string[];
   active_role: string | null;
   character_key: string | null;
+  full_name: string | null;
 };
 
 export async function getCurrentProfile(): Promise<UserProfile | null> {
@@ -19,7 +20,7 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("id, email, roles, active_role, character_key")
+    .select("id, email, roles, active_role, character_key, full_name")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -35,5 +36,6 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
     roles: profile.roles || [],
     active_role: profile.active_role || profile.roles?.[0] || null,
     character_key: profile.character_key || null,
+    full_name: profile.full_name || null,
   };
 }
