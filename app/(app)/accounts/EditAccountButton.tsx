@@ -81,13 +81,13 @@ export default function EditAccountButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs font-semibold text-bmos-primary hover:underline"
+        className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer"
       >
         Edit
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 text-left">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <h2 className="text-lg font-bold text-bmos-text mb-1">
               Edit Akun
@@ -154,7 +154,7 @@ export default function EditAccountButton({
                     type="button"
                     onClick={handleResetPassword}
                     disabled={resetting}
-                    className="text-xs font-semibold text-bmos-primary hover:underline disabled:opacity-50"
+                    className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer disabled:opacity-50"
                   >
                     {resetting ? "Mereset..." : "Reset Password"}
                   </button>

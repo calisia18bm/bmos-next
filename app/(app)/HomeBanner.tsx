@@ -103,7 +103,7 @@ export default function HomeBanner({
             <button
               type="button"
               onClick={() => setEditMode(true)}
-              className="text-xs font-semibold text-bmos-primary hover:underline"
+              className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer"
             >
               Atur posisi karakter
             </button>
