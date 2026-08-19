@@ -16,6 +16,7 @@ export default function AddAccountButton() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,6 +33,7 @@ export default function AddAccountButton() {
   function reset() {
     setName("");
     setEmail("");
+    setPassword("");
     setRoles([]);
     setError("");
     setResult(null);
@@ -42,7 +44,7 @@ export default function AddAccountButton() {
     setLoading(true);
     setError("");
 
-    const res = await createAccount({ name, email, roles });
+    const res = await createAccount({ name, email, roles, password });
     setLoading(false);
 
     if (!res.success) {
@@ -64,7 +66,7 @@ export default function AddAccountButton() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 text-left">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             {result ? (
               <>
@@ -132,6 +134,22 @@ export default function AddAccountButton() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Password{" "}
+                      <span className="text-bmos-text-light font-normal">
+                        (opsional -- kosongin aja kalau mau di-generate otomatis)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                     />
                   </div>
 

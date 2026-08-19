@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AddAccountButton from "./AddAccountButton";
@@ -22,8 +22,13 @@ export default async function AccountsPage() {
     redirect("/");
   }
 
-  const supabase = await createClient();
-  const { data: accounts } = await supabase
+  // Pakai admin client (service role) buat list akun -- soalnya RLS di
+  // user_profiles cuma ngizinin tiap user baca baris punya sendiri
+  // (lihat database/fix_rls.sql). Halaman ini sendiri sudah dijaga di
+  // atas (cuma OWNER/ADMIN yang boleh render), jadi aman pakai service
+  // role di sini buat nampilin SEMUA akun, bukan cuma punya sendiri.
+  const admin = createAdminClient();
+  const { data: accounts } = await admin
     .from("user_profiles")
     .select("id, email, full_name, roles, active_role, created_at")
     .order("created_at", { ascending: false });

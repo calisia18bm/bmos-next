@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CharacterPicker from "./CharacterPicker";
+import ChangePasswordButton from "./ChangePasswordButton";
 
 const NAV_GROUPS = [
   {
@@ -189,6 +190,7 @@ export default function Sidebar({
         <p className="text-[11px] text-bmos-primary font-semibold mb-2">
           {roles.join(", ")}
         </p>
+        <ChangePasswordButton />
         <button
           onClick={handleLogout}
           className="w-full text-sm text-bmos-text-light hover:text-bmos-text text-left px-2 py-2"

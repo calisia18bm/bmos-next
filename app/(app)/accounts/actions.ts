@@ -45,10 +45,13 @@ async function requireOwnerOrAdmin(): Promise<
 // Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login
 // Supabase Auth-nya. Cuma boleh dipanggil sama OWNER atau ADMIN yang lagi
 // login -- dicek ulang di server biar ga bisa dilewatin dari luar.
+// Password boleh diisi manual (opsional) -- kalau dikosongin, di-generate
+// otomatis.
 export async function createAccount(input: {
   name: string;
   email: string;
   roles: string[];
+  password?: string;
 }) {
   const auth = await requireOwnerOrAdmin();
   if (auth.error) return { success: false, message: auth.error };
@@ -61,8 +64,15 @@ export async function createAccount(input: {
   if (input.roles.length === 0) {
     return { success: false, message: "Pilih minimal satu role." };
   }
+  const customPassword = (input.password || "").trim();
+  if (customPassword && customPassword.length < 6) {
+    return {
+      success: false,
+      message: "Password minimal 6 karakter.",
+    };
+  }
 
-  const password = generatePassword();
+  const password = customPassword || generatePassword();
   const admin = createAdminClient();
 
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
@@ -143,9 +153,10 @@ export async function updateAccount(
   return { success: true, message: "Akun berhasil diperbarui." };
 }
 
-// Reset password akun yang lupa password -- generate password baru
-// (bukan kirim email reset), langsung ditampilkan sekali ke Owner/Admin
-// yang mereset, buat dikasih tau manual ke orangnya.
+// Reset password akun siapapun -- dipakai Owner/Admin buat bantu orang
+// yang lupa password. Generate password baru (bukan kirim email reset),
+// langsung ditampilkan sekali ke Owner/Admin yang mereset, buat dikasih
+// tau manual ke orangnya.
 export async function resetAccountPassword(id: string) {
   const auth = await requireOwnerOrAdmin();
   if (auth.error) return { success: false, message: auth.error };
