@@ -72,6 +72,16 @@ export default function HomeBanner({
     dragState.current = null;
   }
 
+  function resize(key: string, delta: number) {
+    setLocalItems((prev) =>
+      prev.map((it) =>
+        it.key === key
+          ? { ...it, heightPx: Math.max(16, Math.min(160, it.heightPx + delta)) }
+          : it
+      )
+    );
+  }
+
   async function handleSave() {
     setSaving(true);
     await saveBannerLayout(localItems);
@@ -100,7 +110,7 @@ export default function HomeBanner({
           ) : (
             <>
               <span className="text-xs text-bmos-text-light">
-                Tarik buat geser, taruh dimana aja
+                Tarik buat geser, +/- buat ukuran
               </span>
               <button
                 type="button"
@@ -152,6 +162,26 @@ export default function HomeBanner({
               className="w-auto object-contain pointer-events-none"
               draggable={false}
             />
+            {editMode && (
+              <div className="flex justify-center gap-1 mt-0.5">
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => resize(it.key, -6)}
+                  className="w-5 h-5 text-xs rounded bg-white border border-bmos-border hover:bg-bmos-primary-soft pointer-events-auto"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => resize(it.key, 6)}
+                  className="w-5 h-5 text-xs rounded bg-white border border-bmos-border hover:bg-bmos-primary-soft pointer-events-auto"
+                >
+                  +
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AddAccountButton from "./AddAccountButton";
+import EditAccountButton from "./EditAccountButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function AccountsPage() {
               <th className="px-5 py-3 font-medium">Email</th>
               <th className="px-5 py-3 font-medium">Role</th>
               <th className="px-5 py-3 font-medium">Terdaftar</th>
+              <th className="px-5 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -79,13 +81,23 @@ export default async function AccountsPage() {
                     ? new Date(a.created_at).toLocaleDateString("id-ID")
                     : "-"}
                 </td>
+                <td className="px-5 py-3 text-right">
+                  <EditAccountButton
+                    account={{
+                      id: a.id,
+                      email: a.email,
+                      full_name: a.full_name,
+                      roles: a.roles || [],
+                    }}
+                  />
+                </td>
               </tr>
             ))}
 
             {(!accounts || accounts.length === 0) && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-5 py-10 text-center text-bmos-text-light"
                 >
                   Belum ada akun. Klik &quot;Buat Akun&quot; untuk mulai.

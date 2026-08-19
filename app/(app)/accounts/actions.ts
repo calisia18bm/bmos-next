@@ -15,20 +15,15 @@ function generatePassword() {
   return pw;
 }
 
-// Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login
-// Supabase Auth-nya. Cuma boleh dipanggil sama OWNER atau ADMIN yang lagi
-// login -- dicek ulang di server biar ga bisa dilewatin dari luar.
-export async function createAccount(input: {
-  name: string;
-  email: string;
-  roles: string[];
-}) {
+// Dipakai di semua action di file ini -- cuma OWNER/ADMIN yang boleh
+// kelola akun orang lain. Return null kalau lolos, atau pesan error.
+async function requireOwnerOrAdmin(): Promise<string | null> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { success: false, message: "Belum login." };
+  if (!user) return "Belum login.";
 
   const { data: myProfile } = await supabase
     .from("user_profiles")
@@ -38,11 +33,22 @@ export async function createAccount(input: {
 
   const myRoles = myProfile?.roles || [];
   if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
-    return {
-      success: false,
-      message: "Kamu tidak punya akses untuk membuat akun baru.",
-    };
+    return "Kamu tidak punya akses untuk kelola akun.";
   }
+
+  return null;
+}
+
+// Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login
+// Supabase Auth-nya. Cuma boleh dipanggil sama OWNER atau ADMIN yang lagi
+// login -- dicek ulang di server biar ga bisa dilewatin dari luar.
+export async function createAccount(input: {
+  name: string;
+  email: string;
+  roles: string[];
+}) {
+  const authError = await requireOwnerOrAdmin();
+  if (authError) return { success: false, message: authError };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -91,4 +97,51 @@ export async function createAccount(input: {
     email,
     password,
   };
+}
+
+// Edit nama & role akun yang sudah ada.
+export async function updateAccount(
+  id: string,
+  input: { name: string; roles: string[] }
+) {
+  const authError = await requireOwnerOrAdmin();
+  if (authError) return { success: false, message: authError };
+
+  const name = input.name.trim();
+  if (!name) return { success: false, message: "Nama wajib diisi." };
+  if (input.roles.length === 0) {
+    return { success: false, message: "Pilih minimal satu role." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("user_profiles")
+    .update({
+      full_name: name,
+      roles: input.roles,
+      active_role: input.roles[0],
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/accounts");
+  return { success: true, message: "Akun berhasil diperbarui." };
+}
+
+// Reset password akun yang lupa password -- generate password baru
+// (bukan kirim email reset), langsung ditampilkan sekali ke Owner/Admin
+// yang mereset, buat dikasih tau manual ke orangnya.
+export async function resetAccountPassword(id: string) {
+  const authError = await requireOwnerOrAdmin();
+  if (authError) return { success: false, message: authError };
+
+  const password = generatePassword();
+  const admin = createAdminClient();
+
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+
+  if (error) return { success: false, message: error.message };
+
+  return { success: true, message: "Password berhasil direset.", password };
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -37,11 +38,17 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-bmos-primary-soft flex items-center justify-center mx-auto mb-4 text-2xl">
-            🙂
+          <div className="w-16 h-16 rounded-2xl bg-bmos-primary-soft flex items-center justify-center mx-auto mb-4">
+            <Image
+              src="/characters/bm_logo.png"
+              alt="BM Mandarin"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
           </div>
           <h1 className="text-2xl font-extrabold text-bmos-text">BMOS</h1>
-          <p className="text-bmos-text-light text-sm">BM Masterclass</p>
+          <p className="text-bmos-text-light text-sm">BM Mandarin</p>
         </div>
 
         <form

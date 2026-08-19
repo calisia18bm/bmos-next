@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BMOS - BM Masterclass",
-  description: "BM Masterclass Operating System",
+  title: "BMOS - BM Mandarin",
+  description: "BM Mandarin Operating System",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
