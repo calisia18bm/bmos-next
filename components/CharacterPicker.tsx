@@ -33,7 +33,7 @@ export default function CharacterPicker({
         title="Karaktermu"
         className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center overflow-hidden shrink-0"
       >
-        <Image src={currentFile} alt="Karaktermu" width={40} height={40} className="object-contain" />
+        <Image src={currentFile} alt="Karaktermu" width={28} height={28} className="object-contain" />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function CharacterPicker({
         title="Ganti karakter"
         className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center overflow-hidden shrink-0 hover:opacity-80 transition"
       >
-        <Image src={currentFile} alt="Karaktermu" width={40} height={40} className="object-contain" />
+        <Image src={currentFile} alt="Karaktermu" width={28} height={28} className="object-contain" />
       </button>
 
       {open && (
@@ -66,7 +66,7 @@ export default function CharacterPicker({
                   disabled={loading}
                   onClick={() => handlePick(c.key)}
                   title={c.label}
-                  className={`aspect-square rounded-xl border-2 flex items-center justify-center p-1.5 transition disabled:opacity-50 ${
+                  className={`w-16 h-16 mx-auto rounded-xl border-2 flex items-center justify-center p-2 overflow-hidden transition disabled:opacity-50 ${
                     c.key === characterKey
                       ? "border-bmos-primary bg-bmos-primary-soft"
                       : "border-bmos-border hover:border-bmos-primary-light"
@@ -75,9 +75,9 @@ export default function CharacterPicker({
                   <Image
                     src={c.file}
                     alt={c.label}
-                    width={64}
-                    height={64}
-                    className="object-contain"
+                    width={40}
+                    height={40}
+                    className="object-contain max-w-full max-h-full"
                   />
                 </button>
               ))}

@@ -55,7 +55,7 @@ export default function NameEditor({ fullName }: { fullName: string | null }) {
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="text-lg font-semibold text-bmos-text-light hover:text-bmos-primary transition text-left"
+      className="text-lg font-semibold text-bmos-text-light hover:text-bmos-primary transition text-left select-none cursor-pointer"
       title="Klik buat isi/ubah nama"
     >
       {fullName || "Nama Lengkap"}
