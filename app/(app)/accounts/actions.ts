@@ -54,7 +54,7 @@ export async function createAccount(input: {
   password?: string;
 }) {
   const auth = await requireOwnerOrAdmin();
-  if (auth.error) return { success: false, message: auth.error };
+  if (auth.error !== null) return { success: false, message: auth.error };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -118,7 +118,7 @@ export async function updateAccount(
   input: { name: string; roles: string[] }
 ) {
   const auth = await requireOwnerOrAdmin();
-  if (auth.error) return { success: false, message: auth.error };
+  if (auth.error !== null) return { success: false, message: auth.error };
 
   const name = input.name.trim();
   if (!name) return { success: false, message: "Nama wajib diisi." };
@@ -159,7 +159,7 @@ export async function updateAccount(
 // tau manual ke orangnya.
 export async function resetAccountPassword(id: string) {
   const auth = await requireOwnerOrAdmin();
-  if (auth.error) return { success: false, message: auth.error };
+  if (auth.error !== null) return { success: false, message: auth.error };
 
   const password = generatePassword();
   const admin = createAdminClient();
