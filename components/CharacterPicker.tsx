@@ -8,8 +8,10 @@ import { updateMyCharacter } from "@/app/(app)/account/actions";
 
 export default function CharacterPicker({
   characterKey,
+  canEdit = false,
 }: {
   characterKey: string | null;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -22,6 +24,18 @@ export default function CharacterPicker({
     setLoading(false);
     setOpen(false);
     router.refresh();
+  }
+
+  // Yang bukan Owner cuma liat avatarnya, ga bisa buka picker buat ganti.
+  if (!canEdit) {
+    return (
+      <div
+        title="Karaktermu"
+        className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center overflow-hidden shrink-0"
+      >
+        <Image src={currentFile} alt="Karaktermu" width={40} height={40} className="object-contain" />
+      </div>
+    );
   }
 
   return (

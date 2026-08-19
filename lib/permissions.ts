@@ -19,8 +19,17 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "reports",
     "ai-assistant",
     "branding",
+    "accounts",
   ],
-  ADMIN: ["dashboard", "students", "teachers", "classes", "attendance", "payments"],
+  ADMIN: [
+    "dashboard",
+    "students",
+    "teachers",
+    "classes",
+    "attendance",
+    "payments",
+    "accounts",
+  ],
   TEACHER: ["dashboard", "attendance"],
   STUDENT: ["dashboard"],
 };

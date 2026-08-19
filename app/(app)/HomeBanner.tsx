@@ -121,15 +121,16 @@ export default function HomeBanner({
           )}
         </div>
       )}
-      {/* Area geser menutupi seluruh halaman Home -- item bisa ditaruh
-          dimana aja di dalam halaman, ga cuma di satu kotak kecil. */}
+      {/* Area geser menutupi SELURUH layar (termasuk sampai ke sidebar kiri)
+          -- item bisa ditaruh dimana aja, ga cuma di area konten kanan.
+          z-30 biar tetep keliatan di atas sidebar (z-20). */}
       <div
         ref={containerRef}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className={`absolute inset-0 ${
+        className={`fixed inset-0 z-30 ${
           editMode
-            ? "pointer-events-auto border-2 border-dashed border-bmos-primary-light rounded-xl bg-bmos-primary-soft/5 z-40"
+            ? "pointer-events-auto border-2 border-dashed border-bmos-primary-light bg-bmos-primary-soft/5"
             : "pointer-events-none"
         }`}
       >

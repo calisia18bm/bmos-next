@@ -45,6 +45,7 @@ const NAV_GROUPS = [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
       { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
       { href: "/classes", menu: "classes", label: "Classes", icon: "📚" },
+      { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
     ],
   },
   {
@@ -140,7 +141,7 @@ export default function Sidebar({
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen fixed inset-y-0 left-0 flex flex-col z-20">
       <div className="p-5 flex items-center gap-3 border-b border-bmos-border">
-        <CharacterPicker characterKey={characterKey} />
+        <CharacterPicker characterKey={characterKey} canEdit={roles.includes("OWNER")} />
         <div>
           <p className="font-extrabold text-bmos-text leading-tight">BMOS</p>
           <p className="text-xs text-bmos-text-light">BM Mandarin</p>
