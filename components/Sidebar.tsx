@@ -14,17 +14,11 @@ const NAV_GROUPS = [
   {
     label: "PORTAL MURID",
     items: [
-      { href: "/my-class", menu: "my-class", label: "My Class", icon: "📖" },
-      {
-        href: "/my-attendance",
-        menu: "my-attendance",
-        label: "My Attendance",
-        icon: "✅",
-      },
+      { href: "/my-class", menu: "my-class", label: "Jadwal Saya", icon: "🗓️" },
       {
         href: "/my-payments",
         menu: "my-payments",
-        label: "My Payments",
+        label: "Pembayaran Saya",
         icon: "💳",
       },
     ],
@@ -33,9 +27,15 @@ const NAV_GROUPS = [
     label: "PORTAL LAOSHI",
     items: [
       {
+        href: "/my-schedule",
+        menu: "my-schedule",
+        label: "Jadwal Saya",
+        icon: "🗓️",
+      },
+      {
         href: "/my-students",
         menu: "my-students",
-        label: "My Students",
+        label: "Murid Saya",
         icon: "🧑‍🎓",
       },
     ],

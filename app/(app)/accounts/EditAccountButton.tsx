@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { resetAccountPassword, updateAccount } from "./actions";
 
@@ -12,11 +12,6 @@ const ROLE_OPTIONS = [
 ];
 
 type Person = { id: string; name: string; teacher_code?: string; student_code?: string };
-
-function personLabel(p: Person) {
-  const code = p.teacher_code || p.student_code;
-  return code ? `${p.name} (${code})` : p.name;
-}
 
 export default function EditAccountButton({
   account,
@@ -38,12 +33,28 @@ export default function EditAccountButton({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(account.full_name || "");
   const [roles, setRoles] = useState<string[]>(account.roles || []);
-  const [teacherId, setTeacherId] = useState(account.teacher_id || "");
-  const [studentId, setStudentId] = useState(account.student_id || "");
+
+  const currentTeacher = teachers.find((t) => t.id === account.teacher_id);
+  const currentStudent = students.find((s) => s.id === account.student_id);
+  const [teacherCode, setTeacherCode] = useState(currentTeacher?.teacher_code || "");
+  const [studentCode, setStudentCode] = useState(currentStudent?.student_code || "");
+
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
   const [newPassword, setNewPassword] = useState<string | null>(null);
+
+  const matchedTeacher = useMemo(() => {
+    const code = teacherCode.trim().toUpperCase();
+    if (!code) return null;
+    return teachers.find((t) => (t.teacher_code || "").toUpperCase() === code) || null;
+  }, [teacherCode, teachers]);
+
+  const matchedStudent = useMemo(() => {
+    const code = studentCode.trim().toUpperCase();
+    if (!code) return null;
+    return students.find((s) => (s.student_code || "").toUpperCase() === code) || null;
+  }, [studentCode, students]);
 
   function toggleRole(key: string) {
     setRoles((prev) =>
@@ -55,22 +66,31 @@ export default function EditAccountButton({
     setOpen(false);
     setName(account.full_name || "");
     setRoles(account.roles || []);
-    setTeacherId(account.teacher_id || "");
-    setStudentId(account.student_id || "");
+    setTeacherCode(currentTeacher?.teacher_code || "");
+    setStudentCode(currentStudent?.student_code || "");
     setError("");
     setNewPassword(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
+    if (roles.includes("TEACHER") && teacherCode.trim() && !matchedTeacher) {
+      setError("Kode Laoshi tidak ditemukan. Cek lagi kodenya di halaman Teachers.");
+      return;
+    }
+    if (roles.includes("STUDENT") && studentCode.trim() && !matchedStudent) {
+      setError("Kode Murid tidak ditemukan. Cek lagi kodenya di halaman Students.");
+      return;
+    }
+
+    setLoading(true);
     const res = await updateAccount(account.id, {
       name,
       roles,
-      teacherId: teacherId || null,
-      studentId: studentId || null,
+      teacherId: matchedTeacher?.id || null,
+      studentId: matchedStudent?.id || null,
     });
     setLoading(false);
 
@@ -160,40 +180,56 @@ export default function EditAccountButton({
               {roles.includes("TEACHER") && (
                 <div>
                   <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Hubungkan ke data Laoshi
+                    Kode Laoshi{" "}
+                    <span className="text-bmos-text-light font-normal">
+                      (dari halaman Teachers, misal L001)
+                    </span>
                   </label>
-                  <select
-                    value={teacherId}
-                    onChange={(e) => setTeacherId(e.target.value)}
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  >
-                    <option value="">-- Pilih Laoshi --</option>
-                    {teachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {personLabel(t)}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    value={teacherCode}
+                    onChange={(e) => setTeacherCode(e.target.value)}
+                    placeholder="L001"
+                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                  />
+                  {teacherCode.trim() && (
+                    <p
+                      className={`text-xs mt-1 ${
+                        matchedTeacher ? "text-green-700" : "text-red-600"
+                      }`}
+                    >
+                      {matchedTeacher
+                        ? `✓ Kehubung ke: ${matchedTeacher.name}`
+                        : "Kode tidak ditemukan."}
+                    </p>
+                  )}
                 </div>
               )}
 
               {roles.includes("STUDENT") && (
                 <div>
                   <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Hubungkan ke data Murid
+                    Kode Murid{" "}
+                    <span className="text-bmos-text-light font-normal">
+                      (dari halaman Students, misal M0001)
+                    </span>
                   </label>
-                  <select
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  >
-                    <option value="">-- Pilih Murid --</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {personLabel(s)}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    value={studentCode}
+                    onChange={(e) => setStudentCode(e.target.value)}
+                    placeholder="M0001"
+                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                  />
+                  {studentCode.trim() && (
+                    <p
+                      className={`text-xs mt-1 ${
+                        matchedStudent ? "text-green-700" : "text-red-600"
+                      }`}
+                    >
+                      {matchedStudent
+                        ? `✓ Kehubung ke: ${matchedStudent.name}`
+                        : "Kode tidak ditemukan."}
+                    </p>
+                  )}
                 </div>
               )}
 

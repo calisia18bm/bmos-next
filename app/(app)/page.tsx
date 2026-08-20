@@ -7,6 +7,8 @@ import { getCurrentProfile } from "@/lib/auth";
 import HomeBanner from "./HomeBanner";
 import NameEditor from "./NameEditor";
 import SimpleHome from "./SimpleHome";
+import { getAnnouncements } from "./announcements/actions";
+import AnnouncementsManage from "./announcements/AnnouncementsManage";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,8 @@ export default async function DashboardPage() {
       />
     );
   }
+
+  const announcements = await getAnnouncements(5);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -290,6 +294,8 @@ export default async function DashboardPage() {
         <StatCard label="Total Income" value={formatCurrency(totalIncomeThisMonth)} icon="💳" />
         <StatCard label="Trials Terjadwal" value={trialsCount ?? 0} icon="🎯" />
       </div>
+
+      <AnnouncementsManage announcements={announcements} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2 bg-white border border-bmos-border rounded-2xl p-6">

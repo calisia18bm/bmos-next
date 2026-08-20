@@ -19,12 +19,24 @@ export default function CharacterPicker({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const currentFile = getCharacterFile(characterKey);
 
   async function handlePick(key: string) {
     setLoading(true);
-    await updateGlobalCharacter(key);
+    setError("");
+    const res = await updateGlobalCharacter(key);
     setLoading(false);
+
+    if (!res.success) {
+      // Dulu error di sini ke-telen diem-diem (popup nutup kayak
+      // berhasil padahal gagal) -- sekarang ditampilin biar ketauan
+      // penyebabnya, misal kolom global_character_key di Supabase belum
+      // dibuat (lupa jalanin database/add_global_character.sql).
+      setError(res.message);
+      return;
+    }
+
     setOpen(false);
     router.refresh();
   }
@@ -74,9 +86,11 @@ export default function CharacterPicker({
               Karakter ini muncul sebagai avatar di sidebar untuk SEMUA akun
               (murid, laoshi, admin, owner) -- bukan cuma punyamu sendiri.
             </p>
-            {/* Grid dibikin fixed-size (bukan aspect-square + padding beda-beda)
-                biar semua kotak persis sama besar, dan gambar dikasih padding
-                lebih longgar (p-3, bukan p-2) biar ga terlalu mepet ke frame. */}
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">
+                Gagal ganti karakter: {error}
+              </p>
+            )}
             <div className="grid grid-cols-4 gap-3">
               {CHARACTERS.map((c) => (
                 <button

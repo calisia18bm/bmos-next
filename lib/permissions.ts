@@ -31,8 +31,8 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     // "accounts" sengaja DIHAPUS dari sini -- pengelolaan akun (buat/edit
     // akun, reset password orang lain) sekarang cuma buat Owner.
   ],
-  TEACHER: ["dashboard", "attendance"],
-  STUDENT: ["dashboard"],
+  TEACHER: ["dashboard", "attendance", "my-schedule", "my-students"],
+  STUDENT: ["dashboard", "my-class", "my-payments"],
 };
 
 export function getMenusForRoles(roles: string[]): string[] {
