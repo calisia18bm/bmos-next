@@ -47,12 +47,16 @@ async function requireOwner(): Promise<
 // Supabase Auth-nya. Cuma boleh dipanggil sama OWNER yang lagi login --
 // dicek ulang di server biar ga bisa dilewatin dari luar.
 // Password boleh diisi manual (opsional) -- kalau dikosongin, di-generate
-// otomatis.
+// otomatis. teacherId/studentId dipakai buat nyambungin akun ini ke data
+// Laoshi/Murid yang udah ada di Master Data (biar home & materi bisa
+// tau kelas mana yang relevan buat akun ini).
 export async function createAccount(input: {
   name: string;
   email: string;
   roles: string[];
   password?: string;
+  teacherId?: string | null;
+  studentId?: string | null;
 }) {
   const auth = await requireOwner();
   if (auth.error !== null) return { success: false, message: auth.error };
@@ -96,6 +100,8 @@ export async function createAccount(input: {
     full_name: name,
     roles: input.roles,
     active_role: input.roles[0],
+    teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
+    student_id: input.roles.includes("STUDENT") ? input.studentId || null : null,
   });
 
   if (profileErr) {
@@ -116,7 +122,12 @@ export async function createAccount(input: {
 // Edit nama & role akun yang sudah ada.
 export async function updateAccount(
   id: string,
-  input: { name: string; roles: string[] }
+  input: {
+    name: string;
+    roles: string[];
+    teacherId?: string | null;
+    studentId?: string | null;
+  }
 ) {
   const auth = await requireOwner();
   if (auth.error !== null) return { success: false, message: auth.error };
@@ -145,6 +156,8 @@ export async function updateAccount(
       full_name: name,
       roles: input.roles,
       active_role: input.roles[0],
+      teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
+      student_id: input.roles.includes("STUDENT") ? input.studentId || null : null,
     })
     .eq("id", id);
 

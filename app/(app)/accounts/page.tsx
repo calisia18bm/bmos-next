@@ -29,10 +29,25 @@ export default async function AccountsPage() {
   // atas (cuma OWNER yang boleh render), jadi aman pakai service role
   // di sini buat nampilin SEMUA akun, bukan cuma punya sendiri.
   const admin = createAdminClient();
-  const { data: accounts } = await admin
-    .from("user_profiles")
-    .select("id, email, full_name, roles, active_role, created_at")
-    .order("created_at", { ascending: false });
+  const [{ data: accounts }, { data: teachers }, { data: students }] =
+    await Promise.all([
+      admin
+        .from("user_profiles")
+        .select(
+          "id, email, full_name, roles, active_role, teacher_id, student_id, created_at"
+        )
+        .order("created_at", { ascending: false }),
+      admin
+        .from("teachers")
+        .select("id, name")
+        .eq("active", true)
+        .order("name"),
+      admin
+        .from("students")
+        .select("id, name")
+        .eq("status", "ACTIVE")
+        .order("name"),
+    ]);
 
   return (
     <div>
@@ -46,7 +61,10 @@ export default async function AccountsPage() {
             Kelola akun login BMOS untuk owner, admin, laoshi, dan murid.
           </p>
         </div>
-        <AddAccountButton />
+        <AddAccountButton
+          teachers={teachers ?? []}
+          students={students ?? []}
+        />
       </div>
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
@@ -94,7 +112,11 @@ export default async function AccountsPage() {
                       email: a.email,
                       full_name: a.full_name,
                       roles: a.roles || [],
+                      teacher_id: a.teacher_id,
+                      student_id: a.student_id,
                     }}
+                    teachers={teachers ?? []}
+                    students={students ?? []}
                   />
                 </td>
               </tr>

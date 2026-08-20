@@ -11,20 +11,30 @@ const ROLE_OPTIONS = [
   { key: "STUDENT", label: "Murid (Student)" },
 ];
 
+type Person = { id: string; name: string };
+
 export default function EditAccountButton({
   account,
+  teachers,
+  students,
 }: {
   account: {
     id: string;
     email: string;
     full_name: string | null;
     roles: string[];
+    teacher_id: string | null;
+    student_id: string | null;
   };
+  teachers: Person[];
+  students: Person[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(account.full_name || "");
   const [roles, setRoles] = useState<string[]>(account.roles || []);
+  const [teacherId, setTeacherId] = useState(account.teacher_id || "");
+  const [studentId, setStudentId] = useState(account.student_id || "");
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
@@ -40,6 +50,8 @@ export default function EditAccountButton({
     setOpen(false);
     setName(account.full_name || "");
     setRoles(account.roles || []);
+    setTeacherId(account.teacher_id || "");
+    setStudentId(account.student_id || "");
     setError("");
     setNewPassword(null);
   }
@@ -49,7 +61,12 @@ export default function EditAccountButton({
     setLoading(true);
     setError("");
 
-    const res = await updateAccount(account.id, { name, roles });
+    const res = await updateAccount(account.id, {
+      name,
+      roles,
+      teacherId: teacherId || null,
+      studentId: studentId || null,
+    });
     setLoading(false);
 
     if (!res.success) {
@@ -88,7 +105,7 @@ export default function EditAccountButton({
 
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 text-left">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-bmos-text mb-1">
               Edit Akun
             </h2>
@@ -135,6 +152,52 @@ export default function EditAccountButton({
                 </div>
               </div>
 
+              {roles.includes("TEACHER") && (
+                <div>
+                  <label className="block text-sm font-medium text-bmos-text mb-1">
+                    Hubungkan ke data Laoshi{" "}
+                    <span className="text-bmos-text-light font-normal">
+                      (biar tau kelas yang diajar)
+                    </span>
+                  </label>
+                  <select
+                    value={teacherId}
+                    onChange={(e) => setTeacherId(e.target.value)}
+                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                  >
+                    <option value="">-- Pilih Laoshi --</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {roles.includes("STUDENT") && (
+                <div>
+                  <label className="block text-sm font-medium text-bmos-text mb-1">
+                    Hubungkan ke data Murid{" "}
+                    <span className="text-bmos-text-light font-normal">
+                      (biar tau kelasnya)
+                    </span>
+                  </label>
+                  <select
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                  >
+                    <option value="">-- Pilih Murid --</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="border-t border-bmos-border pt-4">
                 <label className="block text-sm font-medium text-bmos-text mb-2">
                   Lupa password?
@@ -142,8 +205,8 @@ export default function EditAccountButton({
                 {newPassword ? (
                   <div className="bg-bmos-primary-soft/40 rounded-xl p-3 space-y-1">
                     <p className="text-xs text-bmos-text-light">
-                      Password baru (cuma muncul sekali, catat &amp; kirim ke
-                      orangnya sekarang):
+                      Password baru (cuma muncul sekali di sini, catat &amp;
+                      kirim ke orangnya sekarang):
                     </p>
                     <p className="font-mono font-semibold text-bmos-text">
                       {newPassword}

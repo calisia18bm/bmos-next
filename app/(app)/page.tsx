@@ -6,6 +6,7 @@ import { getBannerLayout } from "./settings/branding/actions";
 import { getCurrentProfile } from "@/lib/auth";
 import HomeBanner from "./HomeBanner";
 import NameEditor from "./NameEditor";
+import SimpleHome from "./SimpleHome";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,30 @@ export default async function DashboardPage() {
   const savedBannerLayout = await getBannerLayout();
   const profile = await getCurrentProfile();
   const canEditBanner = profile?.roles?.includes("OWNER") ?? false;
+
+  // Laoshi & Murid liat Home yang disederhanakan (jadwal + materi aja),
+  // bukan dashboard bisnis lengkap punya Owner/Admin.
+  const isStaffRole =
+    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+
+  if (profile && !isStaffRole) {
+    const bannerItemsSimple =
+      savedBannerLayout && savedBannerLayout.length > 0
+        ? [
+            ...savedBannerLayout,
+            ...BANNER_CATALOG.filter(
+              (c) => !savedBannerLayout.some((s) => s.key === c.key)
+            ),
+          ]
+        : BANNER_CATALOG;
+    return (
+      <SimpleHome
+        profile={profile}
+        bannerItems={bannerItemsSimple}
+        canEditBanner={canEditBanner}
+      />
+    );
+  }
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
