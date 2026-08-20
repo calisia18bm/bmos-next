@@ -15,8 +15,9 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default async function AccountsPage() {
   const profile = await getCurrentProfile();
-  const canView =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+  // Pengelolaan akun (bikin/edit akun, reset password orang lain) cuma
+  // buat Owner -- Admin ga boleh lagi masuk ke sini.
+  const canView = profile?.roles?.includes("OWNER") ?? false;
 
   if (!canView) {
     redirect("/");
@@ -25,8 +26,8 @@ export default async function AccountsPage() {
   // Pakai admin client (service role) buat list akun -- soalnya RLS di
   // user_profiles cuma ngizinin tiap user baca baris punya sendiri
   // (lihat database/fix_rls.sql). Halaman ini sendiri sudah dijaga di
-  // atas (cuma OWNER/ADMIN yang boleh render), jadi aman pakai service
-  // role di sini buat nampilin SEMUA akun, bukan cuma punya sendiri.
+  // atas (cuma OWNER yang boleh render), jadi aman pakai service role
+  // di sini buat nampilin SEMUA akun, bukan cuma punya sendiri.
   const admin = createAdminClient();
   const { data: accounts } = await admin
     .from("user_profiles")

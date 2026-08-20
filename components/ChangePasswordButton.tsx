@@ -4,12 +4,15 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // Ganti password punya sendiri -- bisa dipakai SEMUA role (murid, laoshi,
-// admin, owner), soalnya ini cuma ganti akun sendiri (auth.updateUser
-// bawaan Supabase, pakai sesi login yang aktif, ga butuh service role).
-// Kalau Owner/Admin mau ganti password ORANG LAIN, itu lewat halaman
-// Accounts (Reset Password), bukan tombol ini.
-export default function ChangePasswordButton() {
+// admin, owner), soalnya ini cuma ganti akun sendiri. Wajib masukin
+// password LAMA dulu buat verifikasi (di-cek dengan coba login ulang),
+// baru boleh set password baru -- biar ga sembarang orang yang kebetulan
+// lagi pegang HP/laptop yang masih login bisa asal ganti password orang.
+// Kalau Owner/Admin mau ganti password ORANG LAIN yang lupa passwordnya,
+// itu lewat halaman Accounts (Reset Password), bukan tombol ini.
+export default function ChangePasswordButton({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,6 +21,7 @@ export default function ChangePasswordButton() {
 
   function closeAndReset() {
     setOpen(false);
+    setOldPassword("");
     setPassword("");
     setConfirm("");
     setError("");
@@ -28,17 +32,35 @@ export default function ChangePasswordButton() {
     e.preventDefault();
     setError("");
 
+    if (!oldPassword) {
+      setError("Password lama wajib diisi.");
+      return;
+    }
     if (password.length < 6) {
-      setError("Password minimal 6 karakter.");
+      setError("Password baru minimal 6 karakter.");
       return;
     }
     if (password !== confirm) {
-      setError("Konfirmasi password tidak sama.");
+      setError("Konfirmasi password baru tidak sama.");
       return;
     }
 
     setLoading(true);
     const supabase = createClient();
+
+    // Verifikasi password lama dulu -- coba login ulang pakai email +
+    // password lama. Kalau salah, signIn-nya bakal error.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: oldPassword,
+    });
+
+    if (signInError) {
+      setLoading(false);
+      setError("Password lama salah.");
+      return;
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({
       password,
     });
@@ -89,6 +111,18 @@ export default function ChangePasswordButton() {
                   Ganti Password
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Password Lama
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-bmos-text mb-1">
                       Password Baru

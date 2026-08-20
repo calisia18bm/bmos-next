@@ -28,7 +28,8 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "classes",
     "attendance",
     "payments",
-    "accounts",
+    // "accounts" sengaja DIHAPUS dari sini -- pengelolaan akun (buat/edit
+    // akun, reset password orang lain) sekarang cuma buat Owner.
   ],
   TEACHER: ["dashboard", "attendance"],
   STUDENT: ["dashboard"],

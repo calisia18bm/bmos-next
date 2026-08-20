@@ -15,10 +15,11 @@ function generatePassword() {
   return pw;
 }
 
-// Dipakai di semua action di file ini -- cuma OWNER/ADMIN yang boleh
-// kelola akun orang lain. Return null kalau lolos (beserta id & role user
-// yang lagi login), atau pesan error.
-async function requireOwnerOrAdmin(): Promise<
+// Dipakai di semua action di file ini -- pengelolaan akun (bikin/edit
+// akun orang lain, reset password orang lain) sekarang cuma buat OWNER.
+// Return null kalau lolos (beserta id user yang lagi login), atau pesan
+// error.
+async function requireOwner(): Promise<
   { error: string } | { error: null; userId: string; roles: string[] }
 > {
   const supabase = await createClient();
@@ -35,16 +36,16 @@ async function requireOwnerOrAdmin(): Promise<
     .maybeSingle();
 
   const myRoles = myProfile?.roles || [];
-  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
-    return { error: "Kamu tidak punya akses untuk kelola akun." };
+  if (!myRoles.includes("OWNER")) {
+    return { error: "Cuma Owner yang bisa kelola akun." };
   }
 
   return { error: null, userId: user.id, roles: myRoles };
 }
 
 // Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login
-// Supabase Auth-nya. Cuma boleh dipanggil sama OWNER atau ADMIN yang lagi
-// login -- dicek ulang di server biar ga bisa dilewatin dari luar.
+// Supabase Auth-nya. Cuma boleh dipanggil sama OWNER yang lagi login --
+// dicek ulang di server biar ga bisa dilewatin dari luar.
 // Password boleh diisi manual (opsional) -- kalau dikosongin, di-generate
 // otomatis.
 export async function createAccount(input: {
@@ -53,7 +54,7 @@ export async function createAccount(input: {
   roles: string[];
   password?: string;
 }) {
-  const auth = await requireOwnerOrAdmin();
+  const auth = await requireOwner();
   if (auth.error !== null) return { success: false, message: auth.error };
 
   const name = input.name.trim();
@@ -117,7 +118,7 @@ export async function updateAccount(
   id: string,
   input: { name: string; roles: string[] }
 ) {
-  const auth = await requireOwnerOrAdmin();
+  const auth = await requireOwner();
   if (auth.error !== null) return { success: false, message: auth.error };
 
   const name = input.name.trim();
@@ -153,12 +154,12 @@ export async function updateAccount(
   return { success: true, message: "Akun berhasil diperbarui." };
 }
 
-// Reset password akun siapapun -- dipakai Owner/Admin buat bantu orang
-// yang lupa password. Generate password baru (bukan kirim email reset),
-// langsung ditampilkan sekali ke Owner/Admin yang mereset, buat dikasih
-// tau manual ke orangnya.
+// Reset password akun siapapun -- dipakai Owner buat bantu orang yang
+// lupa password. Generate password baru (bukan kirim email reset),
+// langsung ditampilkan sekali ke Owner yang mereset, buat dikasih tau
+// manual ke orangnya.
 export async function resetAccountPassword(id: string) {
-  const auth = await requireOwnerOrAdmin();
+  const auth = await requireOwner();
   if (auth.error !== null) return { success: false, message: auth.error };
 
   const password = generatePassword();
