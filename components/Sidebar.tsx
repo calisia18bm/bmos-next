@@ -6,15 +6,28 @@ import { createClient } from "@/lib/supabase/client";
 import CharacterPicker from "./CharacterPicker";
 import ChangePasswordButton from "./ChangePasswordButton";
 
+// Sidebar dikelompokin per "sudut pandang" role (Murid / Laoshi / Admin),
+// bukan cuma per fitur -- soalnya Owner sengaja dikasih akses ke SEMUA
+// menu (lihat lib/permissions.ts), jadi kalau Owner login, dia bakal
+// liat KE-3 bagian ini lengkap sekaligus di sidebar-nya sendiri. Ini
+// biar Owner gampang ngecek tampilan tiap role tanpa harus punya akun
+// terpisah -- kalau ada yang error/aneh langsung keliatan dari sini.
+//
+// Buat Murid/Laoshi/Admin beneran (bukan Owner), menu yang muncul tetap
+// dibatasin sesuai ROLE_MENU_ACCESS masing-masing di lib/permissions.ts
+// -- jadi taro "Accounts" di bagian ADMIN di bawah ini AMAN, karena
+// Admin asli tetep ga akan liat menu itu (menu key-nya cuma ada di
+// daftar OWNER).
 const NAV_GROUPS = [
   {
     label: "MAIN",
     items: [{ href: "/", menu: "dashboard", label: "Home", icon: "📊" }],
   },
   {
-    label: "PORTAL MURID",
+    label: "MURID",
     items: [
       { href: "/my-class", menu: "my-class", label: "Jadwal Saya", icon: "🗓️" },
+      { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
       {
         href: "/my-payments",
         menu: "my-payments",
@@ -24,8 +37,9 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "PORTAL LAOSHI",
+    label: "LAOSHI",
     items: [
+      { href: "/attendance", menu: "attendance", label: "Absensi", icon: "✅" },
       {
         href: "/my-schedule",
         menu: "my-schedule",
@@ -38,29 +52,49 @@ const NAV_GROUPS = [
         label: "Murid Saya",
         icon: "🧑‍🎓",
       },
+      { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
+      {
+        href: "/my-payroll",
+        menu: "my-payroll",
+        label: "Payroll Saya",
+        icon: "🏦",
+      },
     ],
   },
   {
-    label: "MASTER",
+    label: "ADMIN",
     items: [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
       { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
       { href: "/classes", menu: "classes", label: "Classes", icon: "📚" },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
-    ],
-  },
-  {
-    label: "OPERATIONS",
-    items: [
       {
         href: "/attendance",
         menu: "attendance",
         label: "Attendance",
         icon: "✅",
       },
+      {
+        href: "/weekly-schedule",
+        menu: "weekly-schedule",
+        label: "Schedule",
+        icon: "🗓️",
+      },
       { href: "/payments", menu: "payments", label: "Payments", icon: "💳" },
       { href: "/payroll", menu: "payroll", label: "Payroll", icon: "🏦" },
       { href: "/expenses", menu: "expenses", label: "Expenses", icon: "🧾" },
+      {
+        href: "/weekly-choice",
+        menu: "weekly-choice",
+        label: "Weekly Choice",
+        icon: "🔄",
+      },
+      {
+        href: "/content-calendar",
+        menu: "content-calendar",
+        label: "Content Calendar",
+        icon: "📅",
+      },
     ],
   },
   {
@@ -73,29 +107,6 @@ const NAV_GROUPS = [
         menu: "follow-up",
         label: "Follow Up",
         icon: "✔️",
-      },
-    ],
-  },
-  {
-    label: "SCHEDULE",
-    items: [
-      {
-        href: "/weekly-schedule",
-        menu: "weekly-schedule",
-        label: "Weekly Schedule",
-        icon: "🗓️",
-      },
-      {
-        href: "/weekly-choice",
-        menu: "weekly-choice",
-        label: "Weekly Choice",
-        icon: "🔄",
-      },
-      {
-        href: "/content-calendar",
-        menu: "content-calendar",
-        label: "Content Calendar",
-        icon: "📅",
       },
     ],
   },
@@ -150,23 +161,23 @@ export default function Sidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-5">
-        {NAV_GROUPS.map((group) => {
+        {NAV_GROUPS.map((group, groupIndex) => {
           const visibleItems = group.items.filter((item) =>
             menus.includes(item.menu)
           );
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={group.label}>
+            <div key={`${group.label}-${groupIndex}`}>
               <p className="text-[11px] font-bold tracking-wide text-bmos-text-light mb-2 px-2">
                 {group.label}
               </p>
               <div className="space-y-1">
-                {visibleItems.map((item) => {
+                {visibleItems.map((item, itemIndex) => {
                   const active = pathname === item.href;
                   return (
                     <Link
-                      key={item.href}
+                      key={`${item.href}-${itemIndex}`}
                       href={item.href}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
                         active
