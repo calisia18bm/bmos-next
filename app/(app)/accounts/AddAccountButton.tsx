@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount } from "./actions";
 
@@ -11,7 +11,22 @@ const ROLE_OPTIONS = [
   { key: "STUDENT", label: "Murid (Student)" },
 ];
 
-type Person = { id: string; name: string };
+type Person = { id: string; name: string; teacher_code?: string; student_code?: string };
+
+function personLabel(p: Person) {
+  const code = p.teacher_code || p.student_code;
+  return code ? `${p.name} (${code})` : p.name;
+}
+
+function findByName(list: Person[], name: string): Person | null {
+  const target = name.trim().toLowerCase();
+  if (!target) return null;
+  const matches = list.filter((p) => p.name.trim().toLowerCase() === target);
+  // Kalau namanya ketemu lebih dari satu (ada 2 orang namanya sama),
+  // sengaja JANGAN auto-pilih -- biar Owner yang pilih manual pakai
+  // kode-nya (L001, M0001, dst) di dropdown, biar ga salah orang.
+  return matches.length === 1 ? matches[0] : null;
+}
 
 export default function AddAccountButton({
   teachers,
@@ -28,11 +43,45 @@ export default function AddAccountButton({
   const [roles, setRoles] = useState<string[]>([]);
   const [teacherId, setTeacherId] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [teacherAutoMatched, setTeacherAutoMatched] = useState(false);
+  const [studentAutoMatched, setStudentAutoMatched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ email: string; password: string } | null>(
     null
   );
+
+  // Begitu nama diketik & role Laoshi/Murid dicentang, coba cocokin
+  // otomatis ke data yang namanya persis sama -- biar ga usah manual
+  // pilih dari dropdown tiap kali. Yang beneran DISIMPAN itu id-nya
+  // (bukan namanya), jadi tetep akurat & ga ketuker meskipun ada nama
+  // yang mirip -- kalau ada duplikat nama, sistem malah sengaja ga
+  // auto-pilih dan minta pilih manual pakai kode uniknya.
+  useEffect(() => {
+    if (roles.includes("TEACHER")) {
+      const match = findByName(teachers, name);
+      if (match) {
+        setTeacherId(match.id);
+        setTeacherAutoMatched(true);
+      } else if (teacherAutoMatched) {
+        setTeacherId("");
+        setTeacherAutoMatched(false);
+      }
+    }
+  }, [name, roles, teachers, teacherAutoMatched]);
+
+  useEffect(() => {
+    if (roles.includes("STUDENT")) {
+      const match = findByName(students, name);
+      if (match) {
+        setStudentId(match.id);
+        setStudentAutoMatched(true);
+      } else if (studentAutoMatched) {
+        setStudentId("");
+        setStudentAutoMatched(false);
+      }
+    }
+  }, [name, roles, students, studentAutoMatched]);
 
   function toggleRole(key: string) {
     setRoles((prev) =>
@@ -47,6 +96,8 @@ export default function AddAccountButton({
     setRoles([]);
     setTeacherId("");
     setStudentId("");
+    setTeacherAutoMatched(false);
+    setStudentAutoMatched(false);
     setError("");
     setResult(null);
   }
@@ -141,6 +192,12 @@ export default function AddAccountButton({
                       onChange={(e) => setName(e.target.value)}
                       className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                     />
+                    <p className="text-xs text-bmos-text-light mt-1">
+                      Kalau namanya persis sama dengan yang udah ada di data
+                      Laoshi/Murid, otomatis kehubung ke id-nya -- ga perlu
+                      pilih manual. Kalau ada nama kembar, pilih manual pakai
+                      kode di dropdown biar ga ketuker orangnya.
+                    </p>
                   </div>
 
                   <div>
@@ -201,20 +258,25 @@ export default function AddAccountButton({
                   {roles.includes("TEACHER") && (
                     <div>
                       <label className="block text-sm font-medium text-bmos-text mb-1">
-                        Hubungkan ke data Laoshi{" "}
-                        <span className="text-bmos-text-light font-normal">
-                          (biar tau kelas yang diajar)
-                        </span>
+                        Hubungkan ke data Laoshi
                       </label>
+                      {teacherAutoMatched && (
+                        <p className="text-xs text-green-700 bg-green-50 rounded-lg px-2 py-1 mb-1.5">
+                          ✓ Otomatis kehubung berdasarkan nama.
+                        </p>
+                      )}
                       <select
                         value={teacherId}
-                        onChange={(e) => setTeacherId(e.target.value)}
+                        onChange={(e) => {
+                          setTeacherId(e.target.value);
+                          setTeacherAutoMatched(false);
+                        }}
                         className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                       >
-                        <option value="">-- Pilih Laoshi --</option>
+                        <option value="">-- Pilih Laoshi (manual) --</option>
                         {teachers.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.name}
+                            {personLabel(t)}
                           </option>
                         ))}
                       </select>
@@ -224,20 +286,25 @@ export default function AddAccountButton({
                   {roles.includes("STUDENT") && (
                     <div>
                       <label className="block text-sm font-medium text-bmos-text mb-1">
-                        Hubungkan ke data Murid{" "}
-                        <span className="text-bmos-text-light font-normal">
-                          (biar tau kelasnya)
-                        </span>
+                        Hubungkan ke data Murid
                       </label>
+                      {studentAutoMatched && (
+                        <p className="text-xs text-green-700 bg-green-50 rounded-lg px-2 py-1 mb-1.5">
+                          ✓ Otomatis kehubung berdasarkan nama.
+                        </p>
+                      )}
                       <select
                         value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
+                        onChange={(e) => {
+                          setStudentId(e.target.value);
+                          setStudentAutoMatched(false);
+                        }}
                         className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                       >
-                        <option value="">-- Pilih Murid --</option>
+                        <option value="">-- Pilih Murid (manual) --</option>
                         {students.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.name}
+                            {personLabel(s)}
                           </option>
                         ))}
                       </select>

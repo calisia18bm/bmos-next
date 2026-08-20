@@ -11,7 +11,12 @@ const ROLE_OPTIONS = [
   { key: "STUDENT", label: "Murid (Student)" },
 ];
 
-type Person = { id: string; name: string };
+type Person = { id: string; name: string; teacher_code?: string; student_code?: string };
+
+function personLabel(p: Person) {
+  const code = p.teacher_code || p.student_code;
+  return code ? `${p.name} (${code})` : p.name;
+}
 
 export default function EditAccountButton({
   account,
@@ -155,10 +160,7 @@ export default function EditAccountButton({
               {roles.includes("TEACHER") && (
                 <div>
                   <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Hubungkan ke data Laoshi{" "}
-                    <span className="text-bmos-text-light font-normal">
-                      (biar tau kelas yang diajar)
-                    </span>
+                    Hubungkan ke data Laoshi
                   </label>
                   <select
                     value={teacherId}
@@ -168,7 +170,7 @@ export default function EditAccountButton({
                     <option value="">-- Pilih Laoshi --</option>
                     {teachers.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name}
+                        {personLabel(t)}
                       </option>
                     ))}
                   </select>
@@ -178,10 +180,7 @@ export default function EditAccountButton({
               {roles.includes("STUDENT") && (
                 <div>
                   <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Hubungkan ke data Murid{" "}
-                    <span className="text-bmos-text-light font-normal">
-                      (biar tau kelasnya)
-                    </span>
+                    Hubungkan ke data Murid
                   </label>
                   <select
                     value={studentId}
@@ -191,7 +190,7 @@ export default function EditAccountButton({
                     <option value="">-- Pilih Murid --</option>
                     {students.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name}
+                        {personLabel(s)}
                       </option>
                     ))}
                   </select>

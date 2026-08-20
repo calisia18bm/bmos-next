@@ -28,6 +28,8 @@ export default async function AccountsPage() {
   // (lihat database/fix_rls.sql). Halaman ini sendiri sudah dijaga di
   // atas (cuma OWNER yang boleh render), jadi aman pakai service role
   // di sini buat nampilin SEMUA akun, bukan cuma punya sendiri.
+  // teacher_code/student_code ikut diambil biar bisa dibedain kalau ada
+  // nama yang sama persis (linknya tetep pakai id, bukan nama).
   const admin = createAdminClient();
   const [{ data: accounts }, { data: teachers }, { data: students }] =
     await Promise.all([
@@ -39,12 +41,12 @@ export default async function AccountsPage() {
         .order("created_at", { ascending: false }),
       admin
         .from("teachers")
-        .select("id, name")
+        .select("id, name, teacher_code")
         .eq("active", true)
         .order("name"),
       admin
         .from("students")
-        .select("id, name")
+        .select("id, name, student_code")
         .eq("status", "ACTIVE")
         .order("name"),
     ]);
