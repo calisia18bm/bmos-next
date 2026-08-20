@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount } from "./actions";
 
@@ -23,6 +23,7 @@ export default function AddAccountButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [nameAutoFilled, setNameAutoFilled] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
@@ -49,6 +50,21 @@ export default function AddAccountButton({
     return students.find((s) => (s.student_code || "").toUpperCase() === code) || null;
   }, [studentCode, students]);
 
+  // Begitu kode ketemu, Nama Lengkap otomatis keisi dari data yang
+  // kehubung -- ga perlu ngetik nama manual lagi. Kalau namanya udah
+  // diketik manual sebelumnya (bukan hasil auto-fill), ga ditimpa.
+  useEffect(() => {
+    const matched = matchedTeacher || matchedStudent;
+    if (matched && (name === "" || nameAutoFilled)) {
+      setName(matched.name);
+      setNameAutoFilled(true);
+    } else if (!matched && nameAutoFilled) {
+      setName("");
+      setNameAutoFilled(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedTeacher, matchedStudent]);
+
   function toggleRole(key: string) {
     setRoles((prev) =>
       prev.includes(key) ? prev.filter((r) => r !== key) : [...prev, key]
@@ -57,6 +73,7 @@ export default function AddAccountButton({
 
   function reset() {
     setName("");
+    setNameAutoFilled(false);
     setEmail("");
     setPassword("");
     setRoles([]);
@@ -156,47 +173,6 @@ export default function AddAccountButton({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-bmos-text mb-1">
-                      Nama Lengkap
-                    </label>
-                    <input
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-bmos-text mb-1">
-                      Email
-                    </label>
-                    <input
-                      required
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-bmos-text mb-1">
-                      Password{" "}
-                      <span className="text-bmos-text-light font-normal">
-                        (opsional -- kosongin aja kalau mau di-generate otomatis)
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Minimal 6 karakter"
-                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                    />
-                  </div>
-
-                  <div>
                     <label className="block text-sm font-medium text-bmos-text mb-2">
                       Role (boleh pilih lebih dari satu)
                     </label>
@@ -220,6 +196,10 @@ export default function AddAccountButton({
                         </label>
                       ))}
                     </div>
+                    <p className="text-xs text-bmos-text-light mt-1">
+                      Pilih Laoshi/Murid dulu buat munculin kolom kode -- ngisi
+                      kode bakal otomatis ngisi Nama Lengkap juga.
+                    </p>
                   </div>
 
                   {roles.includes("TEACHER") && (
@@ -277,6 +257,50 @@ export default function AddAccountButton({
                       )}
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Nama Lengkap
+                    </label>
+                    <input
+                      required
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        setNameAutoFilled(false);
+                      }}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Email
+                    </label>
+                    <input
+                      required
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Password{" "}
+                      <span className="text-bmos-text-light font-normal">
+                        (opsional -- kosongin aja kalau mau di-generate otomatis)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
 
                   {error && (
                     <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">

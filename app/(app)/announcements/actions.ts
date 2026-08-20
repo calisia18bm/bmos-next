@@ -23,19 +23,29 @@ async function requireOwnerOrAdmin(): Promise<string | null> {
   return null;
 }
 
-export async function getAnnouncements(limit = 5) {
+// audienceFilter dipakai buat Home murid/laoshi -- cuma ambil pengumuman
+// yang emang buat mereka ('ALL' + role mereka sendiri). Owner/Admin (di
+// widget kelola) manggil tanpa filter biar liat SEMUA pengumuman.
+export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("announcements")
-    .select("id, title, message, created_by, created_at")
+    .select("id, title, message, audience, created_by, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (audienceFilter) {
+    query = query.in("audience", audienceFilter);
+  }
+
+  const { data } = await query;
   return data ?? [];
 }
 
 export async function createAnnouncement(input: {
   title: string;
   message: string;
+  audience: "ALL" | "TEACHER" | "STUDENT";
 }) {
   const authError = await requireOwnerOrAdmin();
   if (authError) return { success: false, message: authError };
@@ -59,6 +69,7 @@ export async function createAnnouncement(input: {
   const { error } = await supabase.from("announcements").insert({
     title,
     message,
+    audience: input.audience,
     created_by: myProfile?.full_name || "Owner/Admin",
   });
 

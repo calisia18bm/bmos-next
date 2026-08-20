@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { resetAccountPassword, updateAccount } from "./actions";
 
@@ -55,6 +55,22 @@ export default function EditAccountButton({
     if (!code) return null;
     return students.find((s) => (s.student_code || "").toUpperCase() === code) || null;
   }, [studentCode, students]);
+
+  // Kalau kode diganti ke orang lain, ikut update Nama Lengkap-nya juga
+  // biar ga ketuker (misal salah reassign ke Laoshi/Murid lain).
+  useEffect(() => {
+    if (matchedTeacher && matchedTeacher.id !== account.teacher_id) {
+      setName(matchedTeacher.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedTeacher]);
+
+  useEffect(() => {
+    if (matchedStudent && matchedStudent.id !== account.student_id) {
+      setName(matchedStudent.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedStudent]);
 
   function toggleRole(key: string) {
     setRoles((prev) =>
@@ -140,18 +156,6 @@ export default function EditAccountButton({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-bmos-text mb-1">
-                  Nama Lengkap
-                </label>
-                <input
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                />
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-bmos-text mb-2">
                   Role (boleh pilih lebih dari satu)
                 </label>
@@ -232,6 +236,18 @@ export default function EditAccountButton({
                   )}
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Nama Lengkap
+                </label>
+                <input
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
+              </div>
 
               <div className="border-t border-bmos-border pt-4">
                 <label className="block text-sm font-medium text-bmos-text mb-2">

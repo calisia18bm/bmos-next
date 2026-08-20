@@ -45,7 +45,10 @@ export default async function SimpleHome({
   const today = new Date().toISOString().slice(0, 10);
   const isTeacher = profile.roles.includes("TEACHER");
 
-  const announcements = await getAnnouncements(5);
+  const announcements = await getAnnouncements(
+    5,
+    isTeacher ? ["ALL", "TEACHER"] : ["ALL", "STUDENT"]
+  );
 
   let linked = true;
   let nextClass: NextClass | null = null;
