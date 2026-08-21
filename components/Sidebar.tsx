@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CharacterPicker from "./CharacterPicker";
 import ChangePasswordButton from "./ChangePasswordButton";
@@ -27,7 +27,12 @@ const NAV_GROUPS = [
     label: "MURID",
     items: [
       { href: "/my-class", menu: "my-class", label: "Jadwal Saya", icon: "🗓️" },
-      { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
+      {
+        href: "/materials?as=student",
+        menu: "materials",
+        label: "Materi",
+        icon: "📁",
+      },
       {
         href: "/my-payments",
         menu: "my-payments",
@@ -52,7 +57,12 @@ const NAV_GROUPS = [
         label: "Murid Saya",
         icon: "🧑‍🎓",
       },
-      { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
+      {
+        href: "/materials?as=teacher",
+        menu: "materials",
+        label: "Materi",
+        icon: "📁",
+      },
       {
         href: "/my-payroll",
         menu: "my-payroll",
@@ -67,6 +77,7 @@ const NAV_GROUPS = [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
       { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
       { href: "/classes", menu: "classes", label: "Classes", icon: "📚" },
+      { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
       {
         href: "/attendance",
@@ -141,6 +152,7 @@ export default function Sidebar({
   characterKey: string | null;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   async function handleLogout() {
@@ -174,7 +186,13 @@ export default function Sidebar({
               </p>
               <div className="space-y-1">
                 {visibleItems.map((item, itemIndex) => {
-                  const active = pathname === item.href;
+                  // item.href kadang bawa query (misal "/materials?as=student")
+                  // buat beda-in link Materi di tiap bagian, jadi active-nya
+                  // dicocokin path + query-nya, bukan cuma path doang.
+                  const [itemPath, itemQuery] = item.href.split("?");
+                  const active =
+                    pathname === itemPath &&
+                    searchParams.toString() === (itemQuery || "");
                   return (
                     <Link
                       key={`${item.href}-${itemIndex}`}
