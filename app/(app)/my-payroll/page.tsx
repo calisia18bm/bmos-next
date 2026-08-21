@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -21,31 +22,58 @@ const STATUS_STYLE: Record<string, string> = {
 // Versi Payroll khusus Laoshi -- read-only, cuma liat gaji dia sendiri.
 // Bikin/setujui/tandai-lunas payroll tetap cuma lewat halaman Payroll
 // punya Owner/Admin.
-export default async function MyPayrollPage() {
+//
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
+// sini -- ini data gaji personal, sengaja ga dikasih ke Admin.
+export default async function MyPayrollPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ teacherId?: string }>;
+}) {
+  const { teacherId: pickedTeacherId } = await searchParams;
   const profile = await getCurrentProfile();
-  const isStaff =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
-  const isTeacher = profile?.roles?.includes("TEACHER");
+  const isOwner = profile?.roles?.includes("OWNER") ?? false;
+  const isTeacher = profile?.roles?.includes("TEACHER") ?? false;
 
-  // Owner/Admin boleh buka buat preview tampilan Laoshi -- sebelumnya
-  // ke-redirect balik ke Home karena role-nya bukan TEACHER.
-  if (!profile || (!isTeacher && !isStaff)) {
+  if (!profile || (!isTeacher && !isOwner)) {
     redirect("/");
   }
 
-  if (!profile.teacher_id) {
+  const supabase = await createClient();
+
+  const effectiveTeacherId = isTeacher ? profile.teacher_id : pickedTeacherId || null;
+
+  let teacherOptions: { id: string; name: string; code?: string | null }[] = [];
+  if (isOwner) {
+    const { data } = await supabase
+      .from("teachers")
+      .select("id, name, teacher_code")
+      .order("name");
+    teacherOptions = (data ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      code: t.teacher_code,
+    }));
+  }
+
+  if (!effectiveTeacherId) {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
-          Payroll Saya
+          My Payroll
         </h1>
-        {isStaff ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
-            👁️ Preview tampilan Laoshi -- akun kamu (Owner/Admin) ga
-            dihubungkan ke data Laoshi tertentu, jadi belum ada data
-            payroll contoh buat ditampilkan. Laoshi asli yang login bakal
-            liat gaji mereka sendiri di sini.
-          </div>
+        {isOwner ? (
+          <>
+            <OwnerPreviewPicker
+              paramKey="teacherId"
+              options={teacherOptions}
+              selectedId={null}
+              roleLabel="Laoshi"
+            />
+            <p className="text-sm text-bmos-text-light">
+              Pilih Laoshi dulu buat liat data payroll aslinya.
+            </p>
+          </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
@@ -56,18 +84,26 @@ export default async function MyPayrollPage() {
     );
   }
 
-  const supabase = await createClient();
   const { data: payroll } = await supabase
     .from("payroll")
     .select("*")
-    .eq("teacher_id", profile.teacher_id)
+    .eq("teacher_id", effectiveTeacherId)
     .order("created_at", { ascending: false });
 
   return (
     <div>
       <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
-        Payroll Saya
+        My Payroll
       </h1>
+
+      {isOwner && (
+        <OwnerPreviewPicker
+          paramKey="teacherId"
+          options={teacherOptions}
+          selectedId={effectiveTeacherId}
+          roleLabel="Laoshi"
+        />
+      )}
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
         <table className="w-full text-sm">

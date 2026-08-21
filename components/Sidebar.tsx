@@ -66,7 +66,7 @@ const NAV_GROUPS = [
       {
         href: "/my-payroll",
         menu: "my-payroll",
-        label: "Payroll Saya",
+        label: "My Payroll",
         icon: "🏦",
       },
     ],

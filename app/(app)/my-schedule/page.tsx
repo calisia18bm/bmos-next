@@ -1,37 +1,65 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
 
 export const dynamic = "force-dynamic";
 
-export default async function MyScheduleTeacherPage() {
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
+// sini -- Admin sengaja ga dikasih, karena ini nampilin data personal
+// (jadwal) milik orang lain. Laoshi asli tetap cuma bisa liat jadwal
+// dirinya sendiri, ga kepengaruh apapun di halaman ini.
+export default async function MyScheduleTeacherPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ teacherId?: string }>;
+}) {
+  const { teacherId: pickedTeacherId } = await searchParams;
   const profile = await getCurrentProfile();
-  const isStaff =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
-  const isTeacher = profile?.roles?.includes("TEACHER");
+  const isOwner = profile?.roles?.includes("OWNER") ?? false;
+  const isTeacher = profile?.roles?.includes("TEACHER") ?? false;
 
-  // Owner/Admin boleh buka halaman ini juga buat preview (lihat gimana
-  // tampilan Laoshi asli), bukan cuma Laoshi beneran -- sebelumnya
-  // di-redirect balik ke Home karena role-nya bukan TEACHER.
-  if (!profile || (!isTeacher && !isStaff)) {
+  if (!profile || (!isTeacher && !isOwner)) {
     redirect("/");
   }
 
   const supabase = await createClient();
 
-  if (!profile.teacher_id) {
+  // Laoshi asli selalu liat data dirinya sendiri. Owner (preview) boleh
+  // milih Laoshi mana aja lewat dropdown, defaultnya kosong.
+  const effectiveTeacherId = isTeacher ? profile.teacher_id : pickedTeacherId || null;
+
+  let teacherOptions: { id: string; name: string; code?: string | null }[] = [];
+  if (isOwner) {
+    const { data } = await supabase
+      .from("teachers")
+      .select("id, name, teacher_code")
+      .order("name");
+    teacherOptions = (data ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      code: t.teacher_code,
+    }));
+  }
+
+  if (!effectiveTeacherId) {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
           My Schedule
         </h1>
-        {isStaff ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
-            👁️ Preview tampilan Laoshi -- akun kamu (Owner/Admin) ga
-            dihubungkan ke data Laoshi tertentu, jadi belum ada jadwal
-            contoh buat ditampilkan. Laoshi asli yang login bakal liat
-            jadwal mereka sendiri di sini.
-          </div>
+        {isOwner ? (
+          <>
+            <OwnerPreviewPicker
+              paramKey="teacherId"
+              options={teacherOptions}
+              selectedId={null}
+              roleLabel="Laoshi"
+            />
+            <p className="text-sm text-bmos-text-light">
+              Pilih Laoshi dulu buat liat jadwal aslinya.
+            </p>
+          </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
@@ -45,7 +73,7 @@ export default async function MyScheduleTeacherPage() {
   const { data: classes } = await supabase
     .from("classes")
     .select("id")
-    .eq("teacher_id", profile.teacher_id);
+    .eq("teacher_id", effectiveTeacherId);
   const classIds = (classes ?? []).map((c) => c.id);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -64,6 +92,15 @@ export default async function MyScheduleTeacherPage() {
       <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
         My Schedule
       </h1>
+
+      {isOwner && (
+        <OwnerPreviewPicker
+          paramKey="teacherId"
+          options={teacherOptions}
+          selectedId={effectiveTeacherId}
+          roleLabel="Laoshi"
+        />
+      )}
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
         {(sessions ?? []).length === 0 ? (

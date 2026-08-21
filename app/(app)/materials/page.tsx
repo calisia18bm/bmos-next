@@ -29,11 +29,15 @@ export default async function MaterialsPage({
   if (!profile) redirect("/login");
 
   const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  const isOwner = profile.roles.includes("OWNER");
   const isTeacher = profile.roles.includes("TEACHER");
   const isStudent = profile.roles.includes("STUDENT");
 
-  const previewAsStudent = isStaff && as === "student";
-  const previewAsTeacher = isStaff && as === "teacher" && !previewAsStudent;
+  // Cuma OWNER (BUKAN Admin) yang boleh preview tampilan Murid/Laoshi di
+  // sini -- Admin yang buka /materials biasa (tanpa ?as=...) tetap dapet
+  // tampilan Admin standar seperti biasa.
+  const previewAsStudent = isOwner && as === "student";
+  const previewAsTeacher = isOwner && as === "teacher" && !previewAsStudent;
 
   const supabase = await createClient();
 

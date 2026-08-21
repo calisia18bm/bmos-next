@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -12,33 +13,59 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export default async function MyPaymentsPage() {
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Murid tertentu di
+// sini -- ini data personal (riwayat pembayaran) milik Murid, sengaja ga
+// dikasih ke Admin. Murid asli tetap cuma bisa liat pembayaran dirinya
+// sendiri.
+export default async function MyPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ studentId?: string }>;
+}) {
+  const { studentId: pickedStudentId } = await searchParams;
   const profile = await getCurrentProfile();
-  const isStaff =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
-  const isStudent = profile?.roles?.includes("STUDENT");
+  const isOwner = profile?.roles?.includes("OWNER") ?? false;
+  const isStudent = profile?.roles?.includes("STUDENT") ?? false;
 
-  // Owner/Admin boleh buka buat preview tampilan Murid -- sebelumnya
-  // ke-redirect balik ke Home karena role-nya bukan STUDENT.
-  if (!profile || (!isStudent && !isStaff)) {
+  if (!profile || (!isStudent && !isOwner)) {
     redirect("/");
   }
 
   const supabase = await createClient();
 
-  if (!profile.student_id) {
+  const effectiveStudentId = isStudent ? profile.student_id : pickedStudentId || null;
+
+  let studentOptions: { id: string; name: string; code?: string | null }[] = [];
+  if (isOwner) {
+    const { data } = await supabase
+      .from("students")
+      .select("id, name, student_code")
+      .order("name");
+    studentOptions = (data ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      code: s.student_code,
+    }));
+  }
+
+  if (!effectiveStudentId) {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
           Payment Saya
         </h1>
-        {isStaff ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
-            👁️ Preview tampilan Murid -- akun kamu (Owner/Admin) ga
-            dihubungkan ke data Murid tertentu, jadi belum ada data
-            pembayaran contoh buat ditampilkan. Murid asli yang login
-            bakal liat pembayaran mereka sendiri di sini.
-          </div>
+        {isOwner ? (
+          <>
+            <OwnerPreviewPicker
+              paramKey="studentId"
+              options={studentOptions}
+              selectedId={null}
+              roleLabel="Murid"
+            />
+            <p className="text-sm text-bmos-text-light">
+              Pilih Murid dulu buat liat data pembayaran aslinya.
+            </p>
+          </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
@@ -52,13 +79,13 @@ export default async function MyPaymentsPage() {
   const { data: student } = await supabase
     .from("students")
     .select("sessions_used, sessions_per_package, package_price, payment_status")
-    .eq("id", profile.student_id)
+    .eq("id", effectiveStudentId)
     .maybeSingle();
 
   const { data: payments } = await supabase
     .from("payments")
     .select("id, amount, payment_date, method, status")
-    .eq("student_id", profile.student_id)
+    .eq("student_id", effectiveStudentId)
     .order("payment_date", { ascending: false });
 
   return (
@@ -66,6 +93,15 @@ export default async function MyPaymentsPage() {
       <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
         Payment Saya
       </h1>
+
+      {isOwner && (
+        <OwnerPreviewPicker
+          paramKey="studentId"
+          options={studentOptions}
+          selectedId={effectiveStudentId}
+          roleLabel="Murid"
+        />
+      )}
 
       {student && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

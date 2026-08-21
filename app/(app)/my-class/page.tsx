@@ -1,36 +1,62 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
 
 export const dynamic = "force-dynamic";
 
-export default async function MyClassStudentPage() {
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Murid tertentu di
+// sini -- ini data personal (jadwal) milik Murid, sengaja ga dikasih ke
+// Admin. Murid asli tetap cuma bisa liat jadwal dirinya sendiri.
+export default async function MyClassStudentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ studentId?: string }>;
+}) {
+  const { studentId: pickedStudentId } = await searchParams;
   const profile = await getCurrentProfile();
-  const isStaff =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
-  const isStudent = profile?.roles?.includes("STUDENT");
+  const isOwner = profile?.roles?.includes("OWNER") ?? false;
+  const isStudent = profile?.roles?.includes("STUDENT") ?? false;
 
-  // Owner/Admin boleh buka buat preview tampilan Murid -- sebelumnya
-  // ke-redirect balik ke Home karena role-nya bukan STUDENT.
-  if (!profile || (!isStudent && !isStaff)) {
+  if (!profile || (!isStudent && !isOwner)) {
     redirect("/");
   }
 
   const supabase = await createClient();
 
-  if (!profile.student_id) {
+  const effectiveStudentId = isStudent ? profile.student_id : pickedStudentId || null;
+
+  let studentOptions: { id: string; name: string; code?: string | null }[] = [];
+  if (isOwner) {
+    const { data } = await supabase
+      .from("students")
+      .select("id, name, student_code")
+      .order("name");
+    studentOptions = (data ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      code: s.student_code,
+    }));
+  }
+
+  if (!effectiveStudentId) {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
           My Schedule
         </h1>
-        {isStaff ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
-            👁️ Preview tampilan Murid -- akun kamu (Owner/Admin) ga
-            dihubungkan ke data Murid tertentu, jadi belum ada jadwal
-            contoh buat ditampilkan. Murid asli yang login bakal liat
-            jadwal mereka sendiri di sini.
-          </div>
+        {isOwner ? (
+          <>
+            <OwnerPreviewPicker
+              paramKey="studentId"
+              options={studentOptions}
+              selectedId={null}
+              roleLabel="Murid"
+            />
+            <p className="text-sm text-bmos-text-light">
+              Pilih Murid dulu buat liat jadwal aslinya.
+            </p>
+          </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
@@ -44,7 +70,7 @@ export default async function MyClassStudentPage() {
   const { data: student } = await supabase
     .from("students")
     .select("class_id, class_name, teacher_name")
-    .eq("id", profile.student_id)
+    .eq("id", effectiveStudentId)
     .maybeSingle();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -67,6 +93,15 @@ export default async function MyClassStudentPage() {
         <p className="text-bmos-text-light text-sm mb-6">
           {student.class_name} · {student.teacher_name}
         </p>
+      )}
+
+      {isOwner && (
+        <OwnerPreviewPicker
+          paramKey="studentId"
+          options={studentOptions}
+          selectedId={effectiveStudentId}
+          roleLabel="Murid"
+        />
       )}
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
