@@ -107,6 +107,15 @@ export default async function MyScheduleTeacherPage({
     .eq("teacher_id", effectiveTeacherId);
   const classIds = (classes ?? []).map((c) => c.id);
 
+  type SessionRow = {
+    id: string;
+    class_name: string | null;
+    session_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    status: string;
+  };
+
   const { data: sessions } = classIds.length
     ? await supabase
         .from("sessions")
@@ -115,9 +124,9 @@ export default async function MyScheduleTeacherPage({
         .gte("session_date", mondayStr)
         .lte("session_date", sundayStr)
         .order("start_time")
-    : { data: [] };
+    : { data: [] as SessionRow[] };
 
-  const byDay: Record<string, typeof sessions> = {};
+  const byDay: Record<string, SessionRow[]> = {};
   DAYS.forEach((d) => (byDay[d] = []));
   (sessions ?? []).forEach((s) => {
     const date = new Date(s.session_date + "T00:00:00");
