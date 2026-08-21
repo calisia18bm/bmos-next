@@ -26,7 +26,7 @@ const NAV_GROUPS = [
   {
     label: "MURID",
     items: [
-      { href: "/my-class", menu: "my-class", label: "Jadwal Saya", icon: "🗓️" },
+      { href: "/my-class", menu: "my-class", label: "My Schedule", icon: "🗓️" },
       {
         href: "/materials?as=student",
         menu: "materials",
@@ -36,7 +36,7 @@ const NAV_GROUPS = [
       {
         href: "/my-payments",
         menu: "my-payments",
-        label: "Pembayaran Saya",
+        label: "Payment Saya",
         icon: "💳",
       },
     ],
@@ -48,13 +48,13 @@ const NAV_GROUPS = [
       {
         href: "/my-schedule",
         menu: "my-schedule",
-        label: "Jadwal Saya",
+        label: "My Schedule",
         icon: "🗓️",
       },
       {
         href: "/my-students",
         menu: "my-students",
-        label: "Murid Saya",
+        label: "My Student",
         icon: "🧑‍🎓",
       },
       {

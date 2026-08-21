@@ -6,7 +6,13 @@ export const dynamic = "force-dynamic";
 
 export default async function MyStudentsPage() {
   const profile = await getCurrentProfile();
-  if (!profile?.roles?.includes("TEACHER")) {
+  const isStaff =
+    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+  const isTeacher = profile?.roles?.includes("TEACHER");
+
+  // Owner/Admin boleh buka buat preview tampilan Laoshi -- sebelumnya
+  // ke-redirect balik ke Home karena role-nya bukan TEACHER.
+  if (!profile || (!isTeacher && !isStaff)) {
     redirect("/");
   }
 
@@ -16,12 +22,21 @@ export default async function MyStudentsPage() {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
-          Murid Saya
+          My Student
         </h1>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-          Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
-          hubungkan lewat halaman Accounts.
-        </div>
+        {isStaff ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
+            👁️ Preview tampilan Laoshi -- akun kamu (Owner/Admin) ga
+            dihubungkan ke data Laoshi tertentu, jadi belum ada murid
+            contoh buat ditampilkan. Laoshi asli yang login bakal liat
+            murid mereka sendiri di sini.
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
+            Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
+            hubungkan lewat halaman Accounts.
+          </div>
+        )}
       </div>
     );
   }
@@ -43,7 +58,7 @@ export default async function MyStudentsPage() {
   return (
     <div>
       <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
-        Murid Saya
+        My Student
       </h1>
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">

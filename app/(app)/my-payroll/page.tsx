@@ -23,7 +23,13 @@ const STATUS_STYLE: Record<string, string> = {
 // punya Owner/Admin.
 export default async function MyPayrollPage() {
   const profile = await getCurrentProfile();
-  if (!profile?.roles?.includes("TEACHER")) {
+  const isStaff =
+    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+  const isTeacher = profile?.roles?.includes("TEACHER");
+
+  // Owner/Admin boleh buka buat preview tampilan Laoshi -- sebelumnya
+  // ke-redirect balik ke Home karena role-nya bukan TEACHER.
+  if (!profile || (!isTeacher && !isStaff)) {
     redirect("/");
   }
 
@@ -33,10 +39,19 @@ export default async function MyPayrollPage() {
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
           Payroll Saya
         </h1>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-          Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
-          hubungkan lewat halaman Accounts.
-        </div>
+        {isStaff ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
+            👁️ Preview tampilan Laoshi -- akun kamu (Owner/Admin) ga
+            dihubungkan ke data Laoshi tertentu, jadi belum ada data
+            payroll contoh buat ditampilkan. Laoshi asli yang login bakal
+            liat gaji mereka sendiri di sini.
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
+            Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
+            hubungkan lewat halaman Accounts.
+          </div>
+        )}
       </div>
     );
   }

@@ -14,7 +14,13 @@ function formatCurrency(value: number) {
 
 export default async function MyPaymentsPage() {
   const profile = await getCurrentProfile();
-  if (!profile?.roles?.includes("STUDENT")) {
+  const isStaff =
+    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+  const isStudent = profile?.roles?.includes("STUDENT");
+
+  // Owner/Admin boleh buka buat preview tampilan Murid -- sebelumnya
+  // ke-redirect balik ke Home karena role-nya bukan STUDENT.
+  if (!profile || (!isStudent && !isStaff)) {
     redirect("/");
   }
 
@@ -24,12 +30,21 @@ export default async function MyPaymentsPage() {
     return (
       <div>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-4">
-          Pembayaran Saya
+          Payment Saya
         </h1>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-          Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
-          hubungkan lewat halaman Accounts.
-        </div>
+        {isStaff ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800">
+            👁️ Preview tampilan Murid -- akun kamu (Owner/Admin) ga
+            dihubungkan ke data Murid tertentu, jadi belum ada data
+            pembayaran contoh buat ditampilkan. Murid asli yang login
+            bakal liat pembayaran mereka sendiri di sini.
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
+            Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
+            hubungkan lewat halaman Accounts.
+          </div>
+        )}
       </div>
     );
   }
@@ -49,7 +64,7 @@ export default async function MyPaymentsPage() {
   return (
     <div>
       <h1 className="text-3xl font-extrabold text-bmos-text mb-6">
-        Pembayaran Saya
+        Payment Saya
       </h1>
 
       {student && (
