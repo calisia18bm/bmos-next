@@ -158,13 +158,29 @@ export default function MaterialsManage({
               rows={2}
               className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
             />
-            <input
-              id="material-file-input"
-              type="file"
-              required
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full text-sm"
-            />
+            <div>
+              <label className="block text-sm font-medium text-bmos-text mb-1">
+                File Materi
+              </label>
+              <label
+                htmlFor="material-file-input"
+                className="flex items-center gap-3 border border-dashed border-bmos-border rounded-xl px-4 py-3 cursor-pointer hover:border-bmos-primary-light hover:bg-bmos-primary-soft/40 transition"
+              >
+                <span className="shrink-0 bg-bmos-primary text-white text-xs font-semibold rounded-lg px-3 py-1.5">
+                  Pilih File
+                </span>
+                <span className="text-sm text-bmos-text-light truncate">
+                  {file ? file.name : "Belum ada file dipilih"}
+                </span>
+              </label>
+              <input
+                id="material-file-input"
+                type="file"
+                required
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </div>
             {error && (
               <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
                 {error}
