@@ -2,19 +2,45 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
+import WeekNavigator from "@/components/WeekNavigator";
 
 export const dynamic = "force-dynamic";
 
+const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+const STATUS_STYLE: Record<string, string> = {
+  UPCOMING: "bg-blue-50 text-blue-700",
+  FINISHED: "bg-green-50 text-green-700",
+  CANCELLED: "bg-gray-100 text-gray-500",
+  RESCHEDULED: "bg-yellow-50 text-yellow-700",
+};
+
+function getMondayOfWeek(offsetWeeks: number): Date {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff + offsetWeeks * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function formatDateID(date: Date) {
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
 // Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
-// sini -- Admin sengaja ga dikasih, karena ini nampilin data personal
-// (jadwal) milik orang lain. Laoshi asli tetap cuma bisa liat jadwal
-// dirinya sendiri, ga kepengaruh apapun di halaman ini.
+// sini -- ini data personal (jadwal) milik Laoshi, sengaja ga dikasih ke
+// Admin. Laoshi asli tetap cuma bisa liat jadwal dirinya sendiri.
+//
+// Tampilannya dibikin sama kayak Weekly Schedule punya Owner (grid 7
+// hari per minggu, bisa geser minggu), bukan tabel list lagi.
 export default async function MyScheduleTeacherPage({
   searchParams,
 }: {
-  searchParams: Promise<{ teacherId?: string }>;
+  searchParams: Promise<{ teacherId?: string; week?: string }>;
 }) {
-  const { teacherId: pickedTeacherId } = await searchParams;
+  const { teacherId: pickedTeacherId, week } = await searchParams;
   const profile = await getCurrentProfile();
   const isOwner = profile?.roles?.includes("OWNER") ?? false;
   const isTeacher = profile?.roles?.includes("TEACHER") ?? false;
@@ -25,8 +51,6 @@ export default async function MyScheduleTeacherPage({
 
   const supabase = await createClient();
 
-  // Laoshi asli selalu liat data dirinya sendiri. Owner (preview) boleh
-  // milih Laoshi mana aja lewat dropdown, defaultnya kosong.
   const effectiveTeacherId = isTeacher ? profile.teacher_id : pickedTeacherId || null;
 
   let teacherOptions: { id: string; name: string; code?: string | null }[] = [];
@@ -70,22 +94,42 @@ export default async function MyScheduleTeacherPage({
     );
   }
 
+  const offset = Number(week || "0");
+  const monday = getMondayOfWeek(offset);
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+  const mondayStr = monday.toISOString().slice(0, 10);
+  const sundayStr = sunday.toISOString().slice(0, 10);
+
   const { data: classes } = await supabase
     .from("classes")
     .select("id")
     .eq("teacher_id", effectiveTeacherId);
   const classIds = (classes ?? []).map((c) => c.id);
 
-  const today = new Date().toISOString().slice(0, 10);
   const { data: sessions } = classIds.length
     ? await supabase
         .from("sessions")
         .select("id, class_name, session_date, start_time, end_time, status")
         .in("class_id", classIds)
-        .gte("session_date", today)
-        .order("session_date")
+        .gte("session_date", mondayStr)
+        .lte("session_date", sundayStr)
         .order("start_time")
     : { data: [] };
+
+  const byDay: Record<string, typeof sessions> = {};
+  DAYS.forEach((d) => (byDay[d] = []));
+  (sessions ?? []).forEach((s) => {
+    const date = new Date(s.session_date + "T00:00:00");
+    const jsDay = date.getDay();
+    const dayName = DAYS[jsDay === 0 ? 6 : jsDay - 1];
+    byDay[dayName]!.push(s);
+  });
+
+  const weekLabel =
+    offset === 0 ? "Minggu Ini" : offset > 0 ? `${offset} Minggu Lagi` : `${Math.abs(offset)} Minggu Lalu`;
+  const dateRangeLabel = `${formatDateID(monday)} - ${formatDateID(sunday)}`;
+  const totalSessions = (sessions ?? []).length;
 
   return (
     <div>
@@ -102,54 +146,69 @@ export default async function MyScheduleTeacherPage({
         />
       )}
 
-      <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
-        {(sessions ?? []).length === 0 ? (
-          <div className="text-center py-14">
-            <p className="text-3xl mb-2">📅</p>
-            <p className="text-bmos-text font-semibold">
-              Belum ada jadwal ke depan
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-bmos-text-light border-b border-bmos-border">
-                <th className="px-5 py-3 font-medium">Tanggal</th>
-                <th className="px-5 py-3 font-medium">Kelas</th>
-                <th className="px-5 py-3 font-medium">Jam</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(sessions ?? []).map((s) => (
-                <tr
-                  key={s.id}
-                  className="border-b border-bmos-border last:border-0"
-                >
-                  <td className="px-5 py-3 text-bmos-text">
-                    {new Date(s.session_date).toLocaleDateString("id-ID", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </td>
-                  <td className="px-5 py-3 font-semibold text-bmos-text">
-                    {s.class_name}
-                  </td>
-                  <td className="px-5 py-3 text-bmos-text-light">
-                    {s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="text-xs font-semibold text-bmos-primary">
-                      {s.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="bg-white border border-bmos-border rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-4">
+        <WeekNavigator weekLabel={weekLabel} dateRangeLabel={dateRangeLabel} />
+        <p className="text-sm text-bmos-text-light">
+          {totalSessions} sesi minggu ini
+        </p>
       </div>
+
+      {totalSessions === 0 ? (
+        <div className="bg-white border border-bmos-border rounded-2xl p-10 text-center text-bmos-text-light">
+          Belum ada jadwal di minggu ini.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+          {DAYS.map((day, i) => {
+            const dayDate = new Date(monday);
+            dayDate.setDate(dayDate.getDate() + i);
+
+            return (
+              <div
+                key={day}
+                className="bg-white border border-bmos-border rounded-2xl overflow-hidden"
+              >
+                <div className="bg-bmos-primary-soft px-4 py-2.5">
+                  <p className="text-xs font-bold text-bmos-primary uppercase tracking-wide">
+                    {day}
+                  </p>
+                  <p className="text-[11px] text-bmos-text-light">
+                    {formatDateID(dayDate)}
+                  </p>
+                </div>
+                <div className="p-3 space-y-2 min-h-[100px]">
+                  {(byDay[day] ?? []).map((s) => (
+                    <div
+                      key={s.id}
+                      className="bg-bmos-primary-soft/40 border border-bmos-border rounded-xl p-3"
+                    >
+                      <p className="text-sm font-semibold text-bmos-text">
+                        {s.class_name}
+                      </p>
+                      <p className="text-xs text-bmos-text-light mt-0.5">
+                        {s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}
+                      </p>
+                      <span
+                        className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          STATUS_STYLE[s.status] || "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </div>
+                  ))}
+
+                  {(byDay[day] ?? []).length === 0 && (
+                    <p className="text-xs text-bmos-text-light text-center py-4">
+                      -
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

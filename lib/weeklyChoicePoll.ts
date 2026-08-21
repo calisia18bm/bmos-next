@@ -1,8 +1,33 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendWhatsApp } from "@/lib/fonnte";
+import { sendWhatsAppPoll, choiceLabel } from "@/lib/fonnte";
+
+// pollname dipake buat "nametag" poll ini pas hasil votenya balik lewat
+// webhook (app/api/webhooks/fonnte/route.ts) -- formatnya:
+// WC|{nama kelas}|{week_start (YYYY-MM-DD)}
+// Dipisah pake "|" karena nama kelas sering ada emoji, tapi ga pernah
+// ada karakter "|".
+export function buildPollName(className: string, weekStart: string) {
+  return `WC|${className}|${weekStart}`;
+}
+
+export function parsePollName(pollname: string) {
+  const parts = pollname.split("|");
+  if (parts.length !== 3 || parts[0] !== "WC") return null;
+  return { className: parts[1], weekStart: parts[2] };
+}
+
+function getMondayOfWeek(): string {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
 
 export async function sendWeeklyChoicePolls() {
   const supabase = createAdminClient();
+  const weekStart = getMondayOfWeek();
 
   const { data: classes } = await supabase
     .from("classes")
@@ -30,17 +55,22 @@ export async function sendWeeklyChoicePolls() {
       continue;
     }
 
-    const teacherOptions = (group ?? [])
-      .map((c) => `- Balas "${c.teacher_name}" buat pilih Laoshi ${c.teacher_name} (${c.day_of_week})`)
-      .join("\n");
+    // Choice-nya HARUS persis sama formatnya kayak yang dipake buat
+    // matching balik di webhook (choiceLabel di lib/fonnte.ts) --
+    // jangan diubah salah satu doang, ntar votenya ga ke-match.
+    const choices = (group ?? []).map((c) => choiceLabel(c.teacher_name, c.day_of_week, c.start_time));
 
-    const message = `🔄 Konfirmasi Pilihan Minggu Ini -- Kelas ${className}\n\nHalo! Kelas ini diajar bergantian minggu ini. Tolong balas chat ini buat konfirmasi mau ikut sesi Laoshi yang mana:\n\n${teacherOptions}`;
+    const pollname = buildPollName(className, weekStart);
 
     for (const groupId of [...new Set(waGroupIds)]) {
-      await sendWhatsApp(groupId, message);
+      await sendWhatsAppPoll(groupId, {
+        pollname,
+        choices,
+        select: "single",
+      });
       sentCount++;
     }
-    results.push(`${className}: terkirim ke ${waGroupIds.length} grup`);
+    results.push(`${className}: poll terkirim ke ${waGroupIds.length} grup`);
   }
 
   return { sentCount, results };

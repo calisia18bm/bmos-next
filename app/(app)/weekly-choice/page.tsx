@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import ChoiceSelector from "./ChoiceSelector";
 import SendPollsButton from "./SendPollsButton";
+import { choiceLabel } from "@/lib/fonnte";
 
 export const dynamic = "force-dynamic";
 
@@ -118,7 +119,83 @@ export default async function WeeklyChoicePage() {
           ada 2+ laoshi mengajar dengan nama kelas yang sama.
         </div>
       ) : (
-        <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
+        <>
+          {/* Preview persis apa yang bakal dikirim ke WA -- cek dulu di
+              sini sebelum klik "Kirim Vote Sekarang" di atas, biar ga
+              kekirim salah kelas/laoshi/jam ke grup WA beneran. */}
+          <div className="mb-6">
+            <h2 className="font-bold text-bmos-text text-lg mb-1">
+              Preview Poll yang Akan Dikirim
+            </h2>
+            <p className="text-xs text-bmos-text-light mb-4">
+              Cek dulu isinya bener sebelum kirim -- pilihan di bawah ini
+              PERSIS sama kayak yang bakal muncul di poll WhatsApp.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {flexibleGroups.map(([className, group]) => {
+                const groupStudents = students.filter(
+                  (s) => s.class_name === className
+                );
+                const waGroupIds = [
+                  ...new Set(
+                    (group ?? [])
+                      .map((c) => c.wa_group_id)
+                      .filter((id): id is string => Boolean(id))
+                  ),
+                ];
+
+                return (
+                  <div
+                    key={className}
+                    className="bg-white border border-bmos-border rounded-2xl p-5"
+                  >
+                    <p className="font-bold text-bmos-text mb-1">{className}</p>
+
+                    {waGroupIds.length === 0 ? (
+                      <p className="text-xs text-red-600 mb-3">
+                        ⚠️ Belum ada ID Grup WA di-set buat kelas ini -- poll
+                        GA BAKAL kekirim. Set dulu di halaman Classes.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-bmos-text-light mb-3">
+                        Kirim ke {waGroupIds.length} grup WA:{" "}
+                        {waGroupIds.join(", ")}
+                      </p>
+                    )}
+
+                    <p className="text-xs font-semibold text-bmos-text-light uppercase tracking-wide mb-1.5">
+                      Pilihan yang bakal muncul di poll
+                    </p>
+                    <ul className="space-y-1 mb-3">
+                      {(group ?? []).map((c) => (
+                        <li
+                          key={c.id}
+                          className="text-sm text-bmos-text bg-bmos-primary-soft/40 rounded-lg px-3 py-1.5"
+                        >
+                          {choiceLabel(c.teacher_name, c.day_of_week, c.start_time)}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <p className="text-xs font-semibold text-bmos-text-light uppercase tracking-wide mb-1.5">
+                      Murid yang perlu vote ({groupStudents.length})
+                    </p>
+                    {groupStudents.length === 0 ? (
+                      <p className="text-xs text-bmos-text-light">
+                        Belum ada murid aktif di kelas ini.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-bmos-text">
+                        {groupStudents.map((s) => s.name).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-bmos-text-light border-b border-bmos-border">
@@ -163,7 +240,8 @@ export default async function WeeklyChoicePage() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
