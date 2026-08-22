@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { getCharacterFile } from "@/lib/characters";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Logo di halaman Login ngikutin karakter yang dipilih Owner di sidebar
+  // (app_settings.global_character_key) -- diambil lewat endpoint publik
+  // karena belum login, jadi ga bisa query app_settings langsung (RLS-nya
+  // butuh login). Default-nya karakter pertama di katalog kalau belum
+  // pernah diatur / lagi gagal fetch.
+  const [characterFile, setCharacterFile] = useState(getCharacterFile(null));
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/character")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setCharacterFile(getCharacterFile(data?.key ?? null));
+      })
+      .catch(() => {
+        // Biarin default kalau gagal fetch -- jangan bikin halaman Login
+        // error cuma gara-gara logo.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +63,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-bmos-primary-soft flex items-center justify-center mx-auto mb-4">
             <Image
-              src="/characters/bm_logo.png"
+              src={characterFile}
               alt="BM Mandarin"
               width={36}
               height={36}

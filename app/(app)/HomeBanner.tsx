@@ -12,9 +12,11 @@ import { saveBannerLayout } from "./settings/branding/actions";
 // xuebao IKUT gabung ke baris karakter (lihat draggableItems di bawah),
 // bukan statis, sesuai permintaan biar tetep "di samping karakter".
 const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo"]);
-// Digeser ke kanan dikit dari pojok kiri sidebar (px-2 di dalam p-4)
-// biar ga nimpa teks tombol "Keluar" di footer sidebar.
-const BM_LOGO_LEFT_PX = 112;
+// Digeser ke kanan & sedikit ke atas dari pojok kiri-bawah sidebar, biar
+// ga numpuk tulisan email/OWNER/Keluar di footer sidebar -- tetap di
+// dalam kotak footer itu, cuma dipindah ke bagian yang kosong.
+const BM_LOGO_LEFT_PX = 170;
+const BM_LOGO_BOTTOM_PX = 32;
 
 export default function HomeBanner({
   items,
@@ -145,8 +147,8 @@ export default function HomeBanner({
 
   const logoRow = (
     <div
-      className="fixed bottom-4 z-30 flex items-end gap-1.5 pointer-events-none"
-      style={{ left: BM_LOGO_LEFT_PX }}
+      className="fixed z-30 flex items-end gap-1.5 pointer-events-none"
+      style={{ left: BM_LOGO_LEFT_PX, bottom: BM_LOGO_BOTTOM_PX }}
     >
       {logoItems.map((it) => (
         <Image
