@@ -13,18 +13,25 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   // Logo di halaman Login ngikutin karakter yang dipilih Owner di sidebar
-  // (app_settings.global_character_key) -- diambil lewat endpoint publik
-  // karena belum login, jadi ga bisa query app_settings langsung (RLS-nya
-  // butuh login). Default-nya karakter pertama di katalog kalau belum
-  // pernah diatur / lagi gagal fetch.
+  // (app_settings.global_character_key). Query LANGSUNG ke Supabase pakai
+  // client biasa (bukan lewat API route) -- butuh RLS "anon select" di
+  // app_settings (lihat database/allow_anon_read_character.sql) karena
+  // belum ada yang login di halaman ini. Default-nya karakter pertama di
+  // katalog kalau belum pernah diatur / lagi gagal fetch.
   const [characterFile, setCharacterFile] = useState(getCharacterFile(null));
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/public/character")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) setCharacterFile(getCharacterFile(data?.key ?? null));
+    const supabase = createClient();
+    supabase
+      .from("app_settings")
+      .select("global_character_key")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setCharacterFile(getCharacterFile(data?.global_character_key ?? null));
+        }
       })
       .catch(() => {
         // Biarin default kalau gagal fetch -- jangan bikin halaman Login

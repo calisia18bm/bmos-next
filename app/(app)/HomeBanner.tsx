@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
@@ -51,6 +51,32 @@ export default function HomeBanner({
     origX: number;
     origY: number;
   } | null>(null);
+
+  // Posisi tersimpan sebelumnya dihitung relatif ke SELURUH layar (dulu
+  // area-nya "fixed", nutupin sampai ke sidebar). Sekarang area-nya udah
+  // "absolute" relatif ke konten halaman doang (biar ikut ke-scroll), yang
+  // lebih sempit & mulai lebih ke kanan. Biar karakter yang udah diatur
+  // Owner sebelumnya ga ilang/kepotong ke luar layar, sekali di awal kita
+  // "tarik masuk" lagi posisinya biar tetep muat di area yang sekarang.
+  useEffect(() => {
+    if (!hasSavedLayout) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setLocalItems((prev) =>
+      prev.map((it) => {
+        if (typeof it.x !== "number" || typeof it.y !== "number") return it;
+        const itemWidth = it.heightPx * 1.4;
+        const maxX = Math.max(0, rect.width - itemWidth);
+        const maxY = Math.max(0, rect.height - it.heightPx);
+        return {
+          ...it,
+          x: Math.min(Math.max(it.x, 0), maxX),
+          y: Math.min(Math.max(it.y, 0), maxY),
+        };
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function enterEditMode() {
     setLocalItems((prev) => {
@@ -183,7 +209,9 @@ export default function HomeBanner({
           </div>
         )}
         {logoRow}
-        <div className="fixed bottom-4 left-24 z-30 flex items-end gap-1.5 pointer-events-none">
+        {/* Baris normal (BUKAN fixed/absolute) biar ikut scroll bareng
+            konten halaman, ga nempel di layar terus. */}
+        <div className="flex items-end justify-end gap-1.5 mb-4">
           {draggableItems.map((it) => (
             <Image
               key={it.key}
@@ -238,15 +266,15 @@ export default function HomeBanner({
         </div>
       )}
       {logoRow}
-      {/* Area geser menutupi SELURUH layar (termasuk sampai ke sidebar kiri)
-          -- item bisa ditaruh dimana aja, ga cuma di area konten kanan.
-          z-30 biar tetep keliatan di atas sidebar (z-20). Cuma karakter
-          (bukan logo) yang lewat sini. */}
+      {/* Absolute (BUKAN fixed) relatif ke area konten halaman (wrapper
+          "relative" di page.tsx/SimpleHome.tsx) -- biar karakter ikut
+          ke-scroll bareng konten, ga nempel terus di layar pas di-scroll.
+          Area gesernya nutupin seluruh tinggi konten halaman. */}
       <div
         ref={containerRef}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className={`fixed inset-0 z-30 ${
+        className={`absolute inset-0 z-30 ${
           editMode
             ? "pointer-events-auto border-2 border-dashed border-bmos-primary-light bg-bmos-primary-soft/5"
             : "pointer-events-none"
