@@ -27,11 +27,12 @@ type NextClass = { class_name: string; session_date: string; start_time: string 
 type TeacherStats = { studentCount: number; finishedThisWeek: number; totalThisWeek: number };
 type StudentStats = { sessionsUsed: number; sessionsTotal: number; paymentStatus: string };
 
-// Home yang disederhanakan buat Laoshi & Murid -- fokus ke info/
+// Home yang disederhanakan buat Laoshi, Murid, & Admin -- fokus ke info/
 // pengumuman + ringkasan singkat aja. Jadwal lengkap, daftar murid, dan
 // riwayat pembayaran masing-masing punya halaman sendiri di sidebar
 // ("Jadwal Saya", "My Students", "My Payments"), ga ditumpuk semua di
-// Home kayak dashboard Owner/Admin.
+// Home kayak dashboard Owner. Buat Admin, isinya masih placeholder --
+// widget-nya masih dipikirin, sementara cukup banner + pengumuman dulu.
 export default async function SimpleHome({
   profile,
   bannerItems,
@@ -44,10 +45,15 @@ export default async function SimpleHome({
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
   const isTeacher = profile.roles.includes("TEACHER");
+  const isStudentSimple = profile.roles.includes("STUDENT");
+  // Bukan Laoshi & bukan Murid -- berarti Admin (atau role lain yang
+  // belum ada halaman Home khususnya). Belum ada audience "ADMIN" di
+  // tabel announcements, jadi Admin cuma liat yang audience-nya "ALL".
+  const isAdmin = !isTeacher && !isStudentSimple;
 
   const announcements = await getAnnouncements(
     5,
-    isTeacher ? ["ALL", "TEACHER"] : ["ALL", "STUDENT"]
+    isTeacher ? ["ALL", "TEACHER"] : isStudentSimple ? ["ALL", "STUDENT"] : ["ALL"]
   );
 
   let linked = true;
@@ -55,7 +61,10 @@ export default async function SimpleHome({
   let teacherStats: TeacherStats | null = null;
   let studentStats: StudentStats | null = null;
 
-  if (isTeacher) {
+  if (isAdmin) {
+    // Belum ada widget khusus Admin -- sementara skip semua fetch
+    // jadwal/statistik, cukup banner + pengumuman aja dulu.
+  } else if (isTeacher) {
     if (!profile.teacher_id) {
       linked = false;
     } else {
@@ -132,7 +141,13 @@ export default async function SimpleHome({
     }
   }
 
-  const quickLinks = isTeacher
+  const quickLinks = isAdmin
+    ? [
+        { href: "/students", label: "Students", icon: "🧑‍🎓" },
+        { href: "/classes", label: "Classes", icon: "📚" },
+        { href: "/payments", label: "Payments", icon: "💳" },
+      ]
+    : isTeacher
     ? [
         { href: "/my-schedule", label: "Jadwal Saya", icon: "🗓️" },
         { href: "/my-students", label: "Murid Saya", icon: "🧑‍🎓" },
@@ -156,7 +171,7 @@ export default async function SimpleHome({
         <NameEditor fullName={profile.full_name} />
       </div>
 
-      {!linked && (
+      {!isAdmin && !linked && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 text-sm text-yellow-800">
           Akun kamu belum dihubungkan ke data {isTeacher ? "Laoshi" : "Murid"}{" "}
           di Master Data. Minta Owner buat hubungkan lewat halaman Accounts,
@@ -164,69 +179,80 @@ export default async function SimpleHome({
         </div>
       )}
 
-      {/* Ringkasan singkat -- detail lengkapnya ada di halaman masing-
-          masing lewat quick link di bawah. */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-bmos-border rounded-2xl p-5">
-          <p className="text-xs text-bmos-text-light mb-1">Kelas Berikutnya</p>
-          {nextClass ? (
+      {isAdmin ? (
+        // Widget dashboard Admin masih dipikirin -- sementara placeholder
+        // dulu, quick link di bawah ini udah nyambung ke halaman aslinya.
+        <div className="bg-white border border-bmos-border rounded-2xl p-6 mb-6 text-center">
+          <p className="text-sm text-bmos-text-light">
+            Dashboard Admin masih disiapkan. Sementara pakai quick link di
+            bawah atau menu sidebar buat akses Students, Payments, dll.
+          </p>
+        </div>
+      ) : (
+        // Ringkasan singkat -- detail lengkapnya ada di halaman masing-
+        // masing lewat quick link di bawah.
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white border border-bmos-border rounded-2xl p-5">
+            <p className="text-xs text-bmos-text-light mb-1">Kelas Berikutnya</p>
+            {nextClass ? (
+              <>
+                <p className="font-bold text-bmos-text">{nextClass.class_name}</p>
+                <p className="text-xs text-bmos-text-light">
+                  {new Date(nextClass.session_date).toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "short",
+                  })}{" "}
+                  · {nextClass.start_time?.slice(0, 5)}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-bmos-text-light">Belum ada jadwal</p>
+            )}
+          </div>
+
+          {isTeacher ? (
             <>
-              <p className="font-bold text-bmos-text">{nextClass.class_name}</p>
-              <p className="text-xs text-bmos-text-light">
-                {new Date(nextClass.session_date).toLocaleDateString("id-ID", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "short",
-                })}{" "}
-                · {nextClass.start_time?.slice(0, 5)}
-              </p>
+              <div className="bg-white border border-bmos-border rounded-2xl p-5">
+                <p className="text-xs text-bmos-text-light mb-1">Murid Diajar</p>
+                <p className="text-2xl font-extrabold text-bmos-text">
+                  {teacherStats?.studentCount ?? 0}
+                </p>
+              </div>
+              <div className="bg-white border border-bmos-border rounded-2xl p-5">
+                <p className="text-xs text-bmos-text-light mb-1">Sesi Minggu Ini</p>
+                <p className="text-2xl font-extrabold text-bmos-text">
+                  {teacherStats
+                    ? `${teacherStats.finishedThisWeek}/${teacherStats.totalThisWeek}`
+                    : "0/0"}
+                </p>
+                <p className="text-xs text-bmos-text-light">sudah diajar</p>
+              </div>
             </>
           ) : (
-            <p className="text-sm text-bmos-text-light">Belum ada jadwal</p>
+            <>
+              <div className="bg-white border border-bmos-border rounded-2xl p-5">
+                <p className="text-xs text-bmos-text-light mb-1">Sisa Sesi</p>
+                <p className="text-2xl font-extrabold text-bmos-text">
+                  {studentStats
+                    ? Math.max(0, studentStats.sessionsTotal - studentStats.sessionsUsed)
+                    : "-"}
+                  <span className="text-sm font-normal text-bmos-text-light">
+                    {" "}
+                    / {studentStats ? studentStats.sessionsTotal : "-"}
+                  </span>
+                </p>
+              </div>
+              <div className="bg-white border border-bmos-border rounded-2xl p-5">
+                <p className="text-xs text-bmos-text-light mb-1">Status Pembayaran</p>
+                <p className="text-lg font-bold text-bmos-text">
+                  {studentStats ? studentStats.paymentStatus : "-"}
+                </p>
+              </div>
+            </>
           )}
         </div>
-
-        {isTeacher ? (
-          <>
-            <div className="bg-white border border-bmos-border rounded-2xl p-5">
-              <p className="text-xs text-bmos-text-light mb-1">Murid Diajar</p>
-              <p className="text-2xl font-extrabold text-bmos-text">
-                {teacherStats?.studentCount ?? 0}
-              </p>
-            </div>
-            <div className="bg-white border border-bmos-border rounded-2xl p-5">
-              <p className="text-xs text-bmos-text-light mb-1">Sesi Minggu Ini</p>
-              <p className="text-2xl font-extrabold text-bmos-text">
-                {teacherStats
-                  ? `${teacherStats.finishedThisWeek}/${teacherStats.totalThisWeek}`
-                  : "0/0"}
-              </p>
-              <p className="text-xs text-bmos-text-light">sudah diajar</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="bg-white border border-bmos-border rounded-2xl p-5">
-              <p className="text-xs text-bmos-text-light mb-1">Sisa Sesi</p>
-              <p className="text-2xl font-extrabold text-bmos-text">
-                {studentStats
-                  ? Math.max(0, studentStats.sessionsTotal - studentStats.sessionsUsed)
-                  : "-"}
-                <span className="text-sm font-normal text-bmos-text-light">
-                  {" "}
-                  / {studentStats ? studentStats.sessionsTotal : "-"}
-                </span>
-              </p>
-            </div>
-            <div className="bg-white border border-bmos-border rounded-2xl p-5">
-              <p className="text-xs text-bmos-text-light mb-1">Status Pembayaran</p>
-              <p className="text-lg font-bold text-bmos-text">
-                {studentStats ? studentStats.paymentStatus : "-"}
-              </p>
-            </div>
-          </>
-        )}
-      </div>
+      )}
 
       <div className="flex flex-wrap gap-3 mb-6">
         {quickLinks.map((q) => (

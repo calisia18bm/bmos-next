@@ -38,20 +38,44 @@ export type BannerItem = {
 };
 
 // Susun posisi default buat item yang BELUM PERNAH digeser manual (belum
-// punya x/y tersimpan) -- dijejer rapi nempel pojok kiri-bawah layar.
-// Item yang UDAH punya x/y tersimpan (misal karakter yang udah diatur
-// Owner ke kanan-atas) sama sekali ga disentuh/dipindah -- cuma item baru
-// yang belum pernah diatur (misal logo yang baru ditambah ke katalog)
-// yang dapat posisi default ini.
+// punya x/y tersimpan). Item yang UDAH punya x/y tersimpan (misal karakter
+// yang udah diatur Owner ke kanan-atas) sama sekali ga disentuh/dipindah.
+// Item baru yang belum pernah diatur (misal logo yang baru ditambah ke
+// katalog) ditaruh NEMPEL DI SEBELAH item yang udah ada posisinya -- biar
+// keliatan "gabung" ke baris yang sama, bukan nongol sendiri di pojok
+// lain. Kalau belum ada satupun item yang punya posisi tersimpan (akun
+// baru, belum pernah diatur sama sekali), baru dipakai fallback nempel
+// pojok kiri-bawah layar.
 export function defaultBannerPositions(items: BannerItem[]): BannerItem[] {
-  const missing = items.filter((it) => typeof it.x !== "number");
-  const rowHeight = Math.max(...missing.map((it) => it.heightPx), 40);
-  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800;
-  const y = Math.max(16, viewportHeight - rowHeight - 24);
-  let x = 16;
+  const positioned = items.filter(
+    (it) => typeof it.x === "number" && typeof it.y === "number"
+  );
+  const missing = items.filter(
+    (it) => !(typeof it.x === "number" && typeof it.y === "number")
+  );
+  if (missing.length === 0) return items;
+
+  let x: number;
+  let y: number;
+  if (positioned.length > 0) {
+    const rightmost = positioned.reduce((max, it) =>
+      (it.x ?? 0) + it.heightPx * 1.4 > (max.x ?? 0) + max.heightPx * 1.4
+        ? it
+        : max
+    );
+    x = (rightmost.x ?? 0) + rightmost.heightPx * 1.4 + 6;
+    y = rightmost.y ?? 0;
+  } else {
+    const rowHeight = Math.max(...missing.map((it) => it.heightPx), 40);
+    const viewportHeight =
+      typeof window !== "undefined" ? window.innerHeight : 800;
+    x = 16;
+    y = Math.max(16, viewportHeight - rowHeight - 24);
+  }
+
   return items.map((it) => {
-    if (typeof it.x === "number") return it;
-    const withPos = { ...it, x, y: it.y ?? y + (rowHeight - it.heightPx) };
+    if (typeof it.x === "number" && typeof it.y === "number") return it;
+    const withPos = { ...it, x, y };
     x += it.heightPx * 1.4 + 6;
     return withPos;
   });

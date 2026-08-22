@@ -44,12 +44,13 @@ export default async function DashboardPage() {
   const profile = await getCurrentProfile();
   const canEditBanner = profile?.roles?.includes("OWNER") ?? false;
 
-  // Laoshi & Murid liat Home yang disederhanakan (jadwal + materi aja),
-  // bukan dashboard bisnis lengkap punya Owner/Admin.
-  const isStaffRole =
-    profile?.roles?.includes("OWNER") || profile?.roles?.includes("ADMIN");
+  // Laoshi, Murid, & Admin liat Home yang disederhanakan (banner karakter +
+  // pengumuman + ringkasan singkat), bukan dashboard bisnis lengkap kayak
+  // punya Owner. Isi Home Admin masih placeholder buat sementara -- nanti
+  // dilengkapi lagi widget-nya.
+  const isOwner = profile?.roles?.includes("OWNER") ?? false;
 
-  if (profile && !isStaffRole) {
+  if (profile && !isOwner) {
     const bannerItemsSimple =
       savedBannerLayout && savedBannerLayout.length > 0
         ? [

@@ -6,11 +6,15 @@ import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
 
-// Logo (BM & xuebao) SELALU nempel statis di pojok kiri-bawah layar --
-// beda sama karakter maskot yang bisa digeser bebas sama Owner. Sengaja
-// dipisah dari sistem drag-and-drop biar logo ga ikut kepindah/ketimpa
-// posisi lama yang salah, dan ga perlu diatur ulang tiap kali.
-const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo", "xuebao_logo"]);
+// Logo BM SELALU nempel statis di pojok kiri-bawah layar (di sebelah
+// kanan tombol "Keluar" di sidebar, biar ga numpuk sama tulisannya) --
+// beda sama karakter maskot yang bisa digeser bebas sama Owner. Logo
+// xuebao IKUT gabung ke baris karakter (lihat draggableItems di bawah),
+// bukan statis, sesuai permintaan biar tetep "di samping karakter".
+const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo"]);
+// Digeser ke kanan dikit dari pojok kiri sidebar (px-2 di dalam p-4)
+// biar ga nimpa teks tombol "Keluar" di footer sidebar.
+const BM_LOGO_LEFT_PX = 112;
 
 export default function HomeBanner({
   items,
@@ -140,7 +144,10 @@ export default function HomeBanner({
   }
 
   const logoRow = (
-    <div className="fixed bottom-4 left-4 z-30 flex items-end gap-1.5 pointer-events-none">
+    <div
+      className="fixed bottom-4 z-30 flex items-end gap-1.5 pointer-events-none"
+      style={{ left: BM_LOGO_LEFT_PX }}
+    >
       {logoItems.map((it) => (
         <Image
           key={it.key}
