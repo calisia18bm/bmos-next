@@ -22,21 +22,25 @@ export default function LoginPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const supabase = createClient();
-    supabase
-      .from("app_settings")
-      .select("global_character_key")
-      .eq("id", 1)
-      .maybeSingle()
-      .then(({ data }) => {
+
+    async function loadCharacter() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("app_settings")
+          .select("global_character_key")
+          .eq("id", 1)
+          .maybeSingle();
         if (!cancelled) {
           setCharacterFile(getCharacterFile(data?.global_character_key ?? null));
         }
-      })
-      .catch(() => {
+      } catch {
         // Biarin default kalau gagal fetch -- jangan bikin halaman Login
         // error cuma gara-gara logo.
-      });
+      }
+    }
+
+    loadCharacter();
     return () => {
       cancelled = true;
     };
