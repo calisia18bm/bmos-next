@@ -6,6 +6,12 @@ import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
 
+// Logo (BM & xuebao) SELALU nempel statis di pojok kiri-bawah layar --
+// beda sama karakter maskot yang bisa digeser bebas sama Owner. Sengaja
+// dipisah dari sistem drag-and-drop biar logo ga ikut kepindah/ketimpa
+// posisi lama yang salah, dan ga perlu diatur ulang tiap kali.
+const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo", "xuebao_logo"]);
+
 export default function HomeBanner({
   items,
   canEdit,
@@ -14,9 +20,21 @@ export default function HomeBanner({
   canEdit: boolean;
 }) {
   const router = useRouter();
+
+  const logoItems = items.filter((it) => STATIC_BOTTOM_LEFT_KEYS.has(it.key));
+  const draggableItems = items.filter(
+    (it) => !STATIC_BOTTOM_LEFT_KEYS.has(it.key)
+  );
+
   const [editMode, setEditMode] = useState(false);
+  // Kalau Owner belum pernah nyimpen posisi custom buat karakter (belum
+  // ada x/y), tampilannya BUKAN pakai absolute positioning full-layar --
+  // cukup baris kecil rapi nempel pojok kiri-bawah layar. Begitu Owner
+  // udah pernah nyimpen posisi (misal digeser ke kanan-atas), posisi itu
+  // yang dipertahankan terus.
+  const hasSavedLayout = draggableItems.some((it) => typeof it.x === "number");
   const [localItems, setLocalItems] = useState<BannerItem[]>(
-    defaultBannerPositions(items)
+    hasSavedLayout ? defaultBannerPositions(draggableItems) : draggableItems
   );
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,6 +45,27 @@ export default function HomeBanner({
     origX: number;
     origY: number;
   } | null>(null);
+
+  function enterEditMode() {
+    setLocalItems((prev) => {
+      if (prev.some((it) => typeof it.x === "number")) return prev;
+      // Belum ada posisi tersimpan -- hitung posisi awal berjejer nempel
+      // pojok kiri-bawah (samain kayak tampilan default), baru dari situ
+      // Owner bisa mulai geser-geser manual.
+      const gap = 6;
+      let x = 16;
+      const rowHeight = Math.max(...prev.map((it) => it.heightPx), 40);
+      const viewportHeight =
+        typeof window !== "undefined" ? window.innerHeight : 800;
+      const y = Math.max(16, viewportHeight - rowHeight - 24);
+      return prev.map((it) => {
+        const withPos = { ...it, x, y: y + (rowHeight - it.heightPx) };
+        x += it.heightPx * 1.4 + gap;
+        return withPos;
+      });
+    });
+    setEditMode(true);
+  }
 
   function onPointerDown(e: React.PointerEvent, key: string) {
     if (!editMode) return;
@@ -84,15 +123,73 @@ export default function HomeBanner({
 
   async function handleSave() {
     setSaving(true);
-    await saveBannerLayout(localItems);
+    // Logo tetap dikirim apa adanya (statis, ga ada x/y) biar posisinya
+    // di kiri-bawah ga ikut ke-lock ke database -- yang disimpan cuma
+    // posisi karakter yang emang digeser Owner.
+    await saveBannerLayout([...localItems, ...logoItems]);
     setSaving(false);
     setEditMode(false);
     router.refresh();
   }
 
   function handleCancel() {
-    setLocalItems(defaultBannerPositions(items));
+    setLocalItems(
+      hasSavedLayout ? defaultBannerPositions(draggableItems) : draggableItems
+    );
     setEditMode(false);
+  }
+
+  const logoRow = (
+    <div className="fixed bottom-4 left-4 z-30 flex items-end gap-1.5 pointer-events-none">
+      {logoItems.map((it) => (
+        <Image
+          key={it.key}
+          src={it.file}
+          alt={it.label}
+          width={it.heightPx * 1.4}
+          height={it.heightPx}
+          style={{ height: it.heightPx }}
+          className="w-auto object-contain"
+          draggable={false}
+        />
+      ))}
+    </div>
+  );
+
+  // Tampilan default: karakter belum pernah diatur & lagi ga di mode edit
+  // -- baris kecil rapi nempel pojok kiri-bawah layar juga (posisi &
+  // ukuran default persis kayak sebelum fitur "geser posisi" dipakai).
+  if (!editMode && !hasSavedLayout) {
+    return (
+      <>
+        {canEdit && (
+          <div className="fixed top-4 right-6 z-50 flex items-center gap-3 bg-white/95 backdrop-blur border border-bmos-border rounded-xl px-3 py-2 shadow-sm">
+            <button
+              type="button"
+              onClick={enterEditMode}
+              className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer"
+            >
+              Atur posisi karakter
+            </button>
+          </div>
+        )}
+        {logoRow}
+        <div className="fixed bottom-4 left-24 z-30 flex items-end gap-1.5 pointer-events-none">
+          {draggableItems.map((it) => (
+            <Image
+              key={it.key}
+              src={it.file}
+              alt={it.label}
+              width={it.heightPx * 1.4}
+              height={it.heightPx}
+              style={{ height: it.heightPx }}
+              className="w-auto object-contain"
+              draggable={false}
+            />
+          ))}
+        </div>
+      </>
+    );
   }
 
   return (
@@ -102,7 +199,7 @@ export default function HomeBanner({
           {!editMode ? (
             <button
               type="button"
-              onClick={() => setEditMode(true)}
+              onClick={enterEditMode}
               className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer"
             >
               Atur posisi karakter
@@ -131,9 +228,11 @@ export default function HomeBanner({
           )}
         </div>
       )}
+      {logoRow}
       {/* Area geser menutupi SELURUH layar (termasuk sampai ke sidebar kiri)
           -- item bisa ditaruh dimana aja, ga cuma di area konten kanan.
-          z-30 biar tetep keliatan di atas sidebar (z-20). */}
+          z-30 biar tetep keliatan di atas sidebar (z-20). Cuma karakter
+          (bukan logo) yang lewat sini. */}
       <div
         ref={containerRef}
         onPointerMove={onPointerMove}

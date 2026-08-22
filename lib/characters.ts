@@ -37,13 +37,21 @@ export type BannerItem = {
   y?: number;
 };
 
-// Susun posisi default berjejer rapi (dipakai kalau item belum pernah
-// digeser manual sama sekali).
+// Susun posisi default buat item yang BELUM PERNAH digeser manual (belum
+// punya x/y tersimpan) -- dijejer rapi nempel pojok kiri-bawah layar.
+// Item yang UDAH punya x/y tersimpan (misal karakter yang udah diatur
+// Owner ke kanan-atas) sama sekali ga disentuh/dipindah -- cuma item baru
+// yang belum pernah diatur (misal logo yang baru ditambah ke katalog)
+// yang dapat posisi default ini.
 export function defaultBannerPositions(items: BannerItem[]): BannerItem[] {
-  let x = 0;
-  const rowHeight = Math.max(...items.map((it) => it.heightPx), 40);
+  const missing = items.filter((it) => typeof it.x !== "number");
+  const rowHeight = Math.max(...missing.map((it) => it.heightPx), 40);
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+  const y = Math.max(16, viewportHeight - rowHeight - 24);
+  let x = 16;
   return items.map((it) => {
-    const withPos = { ...it, x: it.x ?? x, y: it.y ?? rowHeight - it.heightPx };
+    if (typeof it.x === "number") return it;
+    const withPos = { ...it, x, y: it.y ?? y + (rowHeight - it.heightPx) };
     x += it.heightPx * 1.4 + 6;
     return withPos;
   });
