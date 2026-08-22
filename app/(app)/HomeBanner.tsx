@@ -16,7 +16,7 @@ const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo"]);
 // ga numpuk tulisan email/OWNER/Keluar di footer sidebar -- tetap di
 // dalam kotak footer itu, cuma dipindah ke bagian yang kosong.
 const BM_LOGO_LEFT_PX = 170;
-const BM_LOGO_BOTTOM_PX = 32;
+const BM_LOGO_BOTTOM_PX = 80;
 
 export default function HomeBanner({
   items,
