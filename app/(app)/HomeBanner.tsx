@@ -163,6 +163,31 @@ export default function HomeBanner({
     );
   }
 
+  // Tombol "Ratakan" -- nyamain semua karakter ke ketinggian (posisi
+  // bawah) yang sama kayak "brain_pink" (karakter yang udah digeser
+  // Owner ke posisi lebih rendah, dipakai sebagai patokan), terus jarak
+  // antar karakter kiri-kanan disamain rata (ga ada yang deket ada yang
+  // jauh kayak sebelumnya). Urutan kiri-ke-kanan tetap ngikutin posisi
+  // x yang sekarang, cuma dirapiin.
+  function normalizeRow() {
+    setLocalItems((prev) => {
+      if (prev.length === 0) return prev;
+      const refItem =
+        prev.find((it) => it.key === "brain_pink") ??
+        prev.reduce((a, b) => ((b.y ?? 0) > (a.y ?? 0) ? b : a));
+      const refBottom = (refItem.y ?? 0) + refItem.heightPx;
+
+      const sorted = [...prev].sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
+      const gap = 6;
+      let x = sorted[0].x ?? 16;
+      return sorted.map((it) => {
+        const withPos = { ...it, x, y: refBottom - it.heightPx };
+        x += it.heightPx * 1.4 + gap;
+        return withPos;
+      });
+    });
+  }
+
   async function handleSave() {
     setSaving(true);
     // Logo tetap dikirim apa adanya (statis, ga ada x/y) biar posisinya
@@ -256,6 +281,14 @@ export default function HomeBanner({
               <span className="text-xs text-bmos-text-light">
                 Tarik buat geser, +/- buat ukuran
               </span>
+              <button
+                type="button"
+                onClick={normalizeRow}
+                title="Samain tinggi & jarak semua karakter (patokan: brain_pink)"
+                className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer"
+              >
+                Ratakan
+              </button>
               <button
                 type="button"
                 onClick={handleCancel}
