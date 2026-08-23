@@ -163,26 +163,29 @@ export default function HomeBanner({
     );
   }
 
-  // Tombol "Ratakan" -- nyamain semua karakter ke ketinggian (posisi
-  // bawah) yang sama kayak "brain_pink" (karakter yang udah digeser
-  // Owner ke posisi lebih rendah, dipakai sebagai patokan), terus jarak
-  // antar karakter kiri-kanan disamain rata (ga ada yang deket ada yang
-  // jauh kayak sebelumnya). Urutan kiri-ke-kanan tetap ngikutin posisi
-  // x yang sekarang, cuma dirapiin.
+  // Tombol "Ratakan" -- balikin baris karakter ke tampilan rapi kayak
+  // default awal (ukuran kecil seragam, sejajar, jarak antar karakter
+  // sama rata, nempel pojok kanan-atas area). Ini samain SEMUA karakter
+  // (termasuk xuebao) ke satu ukuran seragam & satu baris lurus -- bukan
+  // makein ukuran/posisi masing-masing yang beda-beda kayak sebelumnya.
+  const NORMALIZED_HEIGHT_PX = 40;
   function normalizeRow() {
     setLocalItems((prev) => {
       if (prev.length === 0) return prev;
-      const refItem =
-        prev.find((it) => it.key === "brain_pink") ??
-        prev.reduce((a, b) => ((b.y ?? 0) > (a.y ?? 0) ? b : a));
-      const refBottom = (refItem.y ?? 0) + refItem.heightPx;
+      const rect = containerRef.current?.getBoundingClientRect();
+      const containerWidth =
+        rect?.width ??
+        (typeof window !== "undefined" ? window.innerWidth : 1200);
 
       const sorted = [...prev].sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
-      const gap = 6;
-      let x = sorted[0].x ?? 16;
+      const gap = 10;
+      const totalWidth =
+        sorted.length * (NORMALIZED_HEIGHT_PX * 1.4 + gap) - gap;
+      let x = Math.max(16, containerWidth - totalWidth - 16);
+      const y = 16;
       return sorted.map((it) => {
-        const withPos = { ...it, x, y: refBottom - it.heightPx };
-        x += it.heightPx * 1.4 + gap;
+        const withPos = { ...it, heightPx: NORMALIZED_HEIGHT_PX, x, y };
+        x += NORMALIZED_HEIGHT_PX * 1.4 + gap;
         return withPos;
       });
     });
