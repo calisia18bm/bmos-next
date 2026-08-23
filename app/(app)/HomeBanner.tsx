@@ -58,8 +58,10 @@ export default function HomeBanner({
   // lebih sempit & mulai lebih ke kanan. Kalau posisi lama udah ga muat di
   // area baru ini, JANGAN cuma di-clamp satu-satu (itu bikin numpuk saling
   // tindih kalau kepentok batas yang sama) -- susun ULANG semua jadi baris
-  // rapi nempel kiri-atas area baru, biar ga ada yang tumpang tindih.
-  // Owner tinggal "Atur posisi karakter" lagi kalau mau ngatur ulang.
+  // rapi nempel pojok KANAN-atas area baru (Owner sebelumnya emang naruh
+  // karakternya di kanan-atas), biar tampilannya balik mirip kayak yang
+  // udah diatur, bukan ngumpul di kiri. Owner tinggal "Atur posisi
+  // karakter" lagi kalau mau ngatur ulang posisi pastinya.
   useEffect(() => {
     if (!hasSavedLayout) return;
     const rect = containerRef.current?.getBoundingClientRect();
@@ -73,7 +75,9 @@ export default function HomeBanner({
       if (!needsReflow) return prev;
 
       const gap = 6;
-      let x = 16;
+      const totalWidth =
+        prev.reduce((sum, it) => sum + it.heightPx * 1.4 + gap, 0) - gap;
+      let x = Math.max(16, rect.width - totalWidth - 16);
       const rowHeight = Math.max(...prev.map((it) => it.heightPx), 40);
       return prev.map((it) => {
         const withPos = { ...it, x, y: 16 + (rowHeight - it.heightPx) };
