@@ -55,26 +55,32 @@ export default function HomeBanner({
   // Posisi tersimpan sebelumnya dihitung relatif ke SELURUH layar (dulu
   // area-nya "fixed", nutupin sampai ke sidebar). Sekarang area-nya udah
   // "absolute" relatif ke konten halaman doang (biar ikut ke-scroll), yang
-  // lebih sempit & mulai lebih ke kanan. Biar karakter yang udah diatur
-  // Owner sebelumnya ga ilang/kepotong ke luar layar, sekali di awal kita
-  // "tarik masuk" lagi posisinya biar tetep muat di area yang sekarang.
+  // lebih sempit & mulai lebih ke kanan. Kalau posisi lama udah ga muat di
+  // area baru ini, JANGAN cuma di-clamp satu-satu (itu bikin numpuk saling
+  // tindih kalau kepentok batas yang sama) -- susun ULANG semua jadi baris
+  // rapi nempel kiri-atas area baru, biar ga ada yang tumpang tindih.
+  // Owner tinggal "Atur posisi karakter" lagi kalau mau ngatur ulang.
   useEffect(() => {
     if (!hasSavedLayout) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setLocalItems((prev) =>
-      prev.map((it) => {
-        if (typeof it.x !== "number" || typeof it.y !== "number") return it;
+    setLocalItems((prev) => {
+      const needsReflow = prev.some((it) => {
+        if (typeof it.x !== "number" || typeof it.y !== "number") return false;
         const itemWidth = it.heightPx * 1.4;
-        const maxX = Math.max(0, rect.width - itemWidth);
-        const maxY = Math.max(0, rect.height - it.heightPx);
-        return {
-          ...it,
-          x: Math.min(Math.max(it.x, 0), maxX),
-          y: Math.min(Math.max(it.y, 0), maxY),
-        };
-      })
-    );
+        return it.x < 0 || it.y < 0 || it.x > rect.width - itemWidth || it.y > rect.height - it.heightPx;
+      });
+      if (!needsReflow) return prev;
+
+      const gap = 6;
+      let x = 16;
+      const rowHeight = Math.max(...prev.map((it) => it.heightPx), 40);
+      return prev.map((it) => {
+        const withPos = { ...it, x, y: 16 + (rowHeight - it.heightPx) };
+        x += it.heightPx * 1.4 + gap;
+        return withPos;
+      });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
