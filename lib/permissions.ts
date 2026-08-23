@@ -10,6 +10,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "students",
     "teachers",
     "classes",
+    "class-cards",
     "attendance",
     "payments",
     "payroll",
@@ -36,6 +37,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "students",
     "teachers",
     "classes",
+    "class-cards",
     "attendance",
     "payments",
     "payroll",
@@ -54,8 +56,9 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "my-students",
     "materials",
     "my-payroll",
+    "class-cards",
   ],
-  STUDENT: ["dashboard", "my-class", "my-payments", "materials"],
+  STUDENT: ["dashboard", "my-class", "my-payments", "materials", "class-cards"],
 };
 
 export function getMenusForRoles(roles: string[]): string[] {

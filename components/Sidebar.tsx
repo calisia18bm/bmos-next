@@ -28,6 +28,12 @@ const NAV_GROUPS = [
     items: [
       { href: "/my-class", menu: "my-class", label: "My Schedule", icon: "🗓️" },
       {
+        href: "/class-cards?as=student",
+        menu: "class-cards",
+        label: "Pilih Kelas",
+        icon: "🗂️",
+      },
+      {
         href: "/materials?as=student",
         menu: "materials",
         label: "Materi",
@@ -45,6 +51,12 @@ const NAV_GROUPS = [
     label: "LAOSHI",
     items: [
       { href: "/attendance", menu: "attendance", label: "Absensi", icon: "✅" },
+      {
+        href: "/class-cards?as=teacher",
+        menu: "class-cards",
+        label: "Buat Kelas",
+        icon: "🗂️",
+      },
       {
         href: "/my-schedule",
         menu: "my-schedule",
@@ -77,6 +89,12 @@ const NAV_GROUPS = [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
       { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
       { href: "/classes", menu: "classes", label: "Classes", icon: "📚" },
+      {
+        href: "/class-cards",
+        menu: "class-cards",
+        label: "Approval Kelas",
+        icon: "🗂️",
+      },
       { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
       {

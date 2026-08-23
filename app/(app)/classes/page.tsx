@@ -8,7 +8,15 @@ export default async function ClassesPage() {
   const supabase = await createClient();
 
   const [{ data: classes }, { data: teachers }] = await Promise.all([
-    supabase.from("classes").select("*").order("created_at", { ascending: false }),
+    // Kelas yang disubmit Laoshi lewat "Buat Kelas" cuma keliatan di sini
+    // SETELAH di-approve Owner (approval_status APPROVED) -- yang masih
+    // Menunggu/Ditolak ada di menu "Approval Kelas". Kelas yang dibikin
+    // langsung dari sini (tombol "+ Tambah Kelas") otomatis APPROVED.
+    supabase
+      .from("classes")
+      .select("*")
+      .eq("approval_status", "APPROVED")
+      .order("created_at", { ascending: false }),
     supabase.from("teachers").select("id, name").eq("active", true),
   ]);
 
@@ -46,6 +54,11 @@ export default async function ClassesPage() {
                   <p className="font-semibold text-bmos-text">{c.name}</p>
                   <p className="text-xs text-bmos-text-light">
                     {c.class_code}
+                    {c.created_by_teacher_id && (
+                      <span className="ml-1.5 inline-block bg-bmos-primary-soft text-bmos-primary px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                        🗂️ dari Laoshi
+                      </span>
+                    )}
                   </p>
                 </td>
                 <td className="px-5 py-3 text-bmos-text">
