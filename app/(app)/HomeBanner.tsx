@@ -182,7 +182,7 @@ export default function HomeBanner({
       const totalWidth =
         sorted.length * (NORMALIZED_HEIGHT_PX * 1.4 + gap) - gap;
       let x = Math.max(16, containerWidth - totalWidth - 16);
-      const y = 16;
+      const y = 56;
       return sorted.map((it) => {
         const withPos = { ...it, heightPx: NORMALIZED_HEIGHT_PX, x, y };
         x += NORMALIZED_HEIGHT_PX * 1.4 + gap;
