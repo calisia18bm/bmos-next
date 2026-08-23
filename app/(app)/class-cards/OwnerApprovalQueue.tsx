@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { approveClassCard, rejectClassCard, saveCommissionTiers } from "./actions";
+import {
+  approveClassCard,
+  rejectClassCard,
+  saveCommissionTiers,
+  saveGoalTags,
+} from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
-import { ClassCard, formatRupiah, goalTagLabel } from "@/lib/classCards";
+import { ClassCard, formatRupiah } from "@/lib/classCards";
 
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
@@ -22,16 +27,22 @@ const STATUS_LABEL: Record<string, string> = {
 export default function OwnerApprovalQueue({
   cards,
   tiers,
+  goalTags,
   canApprove,
 }: {
   cards: ClassCard[];
   tiers: CommissionTier[];
+  goalTags: string[];
   canApprove: boolean;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localTiers, setLocalTiers] = useState<CommissionTier[]>(tiers);
   const [savingTiers, setSavingTiers] = useState(false);
   const [tiersMsg, setTiersMsg] = useState("");
+  const [localGoalTags, setLocalGoalTags] = useState<string[]>(goalTags);
+  const [savingGoalTags, setSavingGoalTags] = useState(false);
+  const [goalTagsMsg, setGoalTagsMsg] = useState("");
+  const [newGoalTag, setNewGoalTag] = useState("");
 
   const pending = cards.filter((c) => c.approval_status === "PENDING");
   const others = cards.filter((c) => c.approval_status !== "PENDING");
@@ -90,6 +101,28 @@ export default function OwnerApprovalQueue({
     setTiersMsg(result.message);
   }
 
+  function addGoalTag() {
+    const tag = newGoalTag.trim();
+    if (!tag || localGoalTags.includes(tag)) {
+      setNewGoalTag("");
+      return;
+    }
+    setLocalGoalTags((prev) => [...prev, tag]);
+    setNewGoalTag("");
+  }
+
+  function removeGoalTag(tag: string) {
+    setLocalGoalTags((prev) => prev.filter((t) => t !== tag));
+  }
+
+  async function handleSaveGoalTags() {
+    setSavingGoalTags(true);
+    setGoalTagsMsg("");
+    const result = await saveGoalTags(localGoalTags);
+    setSavingGoalTags(false);
+    setGoalTagsMsg(result.message);
+  }
+
   function renderCard(c: ClassCard) {
     const comm = c.price ? computeCommission(c.price, tiers) : null;
     return (
@@ -134,7 +167,7 @@ export default function OwnerApprovalQueue({
                 key={tag}
                 className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full"
               >
-                {goalTagLabel(tag)}
+                {tag}
               </span>
             ))}
           </div>
@@ -273,6 +306,72 @@ export default function OwnerApprovalQueue({
           </div>
           {tiersMsg && (
             <p className="text-xs text-bmos-text-light mt-2">{tiersMsg}</p>
+          )}
+        </div>
+      )}
+
+      {canApprove && (
+        <div className="bg-white border border-bmos-border rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-1">
+            Pengaturan Tujuan Belajar
+          </h2>
+          <p className="text-xs text-bmos-text-light mb-3">
+            Daftar badge tujuan belajar (HSK, China Buddy, dll) yang bisa
+            dipilih Laoshi pas bikin kartu kelas.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {localGoalTags.map((tag) => (
+              <span
+                key={tag}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-bmos-primary-soft text-bmos-primary px-2.5 py-1.5 rounded-full"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeGoalTag(tag)}
+                  className="text-bmos-primary hover:text-red-600"
+                  title="Hapus"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {localGoalTags.length === 0 && (
+              <p className="text-xs text-bmos-text-light">
+                Belum ada tujuan belajar.
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={newGoalTag}
+              onChange={(e) => setNewGoalTag(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addGoalTag();
+                }
+              }}
+              placeholder="Contoh: HSK 7, Anak SD, dll"
+              className="flex-1 border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+            />
+            <button
+              type="button"
+              onClick={addGoalTag}
+              className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-xl px-3 py-2 hover:bg-bmos-primary-light hover:text-white transition"
+            >
+              + Tambah
+            </button>
+            <button
+              onClick={handleSaveGoalTags}
+              disabled={savingGoalTags}
+              className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-xs font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
+            >
+              {savingGoalTags ? "Menyimpan..." : "Simpan"}
+            </button>
+          </div>
+          {goalTagsMsg && (
+            <p className="text-xs text-bmos-text-light mt-2">{goalTagsMsg}</p>
           )}
         </div>
       )}

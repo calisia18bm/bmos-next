@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import TeacherClassCards from "./TeacherClassCards";
 import StudentClassBrowse from "./StudentClassBrowse";
 import OwnerApprovalQueue from "./OwnerApprovalQueue";
-import { getCommissionTiers } from "./actions";
+import { getCommissionTiers, getGoalTags } from "./actions";
 import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function ClassCardsPage({
     if (!previewAsTeacher && !profile.teacher_id) {
       return (
         <div>
-          <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Buat Kelas</h1>
+          <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Class Card</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
             hubungkan lewat halaman Accounts.
@@ -60,9 +60,10 @@ export default async function ClassCardsPage({
           .order("created_at", { ascending: false })
           .limit(20);
 
-    const [{ data: myCards }, tiers] = await Promise.all([
+    const [{ data: myCards }, tiers, goalTags] = await Promise.all([
       query,
       getCommissionTiers(),
+      getGoalTags(),
     ]);
 
     return (
@@ -72,7 +73,7 @@ export default async function ClassCardsPage({
             Preview Laoshi
           </p>
         )}
-        <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Buat Kelas</h1>
+        <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Class Card</h1>
         <p className="text-bmos-text-light text-sm mb-6">
           Bikin kartu kelas sendiri (jadwal, harga, kuota, tujuan belajar),
           submit buat di-approve Owner sebelum tayang buat Murid.
@@ -87,6 +88,7 @@ export default async function ClassCardsPage({
         <TeacherClassCards
           cards={(myCards ?? []) as ClassCard[]}
           tiers={tiers}
+          goalTags={goalTags}
         />
       </div>
     );
@@ -97,7 +99,7 @@ export default async function ClassCardsPage({
     if (!previewAsStudent && !profile.student_id) {
       return (
         <div>
-          <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Pilih Kelas</h1>
+          <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Class Card</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
             Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
             hubungkan lewat halaman Accounts.
@@ -143,7 +145,7 @@ export default async function ClassCardsPage({
             Preview Murid
           </p>
         )}
-        <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Pilih Kelas</h1>
+        <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Class Card</h1>
         <p className="text-bmos-text-light text-sm mb-6">
           Klik kartu kelas yang cocok sama tujuan belajar kamu buat join.
         </p>
@@ -165,13 +167,14 @@ export default async function ClassCardsPage({
 
   // ===== OWNER/ADMIN: approval queue + pantau semua kartu kelas =====
   if (isStaff) {
-    const [{ data: cards }, tiers] = await Promise.all([
+    const [{ data: cards }, tiers, goalTags] = await Promise.all([
       supabase
         .from("classes")
         .select("*")
         .not("created_by_teacher_id", "is", null)
         .order("created_at", { ascending: false }),
       getCommissionTiers(),
+      getGoalTags(),
     ]);
 
     return (
@@ -189,6 +192,7 @@ export default async function ClassCardsPage({
         <OwnerApprovalQueue
           cards={(cards ?? []) as ClassCard[]}
           tiers={tiers}
+          goalTags={goalTags}
           canApprove={isOwner}
         />
       </div>

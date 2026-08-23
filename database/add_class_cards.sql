@@ -43,3 +43,13 @@ create policy "Authenticated users can update classes"
 alter table app_settings
   add column if not exists commission_tiers jsonb not null default
   '[{"maxPrice":100000,"pct":20},{"maxPrice":200000,"pct":15},{"maxPrice":null,"pct":10}]'::jsonb;
+
+-- ============================================================
+-- Katalog Tujuan Belajar (badge kayak HSK, China Buddy, dll) yang
+-- muncul di kartu kelas -- sekarang diatur Owner sendiri (bisa
+-- nambah/hapus/edit dari halaman Class Card bagian Owner), bukan
+-- di-hardcode di kode lagi.
+-- ============================================================
+alter table app_settings
+  add column if not exists goal_tags jsonb not null default
+  '["HSK 1","HSK 2","HSK 3","HSK 4","HSK 5","HSK 6","Percakapan Sehari-hari","Pasangan Bicara / China Buddy","Mandarin Bisnis","Anak-anak","Persiapan Sekolah / Ujian"]'::jsonb;

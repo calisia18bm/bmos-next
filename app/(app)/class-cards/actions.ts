@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { CLASS_DAYS, GOAL_TAGS } from "@/lib/classCards";
+import { CLASS_DAYS, DEFAULT_GOAL_TAGS } from "@/lib/classCards";
 import {
   CommissionTier,
   DEFAULT_COMMISSION_TIERS,
@@ -60,10 +60,6 @@ function validateInput(input: ClassCardInput): string | null {
   ) {
     return "Tanggal mulai pendaftaran ga boleh lebih besar dari tanggal tutup.";
   }
-  const invalidTag = input.goalTags.find(
-    (tag) => !GOAL_TAGS.some((g) => g.key === tag)
-  );
-  if (invalidTag) return "Ada tujuan belajar yang ga valid.";
   return null;
 }
 
@@ -468,6 +464,44 @@ export async function saveCommissionTiers(tiers: CommissionTier[]) {
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Pengaturan potongan komisi disimpan." };
+}
+
+// Katalog badge "Tujuan Belajar" (HSK, China Buddy, dll) yang bisa
+// dipilih Laoshi pas bikin kartu kelas -- diatur Owner sendiri.
+export async function getGoalTags(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("goal_tags")
+    .eq("id", 1)
+    .maybeSingle();
+  const tags = data?.goal_tags as string[] | null;
+  return tags && tags.length > 0 ? tags : DEFAULT_GOAL_TAGS;
+}
+
+export async function saveGoalTags(tags: string[]) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER")) {
+    return { success: false, message: "Cuma Owner yang bisa atur tujuan belajar." };
+  }
+
+  const cleaned = Array.from(
+    new Set(tags.map((t) => t.trim()).filter((t) => t.length > 0))
+  );
+  if (cleaned.length === 0) {
+    return { success: false, message: "Minimal 1 tujuan belajar." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ id: 1, goal_tags: cleaned });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Daftar tujuan belajar disimpan." };
 }
 
 export { computeCommission };

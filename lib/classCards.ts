@@ -14,24 +14,23 @@ export const CLASS_DAYS = [
 
 // Badge tujuan belajar yang bisa dipilih Laoshi pas bikin kelas -- muncul
 // di kartu kelas biar Murid gampang nemuin kelas yang sesuai tujuan dia
-// (HSK, latihan ngobrol bareng orang China, dll).
-export const GOAL_TAGS = [
-  { key: "HSK1", label: "HSK 1" },
-  { key: "HSK2", label: "HSK 2" },
-  { key: "HSK3", label: "HSK 3" },
-  { key: "HSK4", label: "HSK 4" },
-  { key: "HSK5", label: "HSK 5" },
-  { key: "HSK6", label: "HSK 6" },
-  { key: "PERCAKAPAN", label: "Percakapan Sehari-hari" },
-  { key: "CHINA_BUDDY", label: "Pasangan Bicara / China Buddy" },
-  { key: "BISNIS", label: "Mandarin Bisnis" },
-  { key: "ANAK", label: "Anak-anak" },
-  { key: "SEKOLAH", label: "Persiapan Sekolah / Ujian" },
-] as const;
-
-export function goalTagLabel(key: string): string {
-  return GOAL_TAGS.find((g) => g.key === key)?.label ?? key;
-}
+// (HSK, latihan ngobrol bareng orang China, dll). Daftarnya sekarang
+// diatur OWNER sendiri (disimpan di app_settings.goal_tags, lihat
+// getGoalTags/saveGoalTags di app/(app)/class-cards/actions.ts) -- ini
+// cuma fallback awal kalau Owner belum pernah atur.
+export const DEFAULT_GOAL_TAGS = [
+  "HSK 1",
+  "HSK 2",
+  "HSK 3",
+  "HSK 4",
+  "HSK 5",
+  "HSK 6",
+  "Percakapan Sehari-hari",
+  "Pasangan Bicara / China Buddy",
+  "Mandarin Bisnis",
+  "Anak-anak",
+  "Persiapan Sekolah / Ujian",
+];
 
 export type ClassCardStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 

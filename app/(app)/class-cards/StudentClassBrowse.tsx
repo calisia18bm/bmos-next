@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { joinClassCard } from "./actions";
-import { ClassCard, formatRupiah, goalTagLabel } from "@/lib/classCards";
+import { ClassCard, formatRupiah } from "@/lib/classCards";
 
 export default function StudentClassBrowse({
   cards,
@@ -88,7 +88,7 @@ export default function StudentClassBrowse({
                     key={tag}
                     className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full"
                   >
-                    {goalTagLabel(tag)}
+                    {tag}
                   </span>
                 ))}
               </div>

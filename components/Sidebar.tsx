@@ -30,7 +30,7 @@ const NAV_GROUPS = [
       {
         href: "/class-cards?as=student",
         menu: "class-cards",
-        label: "Pilih Kelas",
+        label: "Class Card",
         icon: "🗂️",
       },
       {
@@ -54,7 +54,7 @@ const NAV_GROUPS = [
       {
         href: "/class-cards?as=teacher",
         menu: "class-cards",
-        label: "Buat Kelas",
+        label: "Class Card",
         icon: "🗂️",
       },
       {

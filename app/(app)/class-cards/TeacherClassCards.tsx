@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { submitClassCard, resubmitClassCard } from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
-import { CLASS_DAYS, GOAL_TAGS, ClassCard, formatRupiah, goalTagLabel } from "@/lib/classCards";
+import { CLASS_DAYS, ClassCard, formatRupiah } from "@/lib/classCards";
 
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
@@ -69,9 +69,11 @@ function cardToForm(c: ClassCard): FormState {
 export default function TeacherClassCards({
   cards,
   tiers,
+  goalTags,
 }: {
   cards: ClassCard[];
   tiers: CommissionTier[];
+  goalTags: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,7 +135,7 @@ export default function TeacherClassCards({
           onClick={openNew}
           className="bg-bmos-primary text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-bmos-primary-light transition"
         >
-          + Buat Kelas
+          + Class Card
         </button>
       </div>
 
@@ -178,7 +180,7 @@ export default function TeacherClassCards({
                         key={tag}
                         className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full"
                       >
-                        {goalTagLabel(tag)}
+                        {tag}
                       </span>
                     ))}
                   </div>
@@ -236,7 +238,7 @@ export default function TeacherClassCards({
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-bmos-text mb-4">
-              {editingId ? "Edit Kelas" : "Buat Kelas Baru"}
+              {editingId ? "Edit Class Card" : "Class Card Baru"}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -333,16 +335,24 @@ export default function TeacherClassCards({
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-bmos-text">
-                <input
-                  type="checkbox"
-                  checked={form.isPrivate}
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Tipe Kelas
+                </label>
+                <select
+                  value={form.isPrivate ? "private" : "umum"}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, isPrivate: e.target.checked }))
+                    setForm((f) => ({
+                      ...f,
+                      isPrivate: e.target.value === "private",
+                    }))
                   }
-                />
-                Kelas privat (ga ditampilin di daftar pilihan umum Murid)
-              </label>
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                >
+                  <option value="umum">Umum (ditampilin di daftar pilihan Murid)</option>
+                  <option value="private">Private (ga ditampilin, daftarnya lewat Admin/Laoshi langsung)</option>
+                </select>
+              </div>
 
               <div>
                 <p className="text-sm font-medium text-bmos-text mb-1">
@@ -420,20 +430,25 @@ export default function TeacherClassCards({
                   Tujuan Belajar
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {GOAL_TAGS.map((g) => (
+                  {goalTags.map((tag) => (
                     <button
                       type="button"
-                      key={g.key}
-                      onClick={() => toggleTag(g.key)}
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
                       className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition ${
-                        form.goalTags.includes(g.key)
+                        form.goalTags.includes(tag)
                           ? "bg-bmos-primary text-white border-bmos-primary"
                           : "bg-white text-bmos-text-light border-bmos-border hover:border-bmos-primary-light"
                       }`}
                     >
-                      {g.label}
+                      {tag}
                     </button>
                   ))}
+                  {goalTags.length === 0 && (
+                    <p className="text-xs text-bmos-text-light">
+                      Owner belum atur daftar tujuan belajar.
+                    </p>
+                  )}
                 </div>
               </div>
 
