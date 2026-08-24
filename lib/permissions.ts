@@ -26,6 +26,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "branding",
     "accounts",
     "materials",
+    "homework",
     "my-class",
     "my-payments",
     "my-schedule",
@@ -46,6 +47,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "weekly-choice",
     "content-calendar",
     "materials",
+    "homework",
     // "accounts" sengaja DIHAPUS dari sini -- pengelolaan akun (buat/edit
     // akun, reset password orang lain) sekarang cuma buat Owner.
   ],
@@ -57,8 +59,16 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "materials",
     "my-payroll",
     "class-cards",
+    "homework",
   ],
-  STUDENT: ["dashboard", "my-class", "my-payments", "materials", "class-cards"],
+  STUDENT: [
+    "dashboard",
+    "my-class",
+    "my-payments",
+    "materials",
+    "class-cards",
+    "homework",
+  ],
 };
 
 export function getMenusForRoles(roles: string[]): string[] {

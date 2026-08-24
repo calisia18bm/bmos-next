@@ -9,11 +9,13 @@ export default function StudentClassBrowse({
   countByClass,
   alreadyHasClass,
   disabled,
+  registrationFormUrl,
 }: {
   cards: ClassCard[];
   countByClass: Record<string, number>;
   alreadyHasClass: boolean;
   disabled?: boolean;
+  registrationFormUrl?: string | null;
 }) {
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ id: string; text: string; ok: boolean } | null>(
@@ -43,16 +45,38 @@ export default function StudentClassBrowse({
     );
   }
 
+  const registrationBanner = registrationFormUrl && (
+    <a
+      href={registrationFormUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block bg-bmos-primary-soft border border-bmos-primary-light rounded-2xl p-4 mb-4 text-sm text-bmos-text hover:opacity-90 transition"
+    >
+      <p className="font-semibold text-bmos-primary">
+        📝 Belum yakin kelas mana yang cocok?
+      </p>
+      <p className="text-bmos-text-light mt-0.5">
+        Isi kuisioner ini dulu biar kami bantu arahkan ke kelas yang sesuai
+        tujuan belajar kamu →
+      </p>
+    </a>
+  );
+
   if (cards.length === 0) {
     return (
-      <div className="bg-white border border-bmos-border rounded-2xl p-10 text-center text-sm text-bmos-text-light">
-        Belum ada kelas yang bisa dipilih saat ini.
+      <div>
+        {registrationBanner}
+        <div className="bg-white border border-bmos-border rounded-2xl p-10 text-center text-sm text-bmos-text-light">
+          Belum ada kelas yang bisa dipilih saat ini.
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div>
+      {registrationBanner}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {cards.map((c) => {
         const filled = countByClass[c.id] ?? 0;
         const isFull = filled >= c.capacity_max;
@@ -143,6 +167,7 @@ export default function StudentClassBrowse({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

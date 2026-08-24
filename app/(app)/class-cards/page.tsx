@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import TeacherClassCards from "./TeacherClassCards";
 import StudentClassBrowse from "./StudentClassBrowse";
 import OwnerApprovalQueue from "./OwnerApprovalQueue";
-import { getCommissionTiers, getGoalTags } from "./actions";
+import { getCommissionTiers, getGoalTags, getRegistrationFormUrl } from "./actions";
 import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
@@ -108,7 +108,7 @@ export default async function ClassCardsPage({
       );
     }
 
-    const [{ data: cards }, { data: me }] = await Promise.all([
+    const [{ data: cards }, { data: me }, registrationFormUrl] = await Promise.all([
       supabase
         .from("classes")
         .select("*")
@@ -124,6 +124,7 @@ export default async function ClassCardsPage({
             .select("class_id")
             .eq("id", profile.student_id!)
             .maybeSingle(),
+      getRegistrationFormUrl(),
     ]);
 
     const classIds = (cards ?? []).map((c) => c.id);
@@ -160,6 +161,7 @@ export default async function ClassCardsPage({
           countByClass={Object.fromEntries(countByClass)}
           alreadyHasClass={alreadyHasClass}
           disabled={previewAsStudent}
+          registrationFormUrl={registrationFormUrl}
         />
       </div>
     );
@@ -167,7 +169,7 @@ export default async function ClassCardsPage({
 
   // ===== OWNER/ADMIN: approval queue + pantau semua kartu kelas =====
   if (isStaff) {
-    const [{ data: cards }, tiers, goalTags] = await Promise.all([
+    const [{ data: cards }, tiers, goalTags, registrationFormUrl] = await Promise.all([
       supabase
         .from("classes")
         .select("*")
@@ -175,6 +177,7 @@ export default async function ClassCardsPage({
         .order("created_at", { ascending: false }),
       getCommissionTiers(),
       getGoalTags(),
+      getRegistrationFormUrl(),
     ]);
 
     return (
@@ -193,6 +196,7 @@ export default async function ClassCardsPage({
           cards={(cards ?? []) as ClassCard[]}
           tiers={tiers}
           goalTags={goalTags}
+          registrationFormUrl={registrationFormUrl}
           canApprove={isOwner}
         />
       </div>

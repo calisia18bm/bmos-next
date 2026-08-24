@@ -40,6 +40,12 @@ const NAV_GROUPS = [
         icon: "📁",
       },
       {
+        href: "/homework?as=student",
+        menu: "homework",
+        label: "PR",
+        icon: "✏️",
+      },
+      {
         href: "/my-payments",
         menu: "my-payments",
         label: "Payment Saya",
@@ -76,6 +82,12 @@ const NAV_GROUPS = [
         icon: "📁",
       },
       {
+        href: "/homework?as=teacher",
+        menu: "homework",
+        label: "PR",
+        icon: "✏️",
+      },
+      {
         href: "/my-payroll",
         menu: "my-payroll",
         label: "My Payroll",
@@ -96,6 +108,7 @@ const NAV_GROUPS = [
         icon: "🗂️",
       },
       { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
+      { href: "/homework", menu: "homework", label: "PR", icon: "✏️" },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
       {
         href: "/attendance",

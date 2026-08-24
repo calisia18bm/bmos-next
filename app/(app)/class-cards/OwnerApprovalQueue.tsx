@@ -6,6 +6,7 @@ import {
   rejectClassCard,
   saveCommissionTiers,
   saveGoalTags,
+  saveRegistrationFormUrl,
 } from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
 import { ClassCard, formatRupiah } from "@/lib/classCards";
@@ -28,11 +29,13 @@ export default function OwnerApprovalQueue({
   cards,
   tiers,
   goalTags,
+  registrationFormUrl,
   canApprove,
 }: {
   cards: ClassCard[];
   tiers: CommissionTier[];
   goalTags: string[];
+  registrationFormUrl?: string | null;
   canApprove: boolean;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -43,6 +46,9 @@ export default function OwnerApprovalQueue({
   const [savingGoalTags, setSavingGoalTags] = useState(false);
   const [goalTagsMsg, setGoalTagsMsg] = useState("");
   const [newGoalTag, setNewGoalTag] = useState("");
+  const [formUrl, setFormUrl] = useState(registrationFormUrl ?? "");
+  const [savingFormUrl, setSavingFormUrl] = useState(false);
+  const [formUrlMsg, setFormUrlMsg] = useState("");
 
   const pending = cards.filter((c) => c.approval_status === "PENDING");
   const others = cards.filter((c) => c.approval_status !== "PENDING");
@@ -121,6 +127,14 @@ export default function OwnerApprovalQueue({
     const result = await saveGoalTags(localGoalTags);
     setSavingGoalTags(false);
     setGoalTagsMsg(result.message);
+  }
+
+  async function handleSaveFormUrl() {
+    setSavingFormUrl(true);
+    setFormUrlMsg("");
+    const result = await saveRegistrationFormUrl(formUrl);
+    setSavingFormUrl(false);
+    setFormUrlMsg(result.message);
   }
 
   function renderCard(c: ClassCard) {
@@ -372,6 +386,37 @@ export default function OwnerApprovalQueue({
           </div>
           {goalTagsMsg && (
             <p className="text-xs text-bmos-text-light mt-2">{goalTagsMsg}</p>
+          )}
+        </div>
+      )}
+
+      {canApprove && (
+        <div className="bg-white border border-bmos-border rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-1">
+            Link Kuisioner Pendaftaran
+          </h2>
+          <p className="text-xs text-bmos-text-light mb-3">
+            Link Google Form buat calon murid isi kuisioner (tujuan
+            belajar, dll) sebelum pilih kelas -- muncul sebagai banner di
+            halaman Class Card punya Murid.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={formUrl}
+              onChange={(e) => setFormUrl(e.target.value)}
+              placeholder="https://forms.gle/..."
+              className="flex-1 border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+            />
+            <button
+              onClick={handleSaveFormUrl}
+              disabled={savingFormUrl}
+              className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-xs font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
+            >
+              {savingFormUrl ? "Menyimpan..." : "Simpan"}
+            </button>
+          </div>
+          {formUrlMsg && (
+            <p className="text-xs text-bmos-text-light mt-2">{formUrlMsg}</p>
           )}
         </div>
       )}

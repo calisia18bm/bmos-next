@@ -504,4 +504,41 @@ export async function saveGoalTags(tags: string[]) {
   return { success: true, message: "Daftar tujuan belajar disimpan." };
 }
 
+// Link kuisioner pendaftaran murid baru (Google Form) -- diatur Owner,
+// ditampilin ke calon murid biar mereka isi dulu sebelum pilih kelas di
+// Class Card, biar keliatan tujuan belajarnya apa & bisa diarahkan ke
+// kelas yang cocok.
+export async function getRegistrationFormUrl(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("registration_form_url")
+    .eq("id", 1)
+    .maybeSingle();
+  return data?.registration_form_url ?? null;
+}
+
+export async function saveRegistrationFormUrl(url: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER")) {
+    return { success: false, message: "Cuma Owner yang bisa atur link kuisioner." };
+  }
+
+  const trimmed = url.trim();
+  if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+    return { success: false, message: "Link harus diawali http:// atau https://" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ id: 1, registration_form_url: trimmed || null });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Link kuisioner disimpan." };
+}
+
 export { computeCommission };

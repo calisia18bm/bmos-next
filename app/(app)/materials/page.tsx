@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import MaterialsManage from "./MaterialsManage";
+import TeacherResourceManage from "./TeacherResourceManage";
+import TeacherResourceList from "./TeacherResourceList";
 
 export const dynamic = "force-dynamic";
 
@@ -174,15 +176,25 @@ export default async function MaterialsPage({
     const { data: classes } = await classesQuery;
     const classIds = (classes ?? []).map((c) => c.id);
 
-    const { data: materials } = classIds.length
-      ? await supabase
-          .from("materials")
-          .select(
-            "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
-          )
-          .in("class_id", classIds)
-          .order("created_at", { ascending: false })
-      : { data: [] };
+    // Query bahan ajar dari Admin/Owner buat Laoshi SENGAJA cuma select
+    // kolom pdf_file_* -- kolom original_file_* (file asli PPT/dll) ga
+    // pernah ikut ke-fetch buat role Laoshi, jadi ga ada cara halaman ini
+    // ngasih akses ke file aslinya walau nge-inspect response sekalipun.
+    const [{ data: materials }, { data: resources }] = await Promise.all([
+      classIds.length
+        ? supabase
+            .from("materials")
+            .select(
+              "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
+            )
+            .in("class_id", classIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("teacher_resources")
+        .select("id, title, description, pdf_file_url, pdf_file_name, created_at")
+        .order("created_at", { ascending: false }),
+    ]);
 
     return (
       <div>
@@ -199,25 +211,32 @@ export default async function MaterialsPage({
             liat tampilannya aja.
           </div>
         )}
-        <MaterialsManage
-          classes={classes ?? []}
-          materials={materials ?? []}
-          isStaff={previewAsTeacher}
-          myTeacherId={previewAsTeacher ? null : profile.teacher_id}
-        />
+        <div className="space-y-6">
+          <TeacherResourceList resources={resources ?? []} />
+          <MaterialsManage
+            classes={classes ?? []}
+            materials={materials ?? []}
+            isStaff={previewAsTeacher}
+            myTeacherId={previewAsTeacher ? null : profile.teacher_id}
+          />
+        </div>
       </div>
     );
   }
 
   // ===== OWNER/ADMIN: lihat & kelola semua materi di semua kelas =====
   if (isStaff) {
-    const [{ data: classes }, { data: materials }] = await Promise.all([
+    const [{ data: classes }, { data: materials }, { data: resources }] = await Promise.all([
       supabase.from("classes").select("id, name").order("name"),
       supabase
         .from("materials")
         .select(
           "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
         )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("teacher_resources")
+        .select("*")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -227,12 +246,20 @@ export default async function MaterialsPage({
           Admin
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">Materi</h1>
-        <MaterialsManage
-          classes={classes ?? []}
-          materials={materials ?? []}
-          isStaff={true}
-          myTeacherId={null}
-        />
+        <div className="space-y-8">
+          <TeacherResourceManage resources={resources ?? []} />
+          <div>
+            <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-3">
+              Materi per Kelas
+            </h2>
+            <MaterialsManage
+              classes={classes ?? []}
+              materials={materials ?? []}
+              isStaff={true}
+              myTeacherId={null}
+            />
+          </div>
+        </div>
       </div>
     );
   }
