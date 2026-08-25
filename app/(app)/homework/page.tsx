@@ -6,6 +6,18 @@ import StudentHomework from "./StudentHomework";
 
 export const dynamic = "force-dynamic";
 
+type SubmissionRow = {
+  id: string;
+  homework_id: string;
+  student_id: string;
+  student_name: string;
+  submission_type: string;
+  answer_text: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  submitted_at: string;
+};
+
 // Pola sama kayak halaman Materi & Class Card -- Owner/Admin liat SEMUA
 // sudut pandang lewat ?as=..., Murid/Laoshi asli langsung dapet
 // tampilan role mereka sendiri.
@@ -80,9 +92,9 @@ export default async function HomeworkPage({
             "id, homework_id, student_id, student_name, submission_type, answer_text, file_url, file_name, submitted_at"
           )
           .in("homework_id", homeworkIds)
-      : { data: [] };
+      : { data: [] as SubmissionRow[] };
 
-    const submissionsByHomework: Record<string, typeof submissions> = {};
+    const submissionsByHomework: Record<string, SubmissionRow[]> = {};
     (submissions ?? []).forEach((s) => {
       if (!submissionsByHomework[s.homework_id]) submissionsByHomework[s.homework_id] = [];
       submissionsByHomework[s.homework_id]!.push(s);
@@ -228,9 +240,9 @@ export default async function HomeworkPage({
             "id, homework_id, student_id, student_name, submission_type, answer_text, file_url, file_name, submitted_at"
           )
           .in("homework_id", homeworkIds)
-      : { data: [] };
+      : { data: [] as SubmissionRow[] };
 
-    const submissionsByHomework: Record<string, typeof submissions> = {};
+    const submissionsByHomework: Record<string, SubmissionRow[]> = {};
     (submissions ?? []).forEach((s) => {
       if (!submissionsByHomework[s.homework_id]) submissionsByHomework[s.homework_id] = [];
       submissionsByHomework[s.homework_id]!.push(s);
