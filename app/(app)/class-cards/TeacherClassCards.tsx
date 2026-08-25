@@ -187,22 +187,33 @@ export default function TeacherClassCards({
                 )}
 
                 {c.price ? (
-                  <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1">
-                    <p className="text-bmos-text font-semibold">
-                      {formatRupiah(c.price)}{" "}
-                      <span className="font-normal text-bmos-text-light">
-                        / {c.sessions_count ?? "-"} sesi
+                  <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-bmos-text-light">
+                        Harga / murid ({c.sessions_count ?? "-"} sesi)
                       </span>
-                    </p>
+                      <span className="text-bmos-text font-semibold">
+                        {formatRupiah(c.price)}
+                      </span>
+                    </div>
                     {cComm && (
                       <>
-                        <p className="text-bmos-text-light">
-                          Potong {cComm.pct}% untuk BM (Rp{" "}
-                          {cComm.cut.toLocaleString("id-ID")})
-                        </p>
-                        <p className="text-green-700 font-semibold">
-                          Kamu terima: {formatRupiah(cComm.net)}
-                        </p>
+                        <div className="flex justify-between">
+                          <span className="text-bmos-text-light">
+                            Potongan BM ({cComm.pct}%)
+                          </span>
+                          <span className="text-red-600">
+                            - Rp {cComm.cut.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-gray-200 pt-1">
+                          <span className="text-green-700 font-semibold">
+                            Kamu terima / murid
+                          </span>
+                          <span className="text-green-700 font-bold">
+                            {formatRupiah(cComm.net)}
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>
@@ -381,7 +392,7 @@ export default function TeacherClassCards({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Harga per Paket (Rp)
+                    Harga per Paket / Murid (Rp)
                   </label>
                   <input
                     type="number"
@@ -411,17 +422,32 @@ export default function TeacherClassCards({
               </div>
 
               {commission && (
-                <div className="text-xs bg-bmos-primary-soft rounded-xl p-3">
-                  <p className="text-bmos-text">
-                    {formatRupiah(price)}
+                <div className="text-xs bg-bmos-primary-soft rounded-xl p-3 space-y-1.5">
+                  <p className="font-semibold text-bmos-text uppercase tracking-wide text-[11px]">
+                    Rincian per Murid
                   </p>
-                  <p className="text-bmos-text-light">
-                    Potong {commission.pct}% untuk BM (Rp{" "}
-                    {commission.cut.toLocaleString("id-ID")})
-                  </p>
-                  <p className="text-green-700 font-semibold">
-                    Kamu terima: {formatRupiah(commission.net)}
-                  </p>
+                  <div className="flex justify-between">
+                    <span className="text-bmos-text-light">Harga yang kamu input</span>
+                    <span className="text-bmos-text font-semibold">
+                      {formatRupiah(price)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-bmos-text-light">
+                      Potongan BM ({commission.pct}%)
+                    </span>
+                    <span className="text-red-600">
+                      - Rp {commission.cut.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-bmos-primary-light/40 pt-1.5">
+                    <span className="text-green-700 font-semibold">
+                      Kamu terima / murid
+                    </span>
+                    <span className="text-green-700 font-bold">
+                      {formatRupiah(commission.net)}
+                    </span>
+                  </div>
                 </div>
               )}
 

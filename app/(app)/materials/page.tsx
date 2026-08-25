@@ -4,8 +4,21 @@ import { redirect } from "next/navigation";
 import MaterialsManage from "./MaterialsManage";
 import TeacherResourceManage from "./TeacherResourceManage";
 import TeacherResourceList from "./TeacherResourceList";
+import TeacherResourceSubmit from "./TeacherResourceSubmit";
 
 export const dynamic = "force-dynamic";
+
+type SubmissionRow = {
+  id: string;
+  teacher_name?: string | null;
+  title: string;
+  description: string | null;
+  submitted_file_url: string;
+  submitted_file_name: string | null;
+  status: string;
+  rejection_note: string | null;
+  created_at: string;
+};
 
 // Owner/Admin liat SEMUA bagian sidebar (Murid/Laoshi/Admin) sekaligus di
 // akun mereka sendiri, biar gampang ngecek kalau ada yang error -- tapi
@@ -180,21 +193,31 @@ export default async function MaterialsPage({
     // kolom pdf_file_* -- kolom original_file_* (file asli PPT/dll) ga
     // pernah ikut ke-fetch buat role Laoshi, jadi ga ada cara halaman ini
     // ngasih akses ke file aslinya walau nge-inspect response sekalipun.
-    const [{ data: materials }, { data: resources }] = await Promise.all([
-      classIds.length
-        ? supabase
-            .from("materials")
-            .select(
-              "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
-            )
-            .in("class_id", classIds)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] }),
-      supabase
-        .from("teacher_resources")
-        .select("id, title, description, pdf_file_url, pdf_file_name, created_at")
-        .order("created_at", { ascending: false }),
-    ]);
+    const [{ data: materials }, { data: resources }, { data: mySubmissions }] =
+      await Promise.all([
+        classIds.length
+          ? supabase
+              .from("materials")
+              .select(
+                "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
+              )
+              .in("class_id", classIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] }),
+        supabase
+          .from("teacher_resources")
+          .select("id, title, description, pdf_file_url, pdf_file_name, created_at")
+          .order("created_at", { ascending: false }),
+        previewAsTeacher
+          ? Promise.resolve({ data: [] as SubmissionRow[] })
+          : supabase
+              .from("teacher_resource_submissions")
+              .select(
+                "id, title, description, submitted_file_url, submitted_file_name, status, rejection_note, created_at"
+              )
+              .eq("teacher_id", profile.teacher_id!)
+              .order("created_at", { ascending: false }),
+      ]);
 
     return (
       <div>
@@ -213,6 +236,10 @@ export default async function MaterialsPage({
         )}
         <div className="space-y-6">
           <TeacherResourceList resources={resources ?? []} />
+          <TeacherResourceSubmit
+            submissions={mySubmissions ?? []}
+            disabled={previewAsTeacher}
+          />
           <MaterialsManage
             classes={classes ?? []}
             materials={materials ?? []}
@@ -226,19 +253,26 @@ export default async function MaterialsPage({
 
   // ===== OWNER/ADMIN: lihat & kelola semua materi di semua kelas =====
   if (isStaff) {
-    const [{ data: classes }, { data: materials }, { data: resources }] = await Promise.all([
-      supabase.from("classes").select("id, name").order("name"),
-      supabase
-        .from("materials")
-        .select(
-          "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
-        )
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("teacher_resources")
-        .select("*")
-        .order("created_at", { ascending: false }),
-    ]);
+    const [{ data: classes }, { data: materials }, { data: resources }, { data: submissions }] =
+      await Promise.all([
+        supabase.from("classes").select("id, name").order("name"),
+        supabase
+          .from("materials")
+          .select(
+            "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
+          )
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("teacher_resources")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("teacher_resource_submissions")
+          .select(
+            "id, teacher_name, title, description, submitted_file_url, submitted_file_name, status, rejection_note, created_at"
+          )
+          .order("created_at", { ascending: false }),
+      ]);
 
     return (
       <div>
@@ -247,7 +281,7 @@ export default async function MaterialsPage({
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">Materi</h1>
         <div className="space-y-8">
-          <TeacherResourceManage resources={resources ?? []} />
+          <TeacherResourceManage resources={resources ?? []} submissions={submissions ?? []} />
           <div>
             <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-3">
               Materi per Kelas

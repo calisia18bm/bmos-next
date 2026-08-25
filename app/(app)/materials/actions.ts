@@ -161,6 +161,157 @@ export async function createTeacherResource(input: {
   return { success: true, message: "Bahan ajar berhasil diupload." };
 }
 
+// ============================================================
+// Submit Materi dari Laoshi -> direview Admin/Owner -> dipublish balik
+// jadi PDF di teacher_resources (bisa dipakai SEMUA Laoshi).
+// ============================================================
+export async function submitTeacherResourceDraft(input: {
+  title: string;
+  description: string;
+  fileUrl: string;
+  fileName: string;
+  filePath: string;
+}) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+
+  const isTeacher = ctx.roles.includes("TEACHER");
+  if (!isTeacher) {
+    return { success: false, message: "Cuma Laoshi yang bisa submit materi buat direview." };
+  }
+  if (!ctx.teacherId) {
+    return {
+      success: false,
+      message: "Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat hubungkan lewat halaman Accounts.",
+    };
+  }
+
+  const title = input.title.trim();
+  if (!title) return { success: false, message: "Judul materi wajib diisi." };
+  if (!input.fileUrl) return { success: false, message: "File materi wajib diupload." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("teacher_resource_submissions").insert({
+    teacher_id: ctx.teacherId,
+    teacher_name: ctx.fullName,
+    title,
+    description: input.description.trim() || null,
+    submitted_file_url: input.fileUrl,
+    submitted_file_name: input.fileName,
+    submitted_file_path: input.filePath,
+    status: "PENDING",
+  });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return { success: true, message: "Materi berhasil disubmit, menunggu review Admin/Owner." };
+}
+
+// Owner/Admin approve submission -- WAJIB upload versi PDF final, yang
+// otomatis dipublish ke teacher_resources (jadi bisa dipakai semua Laoshi,
+// bukan cuma yang submit).
+export async function approveTeacherResourceSubmission(
+  submissionId: string,
+  input: {
+    pdfFileUrl: string;
+    pdfFileName: string;
+    pdfFilePath: string;
+    originalFileUrl: string;
+    originalFileName: string;
+    originalFilePath: string;
+  }
+) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+
+  const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
+  if (!isStaff) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa approve materi." };
+  }
+  if (!input.pdfFileUrl) {
+    return { success: false, message: "File PDF final wajib diupload dulu buat approve." };
+  }
+
+  const supabase = await createClient();
+  const { data: submission } = await supabase
+    .from("teacher_resource_submissions")
+    .select("id, title, description, status")
+    .eq("id", submissionId)
+    .maybeSingle();
+
+  if (!submission) return { success: false, message: "Submission tidak ditemukan." };
+  if (submission.status === "APPROVED") {
+    return { success: false, message: "Submission ini udah di-approve sebelumnya." };
+  }
+
+  const { data: published, error: insertError } = await supabase
+    .from("teacher_resources")
+    .insert({
+      title: submission.title,
+      description: submission.description,
+      pdf_file_url: input.pdfFileUrl,
+      pdf_file_name: input.pdfFileName,
+      pdf_file_path: input.pdfFilePath,
+      original_file_url: input.originalFileUrl || null,
+      original_file_name: input.originalFileName || null,
+      original_file_path: input.originalFilePath || null,
+      uploaded_by_name: ctx.fullName,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) return { success: false, message: insertError.message };
+
+  const { error } = await supabase
+    .from("teacher_resource_submissions")
+    .update({
+      status: "APPROVED",
+      published_resource_id: published.id,
+      reviewed_by_name: ctx.fullName,
+      rejection_note: null,
+    })
+    .eq("id", submissionId);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return {
+    success: true,
+    message: "Materi disetujui & dipublish jadi PDF -- sekarang bisa dipakai semua Laoshi.",
+  };
+}
+
+export async function rejectTeacherResourceSubmission(submissionId: string, note: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+
+  const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
+  if (!isStaff) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa tolak submission." };
+  }
+
+  const cleanedNote = note.trim();
+  if (!cleanedNote) {
+    return { success: false, message: "Kasih catatan alasan penolakan dulu buat Laoshi." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("teacher_resource_submissions")
+    .update({
+      status: "REJECTED",
+      rejection_note: cleanedNote,
+      reviewed_by_name: ctx.fullName,
+    })
+    .eq("id", submissionId);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return { success: true, message: "Submission ditolak." };
+}
+
 export async function deleteTeacherResource(id: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
