@@ -46,6 +46,12 @@ const NAV_GROUPS = [
         icon: "✏️",
       },
       {
+        href: "/placement-test",
+        menu: "placement-test",
+        label: "Placement Test",
+        icon: "📝",
+      },
+      {
         href: "/my-payments",
         menu: "my-payments",
         label: "Payment Saya",
@@ -109,6 +115,12 @@ const NAV_GROUPS = [
       },
       { href: "/materials", menu: "materials", label: "Materi", icon: "📁" },
       { href: "/homework", menu: "homework", label: "PR", icon: "✏️" },
+      {
+        href: "/placement-test-manage",
+        menu: "placement-test-manage",
+        label: "Placement Test",
+        icon: "📝",
+      },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
       {
         href: "/attendance",

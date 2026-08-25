@@ -27,6 +27,8 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "accounts",
     "materials",
     "homework",
+    "placement-test-manage",
+    "placement-test",
     "my-class",
     "my-payments",
     "my-schedule",
@@ -48,6 +50,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "content-calendar",
     "materials",
     "homework",
+    "placement-test-manage",
     // "accounts" sengaja DIHAPUS dari sini -- pengelolaan akun (buat/edit
     // akun, reset password orang lain) sekarang cuma buat Owner.
   ],
@@ -68,6 +71,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "materials",
     "class-cards",
     "homework",
+    "placement-test",
   ],
 };
 
