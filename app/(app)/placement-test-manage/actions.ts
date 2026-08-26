@@ -28,6 +28,7 @@ export async function createQuestion(input: {
   options: string[];
   correctIndex: number;
   orderIndex: number;
+  points: number;
 }) {
   const check = await requireOwnerOrAdmin();
   if (!check.ok) return { success: false, message: check.message };
@@ -39,6 +40,7 @@ export async function createQuestion(input: {
   if (input.correctIndex < 0 || input.correctIndex >= options.length) {
     return { success: false, message: "Pilih jawaban yang bener dulu." };
   }
+  const points = Math.max(1, Math.round(input.points) || 1);
 
   const supabase = await createClient();
   const { error } = await supabase.from("placement_test_questions").insert({
@@ -46,6 +48,7 @@ export async function createQuestion(input: {
     options,
     correct_index: input.correctIndex,
     order_index: input.orderIndex,
+    points,
   });
 
   if (error) return { success: false, message: error.message };
@@ -57,7 +60,13 @@ export async function createQuestion(input: {
 
 export async function updateQuestion(
   id: string,
-  input: { questionText: string; options: string[]; correctIndex: number; orderIndex: number }
+  input: {
+    questionText: string;
+    options: string[];
+    correctIndex: number;
+    orderIndex: number;
+    points: number;
+  }
 ) {
   const check = await requireOwnerOrAdmin();
   if (!check.ok) return { success: false, message: check.message };
@@ -69,6 +78,7 @@ export async function updateQuestion(
   if (input.correctIndex < 0 || input.correctIndex >= options.length) {
     return { success: false, message: "Pilih jawaban yang bener dulu." };
   }
+  const points = Math.max(1, Math.round(input.points) || 1);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -78,6 +88,7 @@ export async function updateQuestion(
       options,
       correct_index: input.correctIndex,
       order_index: input.orderIndex,
+      points,
     })
     .eq("id", id);
 

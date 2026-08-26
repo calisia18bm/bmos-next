@@ -19,11 +19,13 @@ export default async function PlacementTestManagePage() {
   const [{ data: questions }, { data: results }] = await Promise.all([
     supabase
       .from("placement_test_questions")
-      .select("id, question_text, options, correct_index, order_index")
+      .select("id, question_text, options, correct_index, order_index, points")
       .order("order_index", { ascending: true }),
     supabase
       .from("placement_test_results")
-      .select("id, name, phone, email, score, total_questions, level_suggestion, created_at")
+      .select(
+        "id, name, phone, email, score, total_questions, total_points, level_suggestion, created_at"
+      )
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
@@ -74,7 +76,8 @@ export default async function PlacementTestManagePage() {
                     {r.phone || r.email || "-"}
                   </td>
                   <td className="px-5 py-3 text-bmos-text">
-                    {r.score}/{r.total_questions}
+                    {r.score}/{r.total_points ?? r.total_questions}{" "}
+                    <span className="text-bmos-text-light text-xs">poin</span>
                   </td>
                   <td className="px-5 py-3">
                     <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-bmos-primary-soft text-bmos-primary">

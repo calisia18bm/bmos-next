@@ -10,6 +10,7 @@ type Question = {
   options: string[];
   correct_index: number;
   order_index: number;
+  points: number;
 };
 
 const EMPTY_OPTIONS = ["", "", "", ""];
@@ -31,6 +32,7 @@ function QuestionForm({
   );
   const [correctIndex, setCorrectIndex] = useState(initial?.correct_index ?? 0);
   const [orderIndex, setOrderIndex] = useState(String(initial?.order_index ?? nextOrderIndex));
+  const [points, setPoints] = useState(String(initial?.points ?? 1));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,12 +62,14 @@ function QuestionForm({
           options: cleanedOptions,
           correctIndex,
           orderIndex: Number(orderIndex) || 0,
+          points: Number(points) || 1,
         })
       : await createQuestion({
           questionText,
           options: cleanedOptions,
           correctIndex,
           orderIndex: Number(orderIndex) || 0,
+          points: Number(points) || 1,
         });
 
     setLoading(false);
@@ -126,14 +130,29 @@ function QuestionForm({
         </button>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-bmos-text mb-1">Urutan Soal</label>
-        <input
-          type="number"
-          value={orderIndex}
-          onChange={(e) => setOrderIndex(e.target.value)}
-          className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-bmos-text mb-1">Urutan Soal</label>
+          <input
+            type="number"
+            value={orderIndex}
+            onChange={(e) => setOrderIndex(e.target.value)}
+            className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-bmos-text mb-1">
+            Skor Soal (poin)
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder="1"
+            className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+          />
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
@@ -227,7 +246,12 @@ export default function QuestionManage({ questions }: { questions: Question[] })
                   className="flex items-start justify-between border-b border-bmos-border last:border-0 pb-3 last:pb-0"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-bmos-text">{q.question_text}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-bmos-text">{q.question_text}</p>
+                      <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-bmos-primary-soft text-bmos-primary">
+                        {q.points} poin
+                      </span>
+                    </div>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {q.options.map((opt, i) => (
                         <span

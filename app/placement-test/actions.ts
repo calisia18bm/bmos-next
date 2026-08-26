@@ -27,20 +27,27 @@ export async function submitPlacementTest(input: {
   const supabase = await createClient();
   const { data: questions } = await supabase
     .from("placement_test_questions")
-    .select("id, correct_index")
+    .select("id, correct_index, points")
     .order("order_index", { ascending: true });
 
   if (!questions || questions.length === 0) {
     return { success: false, message: "Soal placement test belum tersedia." };
   }
 
-  let score = 0;
+  // Tiap soal bisa punya poin beda-beda (diatur Owner/Admin) -- skor
+  // akhir dihitung dari total poin soal yang dijawab bener dibagi total
+  // poin semua soal, BUKAN sekadar jumlah soal bener (biar soal yang
+  // dikasih poin lebih gede beneran ngaruh ke skor akhir).
+  let earnedPoints = 0;
+  let totalPoints = 0;
   questions.forEach((q, i) => {
-    if (input.answers[i] === q.correct_index) score += 1;
+    const pts = q.points ?? 1;
+    totalPoints += pts;
+    if (input.answers[i] === q.correct_index) earnedPoints += pts;
   });
 
   const total = questions.length;
-  const pct = Math.round((score / total) * 100);
+  const pct = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
   const levelSuggestion = suggestLevel(pct);
 
   const { error } = await supabase.from("placement_test_results").insert({
@@ -48,8 +55,9 @@ export async function submitPlacementTest(input: {
     phone: input.phone.trim() || null,
     email: input.email.trim() || null,
     answers: input.answers,
-    score,
+    score: earnedPoints,
     total_questions: total,
+    total_points: totalPoints,
     level_suggestion: levelSuggestion,
   });
 
@@ -58,8 +66,8 @@ export async function submitPlacementTest(input: {
   return {
     success: true,
     message: "Placement test berhasil disubmit.",
-    score,
-    total,
+    score: earnedPoints,
+    total: totalPoints,
     levelSuggestion,
   };
 }
