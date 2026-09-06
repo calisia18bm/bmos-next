@@ -52,6 +52,12 @@ const NAV_GROUPS = [
         icon: "📝",
       },
       {
+        href: "/challenge",
+        menu: "challenge",
+        label: "Challenge 30 Hari",
+        icon: "🔥",
+      },
+      {
         href: "/my-payments",
         menu: "my-payments",
         label: "Payment Saya",
@@ -120,6 +126,12 @@ const NAV_GROUPS = [
         menu: "placement-test-manage",
         label: "Placement Test",
         icon: "📝",
+      },
+      {
+        href: "/vocab-manage",
+        menu: "vocab-manage",
+        label: "Challenge & Kosakata",
+        icon: "🔥",
       },
       { href: "/accounts", menu: "accounts", label: "Accounts", icon: "🔑" },
       {

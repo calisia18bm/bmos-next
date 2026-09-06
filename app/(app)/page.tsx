@@ -9,6 +9,7 @@ import NameEditor from "./NameEditor";
 import SimpleHome from "./SimpleHome";
 import { getAnnouncements } from "./announcements/actions";
 import AnnouncementsManage from "./announcements/AnnouncementsManage";
+import { getChallengeLaggards } from "./challenge/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -264,6 +265,20 @@ export default async function DashboardPage() {
         href: "/weekly-choice",
       });
     }
+  }
+
+  // ===== Challenge 30 Hari -- murid yang belum ngerjain hari ini /
+  //       lagi kepepet mau reset karena freeze abis =====
+  const challengeLaggardsRes = await getChallengeLaggards();
+  const urgentChallengeLaggards = (challengeLaggardsRes.success ? challengeLaggardsRes.laggards ?? [] : [])
+    .filter((l) => l.status === "TERANCAM_RESET" || l.status === "PAKE_FREEZE");
+  if (urgentChallengeLaggards.length > 0) {
+    attentionItems.push({
+      icon: "🔥",
+      title: `${urgentChallengeLaggards.length} murid kepepet di Challenge 30 Hari`,
+      subtitle: "Ada yang lagi pakai freeze / terancam reset progress.",
+      href: "/vocab-manage",
+    });
   }
 
   const bannerItems = savedBannerLayout && savedBannerLayout.length > 0
