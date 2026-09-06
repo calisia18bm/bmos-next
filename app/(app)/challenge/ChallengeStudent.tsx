@@ -114,11 +114,13 @@ function QuizSection({
   dayNumber,
   isMakeup,
   onPassed,
+  disabled,
 }: {
   words: Word[];
   dayNumber: number;
   isMakeup: boolean;
   onPassed: () => void;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>(() => buildQuestions(words));
@@ -127,11 +129,15 @@ function QuizSection({
   const [loading, setLoading] = useState(false);
 
   function selectAnswer(qIndex: number, choice: string) {
-    if (result) return;
+    if (result || disabled) return;
     setAnswers((prev) => ({ ...prev, [qIndex]: choice }));
   }
 
   async function handleSubmit() {
+    if (disabled) {
+      setResult({ score: questions.length, message: "Preview -- submit dimatiin buat akun ini." });
+      return;
+    }
     const score = questions.reduce(
       (sum, q, i) => sum + (answers[i] === q.correctChoice ? 1 : 0),
       0
@@ -248,6 +254,7 @@ export default function ChallengeStudent({
   frozenDay,
   frozenDayDeadline,
   frozenWords,
+  disabled,
 }: {
   studentName: string;
   level: string;
@@ -257,6 +264,7 @@ export default function ChallengeStudent({
   frozenDay: number | null;
   frozenDayDeadline: string | null;
   frozenWords: Word[];
+  disabled?: boolean;
 }) {
   const [openedToday, setOpenedToday] = useState<Set<string>>(new Set());
   const [openedFrozen, setOpenedFrozen] = useState<Set<string>>(new Set());
@@ -318,7 +326,7 @@ export default function ChallengeStudent({
               </button>
             </div>
           ) : (
-            <QuizSection words={frozenWords} dayNumber={frozenDay} isMakeup onPassed={() => setDonePulse((p) => !p)} />
+            <QuizSection words={frozenWords} dayNumber={frozenDay} isMakeup onPassed={() => setDonePulse((p) => !p)} disabled={disabled} />
           )}
         </div>
       )}
@@ -357,6 +365,7 @@ export default function ChallengeStudent({
               dayNumber={progress.current_day}
               isMakeup={false}
               onPassed={() => setDonePulse((p) => !p)}
+              disabled={disabled}
             />
           )}
         </div>

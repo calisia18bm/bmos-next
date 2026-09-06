@@ -210,6 +210,36 @@ async function fetchWordsForDay(level: string, dayNumber: number) {
   return words || [];
 }
 
+// Owner/Admin buka /challenge buat preview tampilan Murid (akun mereka
+// sendiri ga punya progress beneran) -- selalu nampilin Hari 1, ga ada
+// freeze/frozen_day, submit-nya dimatiin di sisi UI (prop `disabled`).
+export async function getPreviewChallenge(level: "DASAR" | "MENENGAH") {
+  const ctx = await getCallerContext();
+  if (!ctx || !isStaffRoles(ctx.roles)) {
+    return { success: false, message: "Ga punya akses." };
+  }
+
+  const words = await fetchWordsForDay(level, 1);
+  if (words.length === 0) {
+    return {
+      success: false,
+      message: `Belum ada kosakata level ${level}. Tambahin dulu lewat halaman Challenge & Kosakata.`,
+    };
+  }
+
+  return {
+    success: true,
+    finished: false,
+    student: { name: "Preview", level },
+    progress: { current_day: 1, freeze_available: true },
+    alreadyDoneToday: false,
+    words,
+    frozenDay: null,
+    frozenDayDeadline: null,
+    frozenWords: [] as { id: string; hanzi: string; pinyin: string; arti: string; audio_url: string | null }[],
+  };
+}
+
 // Murid buka halaman Challenge -- dapetin kata hari ini (+ kata hari
 // yang lagi dikejar via freeze, kalau ada) + status progress.
 export async function getTodayChallenge() {
