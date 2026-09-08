@@ -60,6 +60,9 @@ export async function saveKnowledgeBase(text: string) {
 // (app/api/webhook/fonnte/route.ts), jadi apa yang Owner liat di sini itu
 // yang bakal beneran dijawab AI ke calon murid/murid di WA.
 export async function askAssistant(question: string) {
+  const authError = await requireOwner();
+  if (authError) return { success: false, message: authError };
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {

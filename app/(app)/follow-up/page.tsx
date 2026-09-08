@@ -1,10 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import AddFollowUpButton from "./AddFollowUpButton";
 import FollowUpCheckbox from "./FollowUpCheckbox";
 
 export const dynamic = "force-dynamic";
 
 export default async function FollowUpPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
 
   const [{ data: followUps }, { data: leads }] = await Promise.all([

@@ -3,12 +3,36 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh catat pengeluaran.
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat catat pengeluaran.";
+  }
+  return null;
+}
+
 export async function addExpense(formData: {
   category: string;
   description: string;
   amount: string;
   expenseDate: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: last } = await supabase

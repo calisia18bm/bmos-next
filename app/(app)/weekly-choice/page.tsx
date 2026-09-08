@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import ChoiceSelector from "./ChoiceSelector";
 import SendPollsButton from "./SendPollsButton";
 import { choiceLabel } from "@/lib/fonnte";
@@ -15,6 +17,12 @@ function getMondayOfWeek(): string {
 }
 
 export default async function WeeklyChoicePage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
   const weekStart = getMondayOfWeek();
 

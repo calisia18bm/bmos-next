@@ -3,6 +3,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Owner/Admin/Laoshi boleh catat & koreksi absensi (Laoshi buat kelas
+// yang dia ajar sendiri).
+async function requireStaffOrTeacher(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (
+    !myRoles.includes("OWNER") &&
+    !myRoles.includes("ADMIN") &&
+    !myRoles.includes("TEACHER")
+  ) {
+    return "Kamu ga punya akses buat catat absensi.";
+  }
+  return null;
+}
+
 // Koreksi 1 baris absensi yang sudah tersimpan (misal salah pencet
 // Hadir/Izin/Alpha). Dipakai dari halaman detail murid supaya bisa
 // dibetulkan langsung tanpa harus balik ke form Attendance per kelas.
@@ -11,6 +37,9 @@ export async function updateAttendanceRecord(
   status: string,
   studentId: string
 ) {
+  const authError = await requireStaffOrTeacher();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -30,6 +59,9 @@ export async function saveAttendance(
   date: string,
   records: { studentId: string; status: string }[]
 ) {
+  const authError = await requireStaffOrTeacher();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   // Hapus dulu absensi lama buat kelas+tanggal ini (biar bisa di-edit ulang

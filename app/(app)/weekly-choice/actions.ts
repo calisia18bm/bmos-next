@@ -4,6 +4,28 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendWeeklyChoicePolls } from "@/lib/weeklyChoicePoll";
 
+// Cuma Owner/Admin yang boleh kelola weekly choice (kirim poll & konfirmasi
+// pilihan kelas fleksibel).
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola weekly choice.";
+  }
+  return null;
+}
+
 function getMondayOfWeek(): string {
   const d = new Date();
   const day = d.getDay();
@@ -18,6 +40,9 @@ export async function confirmChoice(
   classGroupName: string,
   chosenClassId: string
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
   const weekStart = getMondayOfWeek();
 
@@ -40,6 +65,9 @@ export async function confirmChoice(
 }
 
 export async function sendPollsNow() {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   try {
     const { sentCount, results } = await sendWeeklyChoicePolls();
     revalidatePath("/weekly-choice");

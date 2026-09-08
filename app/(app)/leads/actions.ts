@@ -3,12 +3,36 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh kelola leads.
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola leads.";
+  }
+  return null;
+}
+
 export async function addLead(formData: {
   name: string;
   phone: string;
   source: string;
   notes: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: last } = await supabase
@@ -41,6 +65,9 @@ export async function addLead(formData: {
 }
 
 export async function updateLeadStatus(id: string, status: string) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("leads")

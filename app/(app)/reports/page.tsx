@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,12 @@ function formatCurrency(value: number) {
 }
 
 export default async function ReportsPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
 
   const [

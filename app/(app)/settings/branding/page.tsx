@@ -1,10 +1,18 @@
 import { BANNER_CATALOG } from "@/lib/characters";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { getBannerLayout } from "./actions";
 import BannerEditor from "./BannerEditor";
 
 export const dynamic = "force-dynamic";
 
 export default async function BrandingSettingsPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isOwner = profile.roles.includes("OWNER");
+  if (!isOwner) redirect("/");
+
   const saved = await getBannerLayout();
 
   // Kalau belum pernah disimpan, mulai dari katalog default. Kalau item

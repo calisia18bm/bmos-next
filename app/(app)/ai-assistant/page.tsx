@@ -1,3 +1,5 @@
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import ChatBox from "./ChatBox";
 import KnowledgeBaseEditor from "./KnowledgeBaseEditor";
 import { getKnowledgeBase } from "./actions";
@@ -5,6 +7,12 @@ import { getKnowledgeBase } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function AIAssistantPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isOwner = profile.roles.includes("OWNER");
+  if (!isOwner) redirect("/");
+
   const knowledgeBase = await getKnowledgeBase();
 
   return (

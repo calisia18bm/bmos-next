@@ -3,10 +3,36 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh kelola data murid (nama, kontak, kelas,
+// status, dsb) -- Murid/Laoshi liat data ini lewat halaman portal mereka
+// sendiri (my-class, my-students), bukan dari sini.
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola data murid.";
+  }
+  return null;
+}
+
 export async function addStudent(formData: {
   name: string;
   phone: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   // Generate kode murid berikutnya, misal M0001 -> M0002
@@ -45,6 +71,9 @@ export async function addStudent(formData: {
 // "aktifkan lagi data lama" biar riwayat absensi & pembayaran lama nggak
 // putus / kebentuk baris murid baru yang terpisah.
 export async function findRejoinCandidates(name: string, phone: string) {
+  const authError = await requireStaff();
+  if (authError) return [];
+
   const supabase = await createClient();
   const trimmedName = name.trim();
   const trimmedPhone = phone.trim();
@@ -73,6 +102,9 @@ export async function reactivateStudent(
   id: string,
   formData: { name: string; phone: string }
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -99,6 +131,9 @@ export async function addAdditionalClass(
   studentId: string,
   classId: string
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: cls } = await supabase
@@ -151,6 +186,9 @@ export async function addAdditionalClass(
 }
 
 export async function endEnrollment(enrollmentId: string, studentId: string) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -170,6 +208,9 @@ export async function transferClass(
   newClassId: string,
   reason: string
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: newClass } = await supabase
@@ -255,6 +296,9 @@ export async function updateStudent(
     notes: string;
   }
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase

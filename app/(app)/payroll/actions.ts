@@ -3,11 +3,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh kelola payroll laoshi (gaji/rate sensitif).
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola payroll.";
+  }
+  return null;
+}
+
 export async function generatePayrollDraft(formData: {
   teacherId: string;
   periodStart: string;
   periodEnd: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: teacher } = await supabase
@@ -101,6 +125,9 @@ export async function generatePayrollDraft(formData: {
 }
 
 export async function approvePayroll(id: string) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("payroll")
@@ -114,6 +141,9 @@ export async function approvePayroll(id: string) {
 }
 
 export async function markPayrollPaid(id: string) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("payroll")

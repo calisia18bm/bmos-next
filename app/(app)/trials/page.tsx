@@ -1,10 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import AddTrialButton from "./AddTrialButton";
 import TrialRowActions from "./TrialRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrialsPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
 
   const [{ data: trials }, { data: classes }] = await Promise.all([

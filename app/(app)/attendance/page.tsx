@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import ClassDateSelector from "./ClassDateSelector";
 import AttendanceForm from "./AttendanceForm";
 
@@ -12,6 +14,15 @@ export default async function AttendancePage({
   const params = await searchParams;
   const classId = params.classId || "";
   const date = params.date || new Date().toISOString().slice(0, 10);
+
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isAllowed =
+    profile.roles.includes("OWNER") ||
+    profile.roles.includes("ADMIN") ||
+    profile.roles.includes("TEACHER");
+  if (!isAllowed) redirect("/");
 
   const supabase = await createClient();
 

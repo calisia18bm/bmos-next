@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import WeekNavigator from "./WeekNavigator";
 import GenerateSessionsButton from "./GenerateSessionsButton";
 
@@ -34,6 +36,12 @@ export default async function WeeklySchedulePage({
 }) {
   const params = await searchParams;
   const offset = Number(params.week || "0");
+
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
 
   const monday = getMondayOfWeek(offset);
   const sunday = new Date(monday);

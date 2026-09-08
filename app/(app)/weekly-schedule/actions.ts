@@ -13,12 +13,37 @@ const DAY_INDEX: Record<string, number> = {
   Sabtu: 6,
 };
 
+// Cuma Owner/Admin yang boleh generate/kelola jadwal mingguan. Laoshi/Murid
+// liat jadwal mereka sendiri lewat halaman "my-schedule" (route terpisah).
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola jadwal.";
+  }
+  return null;
+}
+
 /**
  * Generate Session (baris bertanggal) dari pola kelas berulang
  * (classes.day_of_week) buat N hari ke depan. Idempotent -- kalau
  * sesi buat kelas+tanggal itu udah ada, dilewatin (nggak dobel).
  */
 export async function generateUpcomingSessions(daysAhead: number = 60) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: classes } = await supabase

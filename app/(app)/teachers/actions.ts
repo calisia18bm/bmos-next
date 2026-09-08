@@ -3,6 +3,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh kelola data laoshi (kontak, rate per sesi,
+// dsb) -- Laoshi liat data mereka sendiri lewat halaman portal (my-schedule,
+// my-payroll), bukan dari sini.
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola data laoshi.";
+  }
+  return null;
+}
+
 export async function updateTeacher(
   id: string,
   formData: {
@@ -13,6 +36,9 @@ export async function updateTeacher(
     active: boolean;
   }
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -37,6 +63,9 @@ export async function addTeacher(formData: {
   phone: string;
   ratePerSession: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { data: last } = await supabase

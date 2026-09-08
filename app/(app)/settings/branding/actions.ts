@@ -17,6 +17,21 @@ export async function getBannerLayout(): Promise<BannerItem[] | null> {
 export async function saveBannerLayout(layout: BannerItem[]) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Belum login." };
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!(myProfile?.roles || []).includes("OWNER")) {
+    return { success: false, message: "Cuma Owner yang bisa atur banner." };
+  }
+
   const { error } = await supabase
     .from("app_settings")
     .upsert({ id: 1, banner_layout: layout });

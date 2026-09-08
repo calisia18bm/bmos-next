@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import EditTeacherButton from "../EditTeacherButton";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,13 @@ export default async function TeacherDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
 
   const { data: teacher } = await supabase

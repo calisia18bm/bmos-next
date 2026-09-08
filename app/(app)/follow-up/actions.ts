@@ -3,11 +3,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Cuma Owner/Admin yang boleh kelola follow-up leads.
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola follow-up.";
+  }
+  return null;
+}
+
 export async function addFollowUp(formData: {
   leadId: string;
   dueDate: string;
   note: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   const { error } = await supabase.from("follow_ups").insert({
@@ -24,6 +48,9 @@ export async function addFollowUp(formData: {
 }
 
 export async function toggleFollowUp(id: string, completed: boolean) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("follow_ups")

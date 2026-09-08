@@ -13,6 +13,28 @@ const DAYS = [
   "Minggu",
 ];
 
+// Cuma Owner/Admin yang boleh kelola data kelas (jadwal, kapasitas,
+// laoshi pengampu, dsb).
+async function requireStaff(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myRoles = myProfile?.roles || [];
+  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+    return "Kamu ga punya akses buat kelola data kelas.";
+  }
+  return null;
+}
+
 export async function updateClass(
   id: string,
   formData: {
@@ -27,6 +49,9 @@ export async function updateClass(
     waGroupId: string;
   }
 ) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   if (formData.dayOfWeek && !DAYS.includes(formData.dayOfWeek)) {
@@ -63,6 +88,9 @@ export async function addClass(formData: {
   endTime: string;
   capacityMax: string;
 }) {
+  const authError = await requireStaff();
+  if (authError) return { success: false, message: authError };
+
   const supabase = await createClient();
 
   if (formData.dayOfWeek && !DAYS.includes(formData.dayOfWeek)) {

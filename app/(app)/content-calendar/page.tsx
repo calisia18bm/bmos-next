@@ -1,10 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import AddContentButton from "./AddContentButton";
 import ContentStatusSelect from "./ContentStatusSelect";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContentCalendarPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
+  if (!isStaff) redirect("/");
+
   const supabase = await createClient();
 
   const { data: content } = await supabase
