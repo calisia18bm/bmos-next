@@ -167,6 +167,80 @@ export async function updateAccount(
   return { success: true, message: "Akun berhasil diperbarui." };
 }
 
+// Ganti email login akun siapapun. Email di Supabase Auth (dipakai buat
+// login) DAN di user_profiles (dipakai ditampilin di UI) diubah bareng
+// biar ga ketuker.
+export async function updateAccountEmail(id: string, newEmail: string) {
+  const auth = await requireOwner();
+  if (auth.error !== null) return { success: false, message: auth.error };
+
+  const email = newEmail.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { success: false, message: "Email tidak valid." };
+  }
+
+  const admin = createAdminClient();
+
+  const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+    email,
+    email_confirm: true,
+  });
+  if (authErr) return { success: false, message: authErr.message };
+
+  const { error: profileErr } = await admin
+    .from("user_profiles")
+    .update({ email })
+    .eq("id", id);
+  if (profileErr) return { success: false, message: profileErr.message };
+
+  revalidatePath("/accounts");
+  return { success: true, message: "Email berhasil diganti.", email };
+}
+
+// Hapus akun (login-nya di Supabase Auth) sekalian. user_profiles ikut
+// kehapus otomatis (foreign key ke auth.users pakai "on delete cascade").
+// Data Murid/Laoshi di Master Data (tabel students/teachers) TIDAK ikut
+// kehapus -- yang dihapus cuma akses login-nya.
+export async function deleteAccount(id: string) {
+  const auth = await requireOwner();
+  if (auth.error !== null) return { success: false, message: auth.error };
+
+  if (id === auth.userId) {
+    return {
+      success: false,
+      message: "Kamu tidak bisa menghapus akun sendiri yang lagi dipakai login.",
+    };
+  }
+
+  const admin = createAdminClient();
+
+  const { count: ownerCount } = await admin
+    .from("user_profiles")
+    .select("id", { count: "exact", head: true })
+    .contains("roles", ["OWNER"]);
+  const { data: target } = await admin
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (
+    target?.roles?.includes("OWNER") &&
+    (ownerCount ?? 0) <= 1
+  ) {
+    return {
+      success: false,
+      message: "Ga bisa hapus -- ini satu-satunya akun Owner yang tersisa.",
+    };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/accounts");
+  return { success: true, message: "Akun berhasil dihapus." };
+}
+
 // Reset password akun siapapun -- dipakai Owner buat bantu orang yang
 // lupa password. Generate password baru (bukan kirim email reset),
 // langsung ditampilkan sekali ke Owner yang mereset, buat dikasih tau

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { resetAccountPassword, updateAccount } from "./actions";
+import { resetAccountPassword, updateAccount, updateAccountEmail, deleteAccount } from "./actions";
 
 const ROLE_OPTIONS = [
   { key: "OWNER", label: "Owner" },
@@ -43,6 +43,14 @@ export default function EditAccountButton({
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
   const [newPassword, setNewPassword] = useState<string | null>(null);
+
+  const [email, setEmail] = useState(account.email);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const matchedTeacher = useMemo(() => {
     const code = teacherCode.trim().toUpperCase();
@@ -86,6 +94,50 @@ export default function EditAccountButton({
     setStudentCode(currentStudent?.student_code || "");
     setError("");
     setNewPassword(null);
+    setEmail(account.email);
+    setEmailSaving(false);
+    setEmailSaved(false);
+    setEmailError("");
+    setDeleting(false);
+    setDeleteError("");
+  }
+
+  async function handleSaveEmail() {
+    setEmailSaving(true);
+    setEmailError("");
+    setEmailSaved(false);
+
+    const res = await updateAccountEmail(account.id, email);
+    setEmailSaving(false);
+
+    if (!res.success) {
+      setEmailError(res.message);
+      return;
+    }
+    setEmailSaved(true);
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    if (
+      !window.confirm(
+        `Yakin mau hapus akun ${account.full_name || account.email}? Login-nya bakal ga bisa dipakai lagi. Data Murid/Laoshi di Master Data TIDAK ikut kehapus, cuma akses login-nya.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setDeleteError("");
+
+    const res = await deleteAccount(account.id);
+    setDeleting(false);
+
+    if (!res.success) {
+      setDeleteError(res.message);
+      return;
+    }
+    router.refresh();
+    setOpen(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -147,12 +199,43 @@ export default function EditAccountButton({
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 text-left">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-bmos-text mb-1">
+            <h2 className="text-lg font-bold text-bmos-text mb-3">
               Edit Akun
             </h2>
-            <p className="text-xs text-bmos-text-light mb-4">
-              {account.email}
-            </p>
+
+            <div className="mb-4 pb-4 border-b border-bmos-border">
+              <label className="block text-sm font-medium text-bmos-text mb-1">
+                Email Login
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailSaved(false);
+                  }}
+                  className="flex-1 border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveEmail}
+                  disabled={emailSaving || email.trim().toLowerCase() === account.email.toLowerCase()}
+                  className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-2 hover:bg-bmos-primary-light hover:text-white transition disabled:opacity-50 shrink-0"
+                >
+                  {emailSaving ? "Menyimpan..." : "Ganti Email"}
+                </button>
+              </div>
+              {emailSaved && (
+                <p className="text-xs text-green-700 mt-1">✓ Email berhasil diganti.</p>
+              )}
+              {emailError && (
+                <p className="text-xs text-red-600 mt-1">{emailError}</p>
+              )}
+              <p className="text-[11px] text-bmos-text-light mt-1">
+                Ini email buat login orangnya, kabarin manual kalau udah diganti.
+              </p>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -298,6 +381,25 @@ export default function EditAccountButton({
                 </button>
               </div>
             </form>
+
+            <div className="mt-5 pt-4 border-t border-red-200">
+              <p className="text-sm font-semibold text-red-600 mb-1">Hapus Akun</p>
+              <p className="text-[11px] text-bmos-text-light mb-2">
+                Akses login orangnya bakal langsung ga bisa dipakai. Data Murid/Laoshi
+                di Master Data tidak ikut kehapus.
+              </p>
+              {deleteError && (
+                <p className="text-xs text-red-600 mb-2">{deleteError}</p>
+              )}
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-xs font-semibold text-red-600 bg-red-50 rounded-lg px-3 py-1.5 hover:bg-red-600 hover:text-white transition disabled:opacity-50"
+              >
+                {deleting ? "Menghapus..." : "Hapus Akun Ini"}
+              </button>
+            </div>
           </div>
         </div>
       )}
