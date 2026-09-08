@@ -2,7 +2,13 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { resetAccountPassword, updateAccount, updateAccountEmail, deleteAccount } from "./actions";
+import {
+  resetAccountPassword,
+  setAccountPassword,
+  updateAccount,
+  updateAccountEmail,
+  deleteAccount,
+} from "./actions";
 
 const ROLE_OPTIONS = [
   { key: "OWNER", label: "Owner" },
@@ -43,6 +49,11 @@ export default function EditAccountButton({
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
   const [newPassword, setNewPassword] = useState<string | null>(null);
+
+  const [customPassword, setCustomPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [passwordSetError, setPasswordSetError] = useState("");
+  const [passwordSetOk, setPasswordSetOk] = useState(false);
 
   const [email, setEmail] = useState(account.email);
   const [emailSaving, setEmailSaving] = useState(false);
@@ -94,6 +105,10 @@ export default function EditAccountButton({
     setStudentCode(currentStudent?.student_code || "");
     setError("");
     setNewPassword(null);
+    setCustomPassword("");
+    setSettingPassword(false);
+    setPasswordSetError("");
+    setPasswordSetOk(false);
     setEmail(account.email);
     setEmailSaving(false);
     setEmailSaved(false);
@@ -184,6 +199,23 @@ export default function EditAccountButton({
     }
 
     setNewPassword(res.password!);
+  }
+
+  async function handleSetPassword() {
+    setSettingPassword(true);
+    setPasswordSetError("");
+    setPasswordSetOk(false);
+
+    const res = await setAccountPassword(account.id, customPassword);
+    setSettingPassword(false);
+
+    if (!res.success) {
+      setPasswordSetError(res.message);
+      return;
+    }
+
+    setPasswordSetOk(true);
+    setCustomPassword("");
   }
 
   return (
@@ -332,15 +364,56 @@ export default function EditAccountButton({
                 />
               </div>
 
-              <div className="border-t border-bmos-border pt-4">
-                <label className="block text-sm font-medium text-bmos-text mb-2">
-                  Lupa password?
+              <div className="border-t border-bmos-border pt-4 space-y-3">
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Ganti Password
                 </label>
+
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customPassword}
+                      onChange={(e) => {
+                        setCustomPassword(e.target.value);
+                        setPasswordSetOk(false);
+                      }}
+                      placeholder="Password baru (min. 6 karakter)"
+                      className="flex-1 border border-bmos-border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSetPassword}
+                      disabled={settingPassword || customPassword.trim().length < 6}
+                      className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-2 hover:bg-bmos-primary-light hover:text-white transition disabled:opacity-50 shrink-0"
+                    >
+                      {settingPassword ? "Menyimpan..." : "Set Password"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-bmos-text-light mt-1">
+                    Ketik sendiri password yang mau dipakai, lalu kabarin manual ke orangnya.
+                  </p>
+                  {passwordSetOk && (
+                    <p className="text-xs text-green-700 mt-1">
+                      ✓ Password berhasil diganti.
+                    </p>
+                  )}
+                  {passwordSetError && (
+                    <p className="text-xs text-red-600 mt-1">{passwordSetError}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] text-bmos-text-light">
+                  <span className="flex-1 border-t border-bmos-border" />
+                  atau
+                  <span className="flex-1 border-t border-bmos-border" />
+                </div>
+
                 {newPassword ? (
                   <div className="bg-bmos-primary-soft/40 rounded-xl p-3 space-y-1">
                     <p className="text-xs text-bmos-text-light">
-                      Password baru (cuma muncul sekali di sini, catat &amp;
-                      kirim ke orangnya sekarang):
+                      Password baru hasil generate (cuma muncul sekali di sini,
+                      catat &amp; kirim ke orangnya sekarang):
                     </p>
                     <p className="font-mono font-semibold text-bmos-text">
                       {newPassword}
@@ -353,7 +426,7 @@ export default function EditAccountButton({
                     disabled={resetting}
                     className="text-xs font-semibold text-bmos-primary bg-bmos-primary-soft rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light hover:text-white transition cursor-pointer disabled:opacity-50"
                   >
-                    {resetting ? "Mereset..." : "Reset Password"}
+                    {resetting ? "Mereset..." : "Generate Password Random"}
                   </button>
                 )}
               </div>

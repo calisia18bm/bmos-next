@@ -258,3 +258,23 @@ export async function resetAccountPassword(id: string) {
 
   return { success: true, message: "Password berhasil direset.", password };
 }
+
+// Ganti password akun siapapun ke password PILIHAN Owner sendiri (bukan
+// yang di-generate random) -- dipakai kalau Owner mau kasih password yang
+// gampang diinget/diketik ke orangnya, bukan string acak.
+export async function setAccountPassword(id: string, newPassword: string) {
+  const auth = await requireOwner();
+  if (auth.error !== null) return { success: false, message: auth.error };
+
+  const password = newPassword.trim();
+  if (password.length < 6) {
+    return { success: false, message: "Password minimal 6 karakter." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+
+  if (error) return { success: false, message: error.message };
+
+  return { success: true, message: "Password berhasil diganti.", password };
+}
