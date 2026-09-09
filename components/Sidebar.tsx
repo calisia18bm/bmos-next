@@ -18,13 +18,27 @@ import ChangePasswordButton from "./ChangePasswordButton";
 // -- jadi taro "Accounts" di bagian ADMIN di bawah ini AMAN, karena
 // Admin asli tetep ga akan liat menu itu (menu key-nya cuma ada di
 // daftar OWNER).
+// Beberapa menu key (class-cards, materials, homework, attendance) sengaja
+// DIPAKAI ULANG di lebih dari satu grup -- misalnya "class-cards" dipakai
+// baik di menu Murid ("Class Card") maupun Laoshi ("Class Card") maupun
+// Admin ("Approval Kelas"), karena ketiganya ngizinin akses ke halaman yang
+// sama tapi tampilannya beda (?as=student / ?as=teacher / polos). Kalau
+// filter sidebar cuma ngecek "apa menu ini termasuk yang diizinin buat
+// role user", Murid yang menu key-nya kebetulan overlap (class-cards,
+// materials, homework) bakal ikut keliatan juga di grup LAOSHI/ADMIN --
+// padahal dia bukan Laoshi/Admin. requiredRoles di sini nutup celah itu:
+// grupnya sendiri harus cocok sama role asli user dulu, baru item di
+// dalamnya dicek lagi ke menu. Owner sengaja dimasukkin ke semua grup biar
+// tetap bisa liat & cek tampilan tiap role dari sidebar-nya sendiri.
 const NAV_GROUPS = [
   {
     label: "MAIN",
+    requiredRoles: null as string[] | null,
     items: [{ href: "/", menu: "dashboard", label: "Home", icon: "📊" }],
   },
   {
     label: "MURID",
+    requiredRoles: ["STUDENT", "OWNER"],
     items: [
       { href: "/my-class", menu: "my-class", label: "My Schedule", icon: "🗓️" },
       {
@@ -67,6 +81,7 @@ const NAV_GROUPS = [
   },
   {
     label: "LAOSHI",
+    requiredRoles: ["TEACHER", "OWNER"],
     items: [
       { href: "/attendance", menu: "attendance", label: "Absensi", icon: "✅" },
       {
@@ -109,6 +124,7 @@ const NAV_GROUPS = [
   },
   {
     label: "ADMIN",
+    requiredRoles: ["ADMIN", "OWNER"],
     items: [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
       { href: "/teachers", menu: "teachers", label: "Teachers", icon: "👩‍🏫" },
@@ -165,6 +181,7 @@ const NAV_GROUPS = [
   },
   {
     label: "CRM",
+    requiredRoles: ["ADMIN", "OWNER"],
     items: [
       { href: "/leads", menu: "leads", label: "Leads", icon: "📋" },
       { href: "/trials", menu: "trials", label: "Trials", icon: "🎯" },
@@ -178,12 +195,14 @@ const NAV_GROUPS = [
   },
   {
     label: "REPORT",
+    requiredRoles: ["ADMIN", "OWNER"],
     items: [
       { href: "/reports", menu: "reports", label: "Reports", icon: "📈" },
     ],
   },
   {
     label: "SYSTEM",
+    requiredRoles: ["ADMIN", "OWNER"],
     items: [
       {
         href: "/ai-assistant",
@@ -229,6 +248,17 @@ export default function Sidebar({
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-5">
         {NAV_GROUPS.map((group, groupIndex) => {
+          // Grup yang punya requiredRoles cuma keliatan kalau role asli
+          // user cocok -- ini yang nyegah Murid (yang menu key-nya
+          // kebetulan overlap kayak "materials"/"homework") ikut keliatan
+          // di grup LAOSHI/ADMIN.
+          if (
+            group.requiredRoles &&
+            !group.requiredRoles.some((r) => roles.includes(r))
+          ) {
+            return null;
+          }
+
           const visibleItems = group.items.filter((item) =>
             menus.includes(item.menu)
           );
