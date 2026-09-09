@@ -173,9 +173,7 @@ export default async function SimpleHome({
 
       {!isAdmin && !linked && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 text-sm text-yellow-800">
-          Akun kamu belum dihubungkan ke data {isTeacher ? "Laoshi" : "Murid"}{" "}
-          di Master Data. Minta Owner buat hubungkan lewat halaman Accounts,
-          biar info & jadwal kamu bisa muncul di sini.
+          Akun belum selesai diverifikasi, hubungi admin.
         </div>
       )}
 
