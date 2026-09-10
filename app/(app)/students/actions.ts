@@ -29,11 +29,31 @@ async function requireStaff(): Promise<string | null> {
 export async function addStudent(formData: {
   name: string;
   phone: string;
+  classId?: string;
+  status?: string;
 }) {
   const authError = await requireStaff();
   if (authError) return { success: false, message: authError };
 
   const supabase = await createClient();
+
+  // Kelas opsional -- boleh ga dipilih dulu (murid baru daftar tapi belum
+  // ditempatin ke kelas mana pun). Status juga opsional, default ACTIVE,
+  // tapi boleh langsung diisi INACTIVE kalau muridnya belum aktif beneran
+  // (misal masih proses daftar / belum bayar).
+  let className: string | null = null;
+  let teacherName: string | null = null;
+  if (formData.classId) {
+    const { data: cls } = await supabase
+      .from("classes")
+      .select("name, teacher_name")
+      .eq("id", formData.classId)
+      .maybeSingle();
+    className = cls?.name || null;
+    teacherName = cls?.teacher_name || null;
+  }
+  const status =
+    formData.status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
 
   // Generate kode murid berikutnya (M0001, M0002, dst). SEBELUMNYA ini
   // ngambil kode dari baris yang paling BARU dibuat (created_at desc) terus
@@ -67,7 +87,10 @@ export async function addStudent(formData: {
       student_code: studentCode,
       name: formData.name,
       phone: formData.phone,
-      status: "ACTIVE",
+      class_id: formData.classId || null,
+      class_name: className,
+      teacher_name: teacherName,
+      status,
     });
 
     if (!error) {

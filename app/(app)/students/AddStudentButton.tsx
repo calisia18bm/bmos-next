@@ -15,11 +15,19 @@ type Candidate = {
   created_at: string;
 };
 
-export default function AddStudentButton() {
+type ClassOption = { id: string; name: string; teacher_name: string | null };
+
+export default function AddStudentButton({
+  classes,
+}: {
+  classes: ClassOption[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [classId, setClassId] = useState("");
+  const [status, setStatus] = useState("ACTIVE");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
@@ -27,6 +35,8 @@ export default function AddStudentButton() {
   function reset() {
     setName("");
     setPhone("");
+    setClassId("");
+    setStatus("ACTIVE");
     setError("");
     setCandidates(null);
   }
@@ -53,7 +63,7 @@ export default function AddStudentButton() {
     setLoading(true);
     setError("");
 
-    const result = await addStudent({ name, phone });
+    const result = await addStudent({ name, phone, classId, status });
 
     setLoading(false);
 
@@ -193,6 +203,41 @@ export default function AddStudentButton() {
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Kelas{" "}
+                      <span className="text-bmos-text-light font-normal">
+                        (boleh dikosongin dulu)
+                      </span>
+                    </label>
+                    <select
+                      value={classId}
+                      onChange={(e) => setClassId(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    >
+                      <option value="">Belum ada kelas</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.teacher_name})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    >
+                      <option value="ACTIVE">Aktif</option>
+                      <option value="INACTIVE">Non-Aktif</option>
+                    </select>
                   </div>
 
                   {error && (

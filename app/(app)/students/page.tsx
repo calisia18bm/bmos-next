@@ -15,10 +15,17 @@ export default async function StudentsPage() {
 
   const supabase = await createClient();
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: students }, { data: classesList }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("classes")
+      .select("id, name, teacher_name")
+      .eq("active", true)
+      .order("name"),
+  ]);
 
   return (
     <div>
@@ -32,7 +39,7 @@ export default async function StudentsPage() {
             Kelola data murid, kelas, dan status pembayaran.
           </p>
         </div>
-        <AddStudentButton />
+        <AddStudentButton classes={classesList ?? []} />
       </div>
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">
