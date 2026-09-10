@@ -182,7 +182,7 @@ export async function submitTeacherResourceDraft(input: {
   if (!ctx.teacherId) {
     return {
       success: false,
-      message: "Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat hubungkan lewat halaman Accounts.",
+      message: "Akun belum selesai diverifikasi, hubungi admin.",
     };
   }
 

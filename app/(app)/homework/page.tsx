@@ -47,8 +47,7 @@ export default async function HomeworkPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">PR</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
-            hubungkan lewat halaman Accounts.
+            Akun belum selesai diverifikasi, hubungi admin.
           </div>
         </div>
       );
@@ -137,8 +136,7 @@ export default async function HomeworkPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">PR</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
-            hubungkan lewat halaman Accounts.
+            Akun belum selesai diverifikasi, hubungi admin.
           </div>
         </div>
       );

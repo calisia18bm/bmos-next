@@ -86,8 +86,7 @@ export default async function MyScheduleTeacherPage({
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
-            hubungkan lewat halaman Accounts.
+            Akun belum selesai diverifikasi, hubungi admin.
           </div>
         )}
       </div>
