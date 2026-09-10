@@ -35,34 +35,58 @@ export async function addStudent(formData: {
 
   const supabase = await createClient();
 
-  // Generate kode murid berikutnya, misal M0001 -> M0002
-  const { data: last } = await supabase
+  // Generate kode murid berikutnya (M0001, M0002, dst). SEBELUMNYA ini
+  // ngambil kode dari baris yang paling BARU dibuat (created_at desc) terus
+  // +1 -- ternyata gampang bentrok ("duplicate key ... students_student_code_key")
+  // kalau murid dengan kode terbesar bukan yang paling terakhir dibuat
+  // (misal ada data lama yang di-import dengan created_at ga berurutan,
+  // atau murid dengan kode terbesar sempat di re-activate/re-edit). Fix:
+  // ambil NOMOR TERBESAR dari SEMUA kode murid yang ada, baru +1 -- jadi
+  // ga bergantung urutan created_at sama sekali.
+  const { data: allCodes } = await supabase
     .from("students")
-    .select("student_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("student_code");
 
-  let nextNumber = 1;
-  if (last?.student_code) {
-    const match = last.student_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
-  }
-  const studentCode = `M${String(nextNumber).padStart(4, "0")}`;
-
-  const { error } = await supabase.from("students").insert({
-    student_code: studentCode,
-    name: formData.name,
-    phone: formData.phone,
-    status: "ACTIVE",
+  let maxNumber = 0;
+  (allCodes ?? []).forEach((row) => {
+    const match = row.student_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10);
+      if (n > maxNumber) maxNumber = n;
+    }
   });
 
-  if (error) {
-    return { success: false, message: error.message };
+  // Coba insert, kalau kebetulan masih bentrok (misal 2 admin nambah
+  // barengan di saat yang sama persis), naikkan nomornya lagi lalu coba
+  // ulang -- sampai 5x sebelum nyerah.
+  let nextNumber = maxNumber + 1;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const studentCode = `M${String(nextNumber).padStart(4, "0")}`;
+
+    const { error } = await supabase.from("students").insert({
+      student_code: studentCode,
+      name: formData.name,
+      phone: formData.phone,
+      status: "ACTIVE",
+    });
+
+    if (!error) {
+      revalidatePath("/students");
+      return { success: true, message: "Murid berhasil ditambahkan." };
+    }
+
+    const isDuplicateCode =
+      error.message.includes("students_student_code_key");
+    if (!isDuplicateCode) {
+      return { success: false, message: error.message };
+    }
+    nextNumber += 1;
   }
 
-  revalidatePath("/students");
-  return { success: true, message: "Murid berhasil ditambahkan." };
+  return {
+    success: false,
+    message: "Gagal generate kode murid unik, coba lagi.",
+  };
 }
 
 // Cek apakah nama/no. HP yang diinput cocok dengan murid yang PERNAH
@@ -157,18 +181,20 @@ export async function addAdditionalClass(
     return { success: false, message: `Murid sudah aktif di kelas ${cls.name}.` };
   }
 
-  const { data: last } = await supabase
+  // Sama kayak student_code -- ambil nomor TERBESAR dari SEMUA kode
+  // enrollment yang ada (bukan cuma yang terakhir dibuat), biar ga bentrok.
+  const { data: allEnrollmentCodes } = await supabase
     .from("enrollments")
-    .select("enrollment_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("enrollment_code");
 
   let nextNumber = 1;
-  if (last?.enrollment_code) {
-    const match = last.enrollment_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
-  }
+  (allEnrollmentCodes ?? []).forEach((row) => {
+    const match = row.enrollment_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10) + 1;
+      if (n > nextNumber) nextNumber = n;
+    }
+  });
   const enrollmentCode = `ENR${String(nextNumber).padStart(5, "0")}`;
 
   const { error } = await supabase.from("enrollments").insert({
@@ -232,18 +258,18 @@ export async function transferClass(
 
   if (closeError) return { success: false, message: closeError.message };
 
-  const { data: last } = await supabase
+  const { data: allEnrollmentCodes } = await supabase
     .from("enrollments")
-    .select("enrollment_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("enrollment_code");
 
   let nextNumber = 1;
-  if (last?.enrollment_code) {
-    const match = last.enrollment_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
-  }
+  (allEnrollmentCodes ?? []).forEach((row) => {
+    const match = row.enrollment_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10) + 1;
+      if (n > nextNumber) nextNumber = n;
+    }
+  });
   const enrollmentCode = `ENR${String(nextNumber).padStart(5, "0")}`;
 
   const { error: enrollError } = await supabase.from("enrollments").insert({
