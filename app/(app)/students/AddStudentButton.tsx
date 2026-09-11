@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { addStudent, findRejoinCandidates, reactivateStudent } from "./actions";
+import {
+  addStudent,
+  findRejoinCandidates,
+  reactivateStudent,
+  getAvailableStudentCodes,
+} from "./actions";
 
 type Candidate = {
   id: string;
@@ -32,11 +37,34 @@ export default function AddStudentButton({
   const [error, setError] = useState("");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
 
+  const [codeOptions, setCodeOptions] = useState<string[]>([]);
+  const [code, setCode] = useState("");
+  const [codesLoading, setCodesLoading] = useState(false);
+
+  // Ambil daftar kode murid yang masih kosong (termasuk "lubang" dari kode
+  // lama) tiap kali modal dibuka, biar dropdown-nya selalu up to date --
+  // jangan sampai nawarin kode yang baru aja kepake orang lain.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setCodesLoading(true);
+    getAvailableStudentCodes().then((codes) => {
+      if (cancelled) return;
+      setCodesLoading(false);
+      setCodeOptions(codes);
+      setCode((prev) => (prev && codes.includes(prev) ? prev : codes[0] || ""));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   function reset() {
     setName("");
     setPhone("");
     setClassId("");
     setStatus("ACTIVE");
+    setCode("");
     setError("");
     setCandidates(null);
   }
@@ -63,12 +91,18 @@ export default function AddStudentButton({
     setLoading(true);
     setError("");
 
-    const result = await addStudent({ name, phone, classId, status });
+    const result = await addStudent({ name, phone, classId, status, code });
 
     setLoading(false);
 
     if (!result.success) {
       setError(result.message);
+      // Kalau gagalnya gara-gara kode kepake duluan, refresh daftar
+      // kodenya biar dropdown ga nawarin kode yang sama lagi.
+      getAvailableStudentCodes().then((codes) => {
+        setCodeOptions(codes);
+        setCode(codes[0] || "");
+      });
       return;
     }
 
@@ -184,6 +218,34 @@ export default function AddStudentButton({
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Kode Murid
+                    </label>
+                    <select
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      disabled={codesLoading || codeOptions.length === 0}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light disabled:opacity-50"
+                    >
+                      {codesLoading && <option>Memuat...</option>}
+                      {!codesLoading && codeOptions.length === 0 && (
+                        <option>Gagal ambil daftar kode</option>
+                      )}
+                      {codeOptions.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-bmos-text-light mt-1">
+                      Kode paling atas itu kode lanjutan yang disaranin --
+                      tapi boleh dipilih kode lain kalau ada yang kosong
+                      (misal bekas murid lama yang udah dihapus).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
                       Nama Lengkap Murid
                     </label>
                     <input
@@ -259,7 +321,7 @@ export default function AddStudentButton({
                     </button>
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || codesLoading || !code}
                       className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
                     >
                       {loading ? "Mengecek..." : "Simpan"}

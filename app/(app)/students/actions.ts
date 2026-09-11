@@ -26,11 +26,47 @@ async function requireStaff(): Promise<string | null> {
   return null;
 }
 
+// Dipanggil dari AddStudentButton buat ngisi dropdown pilihan kode murid.
+// Isinya: semua nomor M0001..dst yang BELUM dipakai -- baik "lubang" dari
+// kode lama (misal M0002 kosong karena murid itu dulu pernah dihapus) maupun
+// nomor baru sesudah kode terbesar yang ada sekarang. Jadi Owner/Admin bisa
+// milih sendiri mau pakai kode yang mana, bukan cuma nomor lanjutan otomatis.
+export async function getAvailableStudentCodes(): Promise<string[]> {
+  const authError = await requireStaff();
+  if (authError) return [];
+
+  const supabase = await createClient();
+  const { data: allCodes } = await supabase
+    .from("students")
+    .select("student_code");
+
+  const used = new Set<string>();
+  let maxNumber = 0;
+  (allCodes ?? []).forEach((row) => {
+    if (row.student_code) used.add(row.student_code);
+    const match = row.student_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10);
+      if (n > maxNumber) maxNumber = n;
+    }
+  });
+
+  // +1 di ujung biar selalu ada minimal satu kode baru di paling bawah
+  // daftar, meskipun kebetulan ga ada lubang sama sekali.
+  const codes: string[] = [];
+  for (let n = 1; n <= maxNumber + 1; n++) {
+    const code = `M${String(n).padStart(4, "0")}`;
+    if (!used.has(code)) codes.push(code);
+  }
+  return codes;
+}
+
 export async function addStudent(formData: {
   name: string;
   phone: string;
   classId?: string;
   status?: string;
+  code?: string;
 }) {
   const authError = await requireStaff();
   if (authError) return { success: false, message: authError };
@@ -55,34 +91,33 @@ export async function addStudent(formData: {
   const status =
     formData.status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
 
-  // Generate kode murid berikutnya (M0001, M0002, dst). SEBELUMNYA ini
-  // ngambil kode dari baris yang paling BARU dibuat (created_at desc) terus
-  // +1 -- ternyata gampang bentrok ("duplicate key ... students_student_code_key")
-  // kalau murid dengan kode terbesar bukan yang paling terakhir dibuat
-  // (misal ada data lama yang di-import dengan created_at ga berurutan,
-  // atau murid dengan kode terbesar sempat di re-activate/re-edit). Fix:
-  // ambil NOMOR TERBESAR dari SEMUA kode murid yang ada, baru +1 -- jadi
-  // ga bergantung urutan created_at sama sekali.
-  const { data: allCodes } = await supabase
-    .from("students")
-    .select("student_code");
-
-  let maxNumber = 0;
-  (allCodes ?? []).forEach((row) => {
-    const match = row.student_code?.match(/\d+/);
-    if (match) {
-      const n = parseInt(match[0], 10);
-      if (n > maxNumber) maxNumber = n;
+  // Kode murid sekarang dipilih sendiri dari dropdown (lihat
+  // getAvailableStudentCodes di atas). Kalau karena suatu hal formnya ga
+  // ngirim kode (misal gagal fetch pilihannya), fallback ke cara lama --
+  // ambil nomor TERBESAR dari SEMUA kode yang ada, baru +1, dengan retry
+  // otomatis kalau kebetulan masih bentrok.
+  let candidateCodes: string[];
+  if (formData.code) {
+    candidateCodes = [formData.code];
+  } else {
+    const { data: allCodes } = await supabase
+      .from("students")
+      .select("student_code");
+    let maxNumber = 0;
+    (allCodes ?? []).forEach((row) => {
+      const match = row.student_code?.match(/\d+/);
+      if (match) {
+        const n = parseInt(match[0], 10);
+        if (n > maxNumber) maxNumber = n;
+      }
+    });
+    candidateCodes = [];
+    for (let i = 0; i < 5; i++) {
+      candidateCodes.push(`M${String(maxNumber + 1 + i).padStart(4, "0")}`);
     }
-  });
+  }
 
-  // Coba insert, kalau kebetulan masih bentrok (misal 2 admin nambah
-  // barengan di saat yang sama persis), naikkan nomornya lagi lalu coba
-  // ulang -- sampai 5x sebelum nyerah.
-  let nextNumber = maxNumber + 1;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const studentCode = `M${String(nextNumber).padStart(4, "0")}`;
-
+  for (const studentCode of candidateCodes) {
     const { error } = await supabase.from("students").insert({
       student_code: studentCode,
       name: formData.name,
@@ -103,7 +138,15 @@ export async function addStudent(formData: {
     if (!isDuplicateCode) {
       return { success: false, message: error.message };
     }
-    nextNumber += 1;
+    // Kode yang dipilih di dropdown ternyata udah kepake duluan (misal
+    // admin lain baru aja pakai kode yang sama) -- kasih tau biar user
+    // pilih ulang, bukan diem-diem ganti kode sendiri.
+    if (formData.code) {
+      return {
+        success: false,
+        message: `Kode ${studentCode} baru aja kepake murid lain, coba pilih kode lain.`,
+      };
+    }
   }
 
   return {
