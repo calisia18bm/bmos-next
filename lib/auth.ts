@@ -33,9 +33,19 @@ export type UserProfile = {
 export const getCurrentProfile = cache(async (): Promise<UserProfile | null> => {
   const supabase = await createClient();
 
+  // Pake getSession() (baca dari cookie, ga nembak API Supabase lagi),
+  // BUKAN getUser() (nembak API Supabase Auth tiap dipanggil, nambah
+  // waktu tunggu network setiap kali pindah halaman). Ini aman soalnya
+  // proxy.ts (jalan LEBIH DULU buat SEMUA request sebelum sampe sini)
+  // udah manggil getUser() beneran & refresh token-nya -- jadi begitu
+  // request-nya nyampe ke sini, sesi di cookie udah pasti valid & fresh.
+  // Query ke database di bawah (user_profiles) juga tetep aman walau
+  // getSession() ga di-recheck ke server, soalnya RLS Supabase tetep
+  // ngecek keabsahan token itu sendiri pas query jalan.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (!user) return null;
 
