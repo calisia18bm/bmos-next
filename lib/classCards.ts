@@ -45,6 +45,10 @@ export type ClassCard = {
   day_of_week: string | null;
   start_time: string | null;
   end_time: string | null;
+  // Tanggal kelas beneran MULAI -- beda sama registration_start/end di
+  // bawah, yang ngatur periode Murid boleh daftar/join, bukan kapan
+  // kelasnya sendiri jalan.
+  start_date: string | null;
   capacity_max: number;
   is_private: boolean;
   registration_start: string | null;

@@ -169,6 +169,17 @@ export default function OwnerApprovalQueue({
           {" · "}Kuota {c.capacity_max}
           {c.is_private ? " · Privat" : ""}
         </p>
+        {c.start_date && (
+          <p className="text-xs text-bmos-text-light">
+            📅 Kelas mulai{" "}
+            {new Date(c.start_date).toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
 
         {c.description && (
           <p className="text-xs text-bmos-text-light">{c.description}</p>

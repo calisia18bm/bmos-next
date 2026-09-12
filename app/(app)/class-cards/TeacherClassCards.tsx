@@ -50,6 +50,7 @@ type FormState = {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+  startDate: string;
   capacityMax: string;
   isPrivate: boolean;
   registrationStart: string;
@@ -65,6 +66,7 @@ const EMPTY_FORM: FormState = {
   dayOfWeek: "",
   startTime: "",
   endTime: "",
+  startDate: "",
   capacityMax: "6",
   isPrivate: false,
   registrationStart: "",
@@ -81,6 +83,7 @@ function cardToForm(c: ClassCard): FormState {
     dayOfWeek: c.day_of_week || "",
     startTime: c.start_time?.slice(0, 5) || "",
     endTime: c.end_time?.slice(0, 5) || "",
+    startDate: c.start_date || "",
     capacityMax: String(c.capacity_max),
     isPrivate: c.is_private,
     registrationStart: c.registration_start || "",
@@ -205,6 +208,17 @@ export default function TeacherClassCards({
           {" · "}Kuota {c.capacity_max}
           {c.is_private ? " · Privat" : ""}
         </p>
+        {c.start_date && (
+          <p className="text-xs text-bmos-text-light">
+            📅 Kelas mulai{" "}
+            {new Date(c.start_date).toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
 
         {(c.goal_tags?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -402,6 +416,24 @@ export default function TeacherClassCards({
                     className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Tanggal Mulai Kelas
+                </label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, startDate: e.target.value }))
+                  }
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
+                <p className="text-xs text-bmos-text-light mt-1">
+                  Kapan kelas ini beneran mulai jalan (beda sama periode
+                  pendaftaran di bawah).
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -107,6 +107,16 @@ export default function StudentClassBrowse({
                   }`
                 : "Jadwal belum diatur"}
             </p>
+            {c.start_date && (
+              <p className="text-xs text-bmos-text-light">
+                📅 Kelas mulai{" "}
+                {new Date(c.start_date).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
 
             {c.description && (
               <p className="text-xs text-bmos-text-light">{c.description}</p>

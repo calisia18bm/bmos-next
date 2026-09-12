@@ -209,6 +209,7 @@ type ClassCardInput = {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+  startDate: string;
   capacityMax: string;
   isPrivate: boolean;
   registrationStart: string;
@@ -356,6 +357,7 @@ export async function submitClassCard(input: ClassCardInput) {
       day_of_week: input.dayOfWeek || null,
       start_time: input.startTime || null,
       end_time: input.endTime || null,
+      start_date: input.startDate || null,
       capacity_max: capacity,
       is_private: input.isPrivate,
       registration_start: input.registrationStart || null,
@@ -452,6 +454,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
       day_of_week: input.dayOfWeek || null,
       start_time: input.startTime || null,
       end_time: input.endTime || null,
+      start_date: input.startDate || null,
       capacity_max: capacity,
       is_private: input.isPrivate,
       registration_start: input.registrationStart || null,
