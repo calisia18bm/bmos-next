@@ -58,6 +58,13 @@ export default function AddStudentButton({
   // nambah bukan Owner), kasih tau di sini -- muridnya tetap kesimpen.
   const [accountWarning, setAccountWarning] = useState("");
 
+  // Password minimal 6 karakter (aturan Supabase Auth) -- dicek di sini
+  // juga (bukan cuma di server) biar tombol Simpan langsung ke-disable dan
+  // ga bisa diklik kalau passwordnya kependekan, daripada baru ketahuan
+  // gagal setelah murid ke-submit (akunnya jadi ga kebuat diem-diem).
+  const passwordTooShort =
+    createAccount && accountPassword.trim().length > 0 && accountPassword.trim().length < 6;
+
   // Ambil daftar kode murid yang masih kosong (termasuk "lubang" dari kode
   // lama) tiap kali modal dibuka, biar dropdown-nya selalu up to date --
   // jangan sampai nawarin kode yang baru aja kepake orang lain.
@@ -452,6 +459,11 @@ export default function AddStudentButton({
                             placeholder="Minimal 6 karakter"
                             className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                           />
+                          {passwordTooShort && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Password minimal 6 karakter.
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -476,7 +488,12 @@ export default function AddStudentButton({
                     </button>
                     <button
                       type="submit"
-                      disabled={loading || codesLoading || !code}
+                      disabled={
+                        loading ||
+                        codesLoading ||
+                        !code ||
+                        (createAccount && (!email || passwordTooShort))
+                      }
                       className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
                     >
                       {loading ? "Mengecek..." : "Simpan"}

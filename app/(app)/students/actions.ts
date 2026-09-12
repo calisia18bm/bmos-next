@@ -27,6 +27,80 @@ async function requireStaff(): Promise<string | null> {
   return null;
 }
 
+// Sama kayak halaman Accounts -- pengelolaan akun LOGIN (buat/lihat status
+// akun murid) cuma buat Owner, Admin ga boleh. Ini dicek terpisah dari
+// requireStaff() di atas karena requireStaff ngizinin Admin kelola data
+// murid biasa (nama/kelas/dll), tapi khusus akun login tetap Owner-only.
+async function requireOwnerForAccount(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Belum login.";
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!(myProfile?.roles || []).includes("OWNER")) {
+    return "Cuma Owner yang bisa kelola akun login.";
+  }
+  return null;
+}
+
+// Dipanggil dari EditStudentButton buat cek apakah murid ini udah punya
+// akun login atau belum. `visible: false` artinya yang buka BUKAN Owner --
+// jadi section akun login-nya disembunyiin sama sekali di form Edit
+// (sama kayak Admin ga boleh masuk halaman Accounts).
+export async function getLinkedAccount(
+  studentId: string
+): Promise<
+  | { visible: true; account: { id: string; email: string } | null }
+  | { visible: false }
+> {
+  const ownerError = await requireOwnerForAccount();
+  if (ownerError) return { visible: false };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("id, email")
+    .eq("student_id", studentId)
+    .maybeSingle();
+
+  return { visible: true, account: data ? { id: data.id, email: data.email } : null };
+}
+
+// Bikin akun login buat murid yang SUDAH ada di Master Data -- dipanggil
+// dari modal Edit Data Murid kalau muridnya belum punya akun sama sekali.
+export async function createAccountForStudent(
+  studentId: string,
+  input: { name: string; email: string; password?: string }
+) {
+  const ownerError = await requireOwnerForAccount();
+  if (ownerError) return { success: false, message: ownerError };
+
+  const result = await provisionLinkedAccount({
+    name: input.name,
+    email: input.email,
+    password: input.password,
+    roles: ["STUDENT"],
+    studentId,
+  });
+
+  if (!result.created) return { success: false, message: result.reason };
+
+  revalidatePath("/accounts");
+  return {
+    success: true,
+    message: "Akun berhasil dibuat.",
+    email: result.email,
+    password: result.password,
+  };
+}
+
 // Dipanggil dari AddStudentButton buat ngisi dropdown pilihan kode murid.
 // Isinya: semua nomor M0001..dst yang BELUM dipakai -- baik "lubang" dari
 // kode lama (misal M0002 kosong karena murid itu dulu pernah dihapus) maupun
