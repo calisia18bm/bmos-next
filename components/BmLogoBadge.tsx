@@ -18,8 +18,8 @@ export default function BmLogoBadge() {
         src="/characters/bm_logo.png"
         alt="Logo BM Mandarin"
         width={56}
-        height={40}
-        style={{ height: 32 }}
+        height={56}
+        style={{ height: 48 }}
         className="w-auto object-contain"
         draggable={false}
       />
