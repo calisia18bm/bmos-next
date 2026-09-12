@@ -1,4 +1,5 @@
 import Sidebar from "@/components/Sidebar";
+import BmLogoBadge from "@/components/BmLogoBadge";
 import { getCurrentProfile } from "@/lib/auth";
 import { getMenusForRoles } from "@/lib/permissions";
 import { redirect } from "next/navigation";
@@ -25,6 +26,7 @@ export default async function AppLayout({
         characterKey={profile.character_key}
       />
       <main className="flex-1 p-8 ml-64">{children}</main>
+      <BmLogoBadge />
     </div>
   );
 }

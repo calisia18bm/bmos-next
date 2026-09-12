@@ -53,15 +53,6 @@ function validateInput(input: ClassCardInput): string | null {
   }
   const capacity = Number(input.capacityMax) || 0;
   if (capacity < 1) return "Kuota kelas minimal 1 murid.";
-  // Private = kelas kecil (1-3 murid), Umum = kelas grup (lebih dari 3
-  // murid) -- dikunci biar Tipe Kelas & Kuota selalu konsisten, ga ada
-  // yang keliru pilih.
-  if (input.isPrivate && capacity > 3) {
-    return "Kelas Private maksimal kuota 3 murid. Kalau lebih dari itu, pilih Tipe Kelas Umum.";
-  }
-  if (!input.isPrivate && capacity <= 3) {
-    return "Kelas Umum minimal kuota 4 murid. Kalau kuotanya 1-3, pilih Tipe Kelas Private.";
-  }
   if (
     input.registrationStart &&
     input.registrationEnd &&
@@ -101,6 +92,12 @@ function buildAiNote(
     }
   }
 
+  if (input.isPrivate && capacity > 2) {
+    notes.push(
+      `Ditandai kelas privat tapi kuotanya ${capacity} murid -- cek lagi apa maksudnya emang privat.`
+    );
+  }
+
   if (!input.registrationStart || !input.registrationEnd) {
     notes.push("Periode pendaftaran belum diisi lengkap.");
   }
@@ -119,20 +116,24 @@ function buildAiNote(
   return notes.map((n) => `• ${n}`).join("\n");
 }
 
-async function nextClassCode(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: last } = await supabase
-    .from("classes")
-    .select("class_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let nextNumber = 1;
-  if (last?.class_code) {
-    const match = last.class_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
-  }
-  return `K${String(nextNumber).padStart(3, "0")}`;
+// Ambil nomor kode kelas TERBESAR dari SEMUA baris yang ada (bukan cuma
+// baris terakhir dibuat) -- kalau cuma ngandelin "baris terakhir + 1",
+// nomornya bisa balik ke yang udah kepake kalau urutan created_at-nya ga
+// pas, jadi gagal pas insert (unique constraint classes_class_code_key).
+// Sama kayak fix yang udah dipakai buat student_code & teacher_code.
+async function getMaxClassCodeNumber(
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  const { data: allCodes } = await supabase.from("classes").select("class_code");
+  let maxNumber = 0;
+  (allCodes ?? []).forEach((row) => {
+    const match = row.class_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10);
+      if (n > maxNumber) maxNumber = n;
+    }
+  });
+  return maxNumber;
 }
 
 // Laoshi bikin & submit kartu kelas baru -- langsung berstatus PENDING,
@@ -166,32 +167,48 @@ export async function submitClassCard(input: ClassCardInput) {
   const avgPrice =
     prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
 
-  const classCode = await nextClassCode(supabase);
+  const maxNumber = await getMaxClassCodeNumber(supabase);
 
-  const { error } = await supabase.from("classes").insert({
-    class_code: classCode,
-    name: input.name.trim(),
-    description: input.description.trim() || null,
-    teacher_id: ctx.teacherId,
-    teacher_name: ctx.fullName,
-    created_by_teacher_id: ctx.teacherId,
-    day_of_week: input.dayOfWeek || null,
-    start_time: input.startTime || null,
-    end_time: input.endTime || null,
-    capacity_max: capacity,
-    is_private: input.isPrivate,
-    registration_start: input.registrationStart || null,
-    registration_end: input.registrationEnd || null,
-    price: price || null,
-    sessions_count: Number(input.sessionsCount) || null,
-    goal_tags: input.goalTags,
-    approval_status: "PENDING",
-    active: false,
-    registration_open: false,
-    ai_note: buildAiNote(input, capacity, price, avgPrice),
-  });
+  let inserted = false;
+  let lastError: { message: string } | null = null;
+  for (let i = 0; i < 5; i++) {
+    const classCode = `K${String(maxNumber + 1 + i).padStart(3, "0")}`;
+    const { error } = await supabase.from("classes").insert({
+      class_code: classCode,
+      name: input.name.trim(),
+      description: input.description.trim() || null,
+      teacher_id: ctx.teacherId,
+      teacher_name: ctx.fullName,
+      created_by_teacher_id: ctx.teacherId,
+      day_of_week: input.dayOfWeek || null,
+      start_time: input.startTime || null,
+      end_time: input.endTime || null,
+      capacity_max: capacity,
+      is_private: input.isPrivate,
+      registration_start: input.registrationStart || null,
+      registration_end: input.registrationEnd || null,
+      price: price || null,
+      sessions_count: Number(input.sessionsCount) || null,
+      goal_tags: input.goalTags,
+      approval_status: "PENDING",
+      active: false,
+      registration_open: false,
+      ai_note: buildAiNote(input, capacity, price, avgPrice),
+    });
 
-  if (error) return { success: false, message: error.message };
+    if (!error) {
+      inserted = true;
+      lastError = null;
+      break;
+    }
+    lastError = error;
+    const isDuplicateCode = error.message.includes("classes_class_code_key");
+    if (!isDuplicateCode) break;
+  }
+
+  if (!inserted) {
+    return { success: false, message: lastError?.message || "Gagal membuat kartu kelas." };
+  }
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kartu kelas dikirim, nunggu di-approve Owner." };
@@ -369,9 +386,12 @@ export async function joinClassCard(classId: string) {
   if (cls.approval_status !== "APPROVED" || !cls.active) {
     return { success: false, message: "Kelas ini belum/ga bisa dijoin." };
   }
-  // Catatan: kelas "Private" tetap ditampilin & bisa di-join sendiri sama
-  // Murid kayak kelas Umum -- bedanya cuma kuotanya (biasanya kecil,
-  // misal 1-on-1), bukan soal boleh/nggaknya daftar sendiri.
+  if (cls.is_private) {
+    return {
+      success: false,
+      message: "Kelas privat -- daftarnya lewat Admin/Laoshi langsung.",
+    };
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   if (cls.registration_start && today < cls.registration_start) {

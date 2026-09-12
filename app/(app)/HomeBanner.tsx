@@ -6,17 +6,12 @@ import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
 
-// Logo BM SELALU nempel statis di pojok kiri-bawah layar (di sebelah
-// kanan tombol "Keluar" di sidebar, biar ga numpuk sama tulisannya) --
-// beda sama karakter maskot yang bisa digeser bebas sama Owner. Logo
-// xuebao IKUT gabung ke baris karakter (lihat draggableItems di bawah),
-// bukan statis, sesuai permintaan biar tetep "di samping karakter".
-const STATIC_BOTTOM_LEFT_KEYS = new Set(["bm_logo"]);
-// Digeser ke kanan & sedikit ke atas dari pojok kiri-bawah sidebar, biar
-// ga numpuk tulisan email/OWNER/Keluar di footer sidebar -- tetap di
-// dalam kotak footer itu, cuma dipindah ke bagian yang kosong.
-const BM_LOGO_LEFT_PX = 170;
-const BM_LOGO_BOTTOM_PX = 80;
+// Logo BM sekarang statis di SEMUA halaman lewat komponen global
+// BmLogoBadge (dipasang di app layout), jadi ga lagi ditangani di sini --
+// difilter keluar biar ga dobel muncul pas di halaman Home. Logo xuebao
+// IKUT gabung ke baris karakter (lihat draggableItems di bawah), bukan
+// statis, sesuai permintaan biar tetep "di samping karakter".
+const GLOBAL_STATIC_KEYS = new Set(["bm_logo"]);
 
 export default function HomeBanner({
   items,
@@ -27,9 +22,8 @@ export default function HomeBanner({
 }) {
   const router = useRouter();
 
-  const logoItems = items.filter((it) => STATIC_BOTTOM_LEFT_KEYS.has(it.key));
   const draggableItems = items.filter(
-    (it) => !STATIC_BOTTOM_LEFT_KEYS.has(it.key)
+    (it) => !GLOBAL_STATIC_KEYS.has(it.key)
   );
 
   const [editMode, setEditMode] = useState(false);
@@ -193,10 +187,7 @@ export default function HomeBanner({
 
   async function handleSave() {
     setSaving(true);
-    // Logo tetap dikirim apa adanya (statis, ga ada x/y) biar posisinya
-    // di kiri-bawah ga ikut ke-lock ke database -- yang disimpan cuma
-    // posisi karakter yang emang digeser Owner.
-    await saveBannerLayout([...localItems, ...logoItems]);
+    await saveBannerLayout(localItems);
     setSaving(false);
     setEditMode(false);
     router.refresh();
@@ -208,26 +199,6 @@ export default function HomeBanner({
     );
     setEditMode(false);
   }
-
-  const logoRow = (
-    <div
-      className="fixed z-30 flex items-end gap-1.5 pointer-events-none"
-      style={{ left: BM_LOGO_LEFT_PX, bottom: BM_LOGO_BOTTOM_PX }}
-    >
-      {logoItems.map((it) => (
-        <Image
-          key={it.key}
-          src={it.file}
-          alt={it.label}
-          width={it.heightPx * 1.4}
-          height={it.heightPx}
-          style={{ height: it.heightPx }}
-          className="w-auto object-contain"
-          draggable={false}
-        />
-      ))}
-    </div>
-  );
 
   // Tampilan default: karakter belum pernah diatur & lagi ga di mode edit
   // -- baris kecil rapi nempel pojok kiri-bawah layar juga (posisi &
@@ -246,7 +217,6 @@ export default function HomeBanner({
             </button>
           </div>
         )}
-        {logoRow}
         {/* Baris normal (BUKAN fixed/absolute) biar ikut scroll bareng
             konten halaman, ga nempel di layar terus. */}
         <div className="flex items-end justify-end gap-1.5 mb-4">
@@ -311,7 +281,6 @@ export default function HomeBanner({
           )}
         </div>
       )}
-      {logoRow}
       {/* Absolute (BUKAN fixed) relatif ke area konten halaman (wrapper
           "relative" di page.tsx/SimpleHome.tsx) -- biar karakter ikut
           ke-scroll bareng konten, ga nempel terus di layar pas di-scroll.
