@@ -58,6 +58,13 @@ export type ClassCard = {
   active: boolean;
   registration_open: boolean;
   created_at: string;
+  // Dipakai buat badge "Baru" di kartu Laoshi -- status_updated_at
+  // ke-update tiap kali approval_status berubah (approve/reject/submit
+  // ulang), teacher_seen_status_at ke-update tiap Laoshi buka halaman
+  // Class Card. Kalau teacher_seen_status_at masih lebih lama (atau
+  // null), berarti status ini belum sempat dilihat Laoshi.
+  status_updated_at: string;
+  teacher_seen_status_at: string | null;
 };
 
 export function formatRupiah(n: number | null | undefined): string {

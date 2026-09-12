@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import TeacherClassCards from "./TeacherClassCards";
 import StudentClassBrowse from "./StudentClassBrowse";
 import OwnerApprovalQueue from "./OwnerApprovalQueue";
-import { getCommissionTiers, getGoalTags, getRegistrationFormUrl } from "./actions";
+import {
+  getCommissionTiers,
+  getGoalTags,
+  getRegistrationFormUrl,
+  markClassCardsSeen,
+} from "./actions";
 import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +70,15 @@ export default async function ClassCardsPage({
       getCommissionTiers(),
       getGoalTags(),
     ]);
+
+    // Laoshi asli (bukan preview Owner) yang buka halaman ini -- tandain
+    // semua kartu kelas dia sebagai "udah dilihat" statusnya yang
+    // sekarang. Dipanggil SETELAH ambil myCards di atas, biar kunjungan
+    // ini sendiri masih sempat nampilin highlight "Baru" (pakai data lama
+    // sebelum di-update), baru kunjungan berikutnya highlight-nya ilang.
+    if (!previewAsTeacher) {
+      await markClassCardsSeen();
+    }
 
     return (
       <div>

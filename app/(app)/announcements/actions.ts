@@ -42,6 +42,60 @@ export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
   return data ?? [];
 }
 
+// Berapa banyak pengumuman yang belum pernah dibuka user yang lagi login
+// -- dipakai buat badge notif angka di sidebar (menu "Home"). Owner ga
+// dihitung (dashboard Owner sendiri ga nampilin widget Pengumuman, jadi
+// ga relevan buat dia).
+export async function getUnreadAnnouncementCount(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("roles, last_announcement_read_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!myProfile) return 0;
+
+  const roles = (myProfile.roles || []) as string[];
+  if (roles.includes("OWNER")) return 0;
+
+  const isTeacher = roles.includes("TEACHER");
+  const isStudent = roles.includes("STUDENT");
+  const audience = isTeacher
+    ? ["ALL", "TEACHER"]
+    : isStudent
+    ? ["ALL", "STUDENT"]
+    : ["ALL"];
+
+  const { count } = await supabase
+    .from("announcements")
+    .select("*", { count: "exact", head: true })
+    .in("audience", audience)
+    .gt("created_at", myProfile.last_announcement_read_at);
+
+  return count ?? 0;
+}
+
+// Dipanggil dari Home (SimpleHome) tiap kali user (Laoshi/Murid/Admin)
+// buka halaman itu & lihat widget Pengumuman -- nandain "udah dibaca
+// sampai sekarang", biar badge notif di sidebar ilang.
+export async function markAnnouncementsRead() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("user_profiles")
+    .update({ last_announcement_read_at: new Date().toISOString() })
+    .eq("id", user.id);
+}
+
 export async function createAnnouncement(input: {
   title: string;
   message: string;

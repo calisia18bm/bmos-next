@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitClassCard, resubmitClassCard } from "./actions";
+import { submitClassCard, resubmitClassCard, deleteClassCard } from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
 import { CLASS_DAYS, ClassCard, formatRupiah } from "@/lib/classCards";
 
@@ -19,15 +19,30 @@ const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Draft",
 };
 
-// Urutan section pas kartu kelas dipisah per status -- yang paling
-// perlu perhatian Laoshi duluan (Pending, lalu Ditolak yang perlu
-// diedit ulang), yang udah beres (Disetujui) di paling bawah.
+// Urutan section pas kartu kelas dipisah per status. Yang masih perlu
+// ditunggu (Pending) & yang udah beres (Disetujui) duluan -- yang
+// Ditolak sengaja ditaro PALING BAWAH (bukan urutan ke-2 kayak
+// sebelumnya) biar ga bikin Laoshi ilfeel/nge-down tiap buka halaman ini,
+// tetep kelihatan tapi ga jadi hal pertama yang nyolok mata.
 const STATUS_SECTIONS: { status: string; heading: string }[] = [
   { status: "PENDING", heading: "⏳ Menunggu Approval" },
-  { status: "REJECTED", heading: "❌ Ditolak -- Perlu Diedit Ulang" },
   { status: "APPROVED", heading: "✅ Disetujui" },
+  { status: "REJECTED", heading: "❌ Ditolak -- Perlu Diedit Ulang" },
   { status: "DRAFT", heading: "📝 Draft" },
 ];
+
+// Kartu dianggap "belum dilihat" (dapet highlight warna + badge "Baru")
+// kalau statusnya APPROVED/REJECTED dan itu berubah SETELAH terakhir kali
+// Laoshi buka halaman ini (teacher_seen_status_at). Begitu halaman ini
+// dibuka lagi, markClassCardsSeen() di server bakal update timestamp-nya,
+// jadi kunjungan berikutnya kartu yang sama udah ga di-highlight lagi.
+function isUnseen(c: ClassCard): boolean {
+  if (c.approval_status !== "APPROVED" && c.approval_status !== "REJECTED") {
+    return false;
+  }
+  if (!c.teacher_seen_status_at) return true;
+  return new Date(c.teacher_seen_status_at) < new Date(c.status_updated_at);
+}
 
 type FormState = {
   name: string;
@@ -90,6 +105,7 @@ export default function TeacherClassCards({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const price = Number(form.price) || 0;
   const commission = price > 0 ? computeCommission(price, tiers) : null;
@@ -138,22 +154,46 @@ export default function TeacherClassCards({
     setEditingId(null);
   }
 
+  async function handleDelete(id: string) {
+    if (!window.confirm("Yakin mau hapus kartu kelas ini? Ga bisa dibalikin lagi.")) {
+      return;
+    }
+    setDeletingId(id);
+    await deleteClassCard(id);
+    setDeletingId(null);
+  }
+
   function renderCard(c: ClassCard) {
     const cComm = c.price ? computeCommission(c.price, tiers) : null;
+    const unseen = isUnseen(c);
+    const canDelete =
+      c.approval_status === "PENDING" || c.approval_status === "REJECTED";
+
     return (
       <div
         key={c.id}
-        className="bg-white border border-bmos-border rounded-2xl p-4 flex flex-col gap-2"
+        className={`bg-white rounded-2xl p-4 flex flex-col gap-2 transition ${
+          unseen
+            ? "border-2 border-bmos-primary shadow-md ring-2 ring-bmos-primary/20"
+            : "border border-bmos-border"
+        }`}
       >
         <div className="flex items-start justify-between gap-2">
           <p className="font-bold text-bmos-text">{c.name}</p>
-          <span
-            className={`shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full ${
-              STATUS_STYLE[c.approval_status]
-            }`}
-          >
-            {STATUS_LABEL[c.approval_status]}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {unseen && (
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-bmos-primary text-white">
+                Baru
+              </span>
+            )}
+            <span
+              className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
+                STATUS_STYLE[c.approval_status]
+              }`}
+            >
+              {STATUS_LABEL[c.approval_status]}
+            </span>
+          </div>
         </div>
 
         <p className="text-xs text-bmos-text-light">
@@ -223,15 +263,26 @@ export default function TeacherClassCards({
           </div>
         )}
 
-        {(c.approval_status === "REJECTED" ||
-          c.approval_status === "PENDING") && (
-          <button
-            onClick={() => openEdit(c)}
-            className="mt-1 text-xs font-semibold text-bmos-primary hover:underline self-start"
-          >
-            ✏️ Edit & submit ulang
-          </button>
-        )}
+        <div className="flex items-center gap-3 mt-1">
+          {(c.approval_status === "REJECTED" ||
+            c.approval_status === "PENDING") && (
+            <button
+              onClick={() => openEdit(c)}
+              className="text-xs font-semibold text-bmos-primary hover:underline"
+            >
+              ✏️ Edit & submit ulang
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => handleDelete(c.id)}
+              disabled={deletingId === c.id}
+              className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-60"
+            >
+              {deletingId === c.id ? "Menghapus..." : "🗑️ Hapus"}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -254,9 +305,8 @@ export default function TeacherClassCards({
       ) : (
         // Dipisah per status (bukan digabung satu grid) biar Laoshi ga
         // bingung ngebedain mana yang masih perlu ditunggu, mana yang
-        // udah beres, mana yang perlu diedit ulang. Urutannya sengaja
-        // yang paling perlu perhatian duluan: Pending -> Ditolak -> udah
-        // Disetujui (paling ga butuh aksi lagi, taro paling bawah).
+        // udah beres, mana yang perlu diedit ulang. Ditolak sengaja
+        // ditaro paling bawah -- lihat komentar di STATUS_SECTIONS.
         <div className="space-y-8">
           {STATUS_SECTIONS.map((section) => {
             const sectionCards = cards.filter(

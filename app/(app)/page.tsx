@@ -11,6 +11,7 @@ import { getAnnouncements } from "./announcements/actions";
 import AnnouncementsManage from "./announcements/AnnouncementsManage";
 import { getChallengeLaggards } from "./challenge/actions";
 import { getPendingClassCardCount } from "./class-cards/actions";
+import { getUnresolvedNotificationFailureCount } from "./notifications/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -275,6 +276,18 @@ export default async function DashboardPage() {
       icon: "🗂️",
       title: `${pendingClassCardCount} Class Card menunggu approval`,
       subtitle: "Laoshi submit kartu kelas baru, cek & approve dulu.",
+      href: "/class-cards",
+    });
+  }
+
+  // ===== Notifikasi WA yang gagal terkirim (nomor kosong / error Fonnte)
+  //       -- lihat lib/notifyFailure.ts buat detail kapan ini kecatet =====
+  const unresolvedNotificationFailureCount = await getUnresolvedNotificationFailureCount();
+  if (unresolvedNotificationFailureCount > 0) {
+    attentionItems.push({
+      icon: "⚠️",
+      title: `${unresolvedNotificationFailureCount} notifikasi WA gagal terkirim`,
+      subtitle: "Nomor HP kosong atau ada error -- cek Vercel Runtime Logs buat detailnya.",
       href: "/class-cards",
     });
   }

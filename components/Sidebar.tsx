@@ -220,12 +220,16 @@ export default function Sidebar({
   email,
   characterKey,
   pendingClassCardCount = 0,
+  unseenClassCardStatusCount = 0,
+  unreadAnnouncementCount = 0,
 }: {
   roles: string[];
   menus: string[];
   email: string;
   characterKey: string | null;
   pendingClassCardCount?: number;
+  unseenClassCardStatusCount?: number;
+  unreadAnnouncementCount?: number;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -280,13 +284,28 @@ export default function Sidebar({
                   const active =
                     pathname === itemPath &&
                     searchParams.toString() === (itemQuery || "");
-                  // Badge notif angka -- cuma buat menu "Approval Kelas"
-                  // (Owner/Admin), nunjukkin berapa Class Card yang lagi
-                  // nunggu di-approve. Menu key "class-cards" dipakai
-                  // bareng sama Murid/Laoshi juga, jadi dicek dari label-
-                  // nya biar ga ikut nongol di menu mereka.
-                  const showPendingBadge =
-                    item.label === "Approval Kelas" && pendingClassCardCount > 0;
+                  // Badge notif angka -- tiap menu punya sumber angka
+                  // sendiri, dan beberapa menu key (class-cards) dipakai
+                  // ulang di lebih dari satu grup, jadi dicek dari
+                  // kombinasi label+href biar ga ketuker:
+                  // - "Approval Kelas" (grup ADMIN): Class Card yang
+                  //   nunggu di-approve Owner/Admin.
+                  // - "Class Card" yang href-nya "?as=teacher" (grup
+                  //   LAOSHI): kartu kelas Laoshi sendiri yang baru
+                  //   di-approve/di-reject tapi belum dia buka.
+                  // - "Home" (grup MAIN): Pengumuman yang belum dibuka.
+                  let badgeCount = 0;
+                  if (item.label === "Approval Kelas") {
+                    badgeCount = pendingClassCardCount;
+                  } else if (
+                    item.label === "Class Card" &&
+                    item.href.includes("as=teacher")
+                  ) {
+                    badgeCount = unseenClassCardStatusCount;
+                  } else if (item.label === "Home") {
+                    badgeCount = unreadAnnouncementCount;
+                  }
+                  const showBadge = badgeCount > 0;
                   return (
                     <Link
                       key={`${item.href}-${itemIndex}`}
@@ -299,9 +318,9 @@ export default function Sidebar({
                     >
                       <span>{item.icon}</span>
                       <span className="flex-1">{item.label}</span>
-                      {showPendingBadge && (
+                      {showBadge && (
                         <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
-                          {pendingClassCardCount}
+                          {badgeCount}
                         </span>
                       )}
                     </Link>

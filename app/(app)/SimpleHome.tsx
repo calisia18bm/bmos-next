@@ -4,7 +4,7 @@ import HomeBanner from "./HomeBanner";
 import NameEditor from "./NameEditor";
 import { BannerItem } from "@/lib/characters";
 import { UserProfile } from "@/lib/auth";
-import { getAnnouncements } from "./announcements/actions";
+import { getAnnouncements, markAnnouncementsRead } from "./announcements/actions";
 
 function getMondayOfWeek(): string {
   const d = new Date();
@@ -55,6 +55,10 @@ export default async function SimpleHome({
     5,
     isTeacher ? ["ALL", "TEACHER"] : isStudentSimple ? ["ALL", "STUDENT"] : ["ALL"]
   );
+  // Laoshi/Murid/Admin baru buka Home & lihat widget Pengumuman ini --
+  // tandain "udah dibaca sampai sekarang" biar badge notif angka di
+  // sidebar (menu Home) ilang.
+  await markAnnouncementsRead();
 
   let linked = true;
   let nextClass: NextClass | null = null;
@@ -265,8 +269,11 @@ export default async function SimpleHome({
         ))}
       </div>
 
-      <div className="bg-white border border-bmos-border rounded-2xl p-6">
-        <h2 className="font-bold text-bmos-text text-lg mb-1">Pengumuman</h2>
+      <div className="bg-bmos-primary-soft border-2 border-bmos-primary/30 rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">📢</span>
+          <h2 className="font-bold text-bmos-primary text-lg">Pengumuman</h2>
+        </div>
         <p className="text-xs text-bmos-text-light mb-4">
           Info terbaru dari Owner/Admin
         </p>
@@ -279,7 +286,7 @@ export default async function SimpleHome({
             {announcements.map((a) => (
               <div
                 key={a.id}
-                className="border-b border-bmos-border last:border-0 pb-3 last:pb-0"
+                className="bg-white border border-bmos-border rounded-xl p-4"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-sm font-semibold text-bmos-text">

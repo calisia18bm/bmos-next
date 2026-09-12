@@ -8,7 +8,8 @@ import {
   DEFAULT_COMMISSION_TIERS,
   computeCommission,
 } from "@/lib/commission";
-import { sendWhatsApp } from "@/lib/fonnte";
+import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
+import { recordNotificationFailure } from "@/lib/notifyFailure";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -28,6 +29,106 @@ export async function getPendingClassCardCount() {
   return count ?? 0;
 }
 
+// Berapa banyak Class Card punya Laoshi sendiri yang statusnya baru aja
+// di-approve/di-reject Owner TAPI belum sempat dibuka/dilihat Laoshi-nya
+// -- dipakai buat badge notif angka di sidebar menu "Class Card" (grup
+// LAOSHI). Cuma dihitung buat Teacher yang udah kehubung ke data Laoshi;
+// role lain selalu dapet 0.
+export async function getUnseenClassCardStatusCount() {
+  const ctx = await getCallerContext();
+  if (!ctx) return 0;
+  if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) return 0;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("classes")
+    .select("status_updated_at, teacher_seen_status_at")
+    .eq("created_by_teacher_id", ctx.teacherId)
+    .in("approval_status", ["APPROVED", "REJECTED"]);
+
+  const unseen = (data ?? []).filter((c) => {
+    if (!c.teacher_seen_status_at) return true;
+    return new Date(c.teacher_seen_status_at) < new Date(c.status_updated_at);
+  });
+
+  return unseen.length;
+}
+
+// Dipanggil dari halaman Class Card (sudut pandang Laoshi asli, bukan
+// preview Owner) tiap kali Laoshi buka halamannya -- nandain SEMUA kartu
+// kelas dia sendiri sebagai "udah dilihat" statusnya yang sekarang, biar
+// badge notif & warna "baru" ilang buat kunjungan berikutnya.
+export async function markClassCardsSeen() {
+  const ctx = await getCallerContext();
+  if (!ctx) return;
+  if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("classes")
+    .update({ teacher_seen_status_at: new Date().toISOString() })
+    .eq("created_by_teacher_id", ctx.teacherId);
+}
+
+// Kabarin Laoshi lewat WhatsApp tiap kali kartu kelas dia di-approve atau
+// di-reject Owner -- pakai nomor HP yang ada di data Laoshi-nya sendiri
+// (tabel teachers.phone). Kalau nomornya kosong ATAU gagal kekirim,
+// statusnya tetep kesimpen (ga bikin approve/reject gagal) -- tapi
+// Owner/Admin dikabarin soal kegagalannya lewat recordNotificationFailure,
+// biar ga ada notif yang "ilang diam-diam" tanpa ada yang tau.
+async function notifyTeacherClassCardStatus(params: {
+  teacherId: string;
+  className: string;
+  approved: boolean;
+  rejectionNote?: string;
+}) {
+  const supabase = await createClient();
+  const { data: teacher } = await supabase
+    .from("teachers")
+    .select("phone, name")
+    .eq("id", params.teacherId)
+    .maybeSingle();
+
+  const statusLabel = params.approved ? "APPROVE" : "REJECT";
+
+  if (!teacher?.phone) {
+    const msg = `Laoshi ${teacher?.name || "-"} belum punya nomor HP di data Teachers, jadi notif ${statusLabel} Class Card "${params.className}" ga bisa dikirim WA. Tolong kabarin manual & lengkapin nomornya di halaman Teachers.`;
+    console.error("[notifyTeacherClassCardStatus]", msg);
+    await recordNotificationFailure(msg);
+    return;
+  }
+
+  const message = params.approved
+    ? `✅ Kabar baik! Class Card "${params.className}" kamu udah di-APPROVE Owner & sekarang udah tayang buat Murid.`
+    : `❌ Class Card "${params.className}" kamu di-TOLAK Owner.\n\nAlasan: ${
+        params.rejectionNote || "-"
+      }\n\nCek & edit lagi di halaman Class Card ya.`;
+
+  try {
+    const result = await sendWhatsApp(normalizePhone(teacher.phone), message);
+    console.log(
+      "[notifyTeacherClassCardStatus] hasil kirim WA:",
+      JSON.stringify(result)
+    );
+    if (!result.success) {
+      await recordNotificationFailure(
+        `Gagal kirim notif ${statusLabel} Class Card "${params.className}" ke Laoshi ${
+          teacher.name || "-"
+        } (${teacher.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+      );
+    }
+  } catch (err) {
+    console.error("[notifyTeacherClassCardStatus] error kirim WA:", err);
+    await recordNotificationFailure(
+      `Gagal kirim notif ${statusLabel} Class Card "${params.className}" ke Laoshi ${
+        teacher.name || "-"
+      } (${teacher.phone}). Error: ${
+        err instanceof Error ? err.message : String(err)
+      }.`
+    );
+  }
+}
+
 // Kabarin Owner lewat WhatsApp tiap kali ada Class Card baru yang perlu
 // di-approve -- pakai nomor yang sama kayak reminder konten
 // (OWNER_WHATSAPP_NUMBER), lewat helper Fonnte yang udah ada. Kalau
@@ -42,9 +143,9 @@ async function notifyOwnerNewClassCard(params: {
 }) {
   const ownerPhone = process.env.OWNER_WHATSAPP_NUMBER;
   if (!ownerPhone) {
-    console.error(
-      "[notifyOwnerNewClassCard] OWNER_WHATSAPP_NUMBER belum di-set, notif WA di-skip."
-    );
+    const msg = `OWNER_WHATSAPP_NUMBER belum di-set di Vercel, jadi notif Class Card baru ("${params.className}" dari Laoshi ${params.teacherName || "-"}) ga bisa dikirim WA ke Owner. Cek & submit kartu kelas ini manual di halaman Class Card.`;
+    console.error("[notifyOwnerNewClassCard]", msg);
+    await recordNotificationFailure(msg);
     return;
   }
 
@@ -61,10 +162,22 @@ async function notifyOwnerNewClassCard(params: {
     // valid, dll) -- bukan cuma "gagal" tanpa alasan.
     const result = await sendWhatsApp(ownerPhone, message);
     console.log("[notifyOwnerNewClassCard] hasil kirim WA:", JSON.stringify(result));
+    if (!result.success) {
+      await recordNotificationFailure(
+        `Gagal kirim notif Class Card baru ("${params.className}" dari Laoshi ${
+          params.teacherName || "-"
+        }) ke Owner. Alasan: ${result.reason || "tidak diketahui"}.`
+      );
+    }
   } catch (err) {
     // Notif gagal ga boleh ngegagalin submit kartu kelas -- tapi tetap
     // di-log biar ketauan penyebabnya kalau perlu dicek lagi nanti.
     console.error("[notifyOwnerNewClassCard] error kirim WA:", err);
+    await recordNotificationFailure(
+      `Gagal kirim notif Class Card baru ("${params.className}" dari Laoshi ${
+        params.teacherName || "-"
+      }) ke Owner. Error: ${err instanceof Error ? err.message : String(err)}.`
+    );
   }
 }
 
@@ -232,6 +345,7 @@ export async function submitClassCard(input: ClassCardInput) {
   let lastError: { message: string } | null = null;
   for (let i = 0; i < 5; i++) {
     const classCode = `K${String(maxNumber + 1 + i).padStart(3, "0")}`;
+    const nowIso = new Date().toISOString();
     const { error } = await supabase.from("classes").insert({
       class_code: classCode,
       name: input.name.trim(),
@@ -253,6 +367,10 @@ export async function submitClassCard(input: ClassCardInput) {
       active: false,
       registration_open: false,
       ai_note: buildAiNote(input, capacity, price, avgPrice),
+      status_updated_at: nowIso,
+      // Kartu baru dibuat sama Laoshi sendiri, jadi langsung ditandain
+      // "udah dilihat" biar ga ikut kehitung badge notif dia sendiri.
+      teacher_seen_status_at: nowIso,
     });
 
     if (!error) {
@@ -325,6 +443,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
   const avgPrice =
     prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
 
+  const nowIso = new Date().toISOString();
   const { error } = await supabase
     .from("classes")
     .update({
@@ -343,6 +462,10 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
       approval_status: "PENDING",
       rejection_note: null,
       ai_note: buildAiNote(input, capacity, price, avgPrice),
+      status_updated_at: nowIso,
+      // Laoshi yang lagi ngedit & submit ulang sendiri -- ga usah
+      // dianggap "belum dilihat" buat dia sendiri.
+      teacher_seen_status_at: nowIso,
     })
     .eq("id", id);
 
@@ -359,6 +482,44 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
   return { success: true, message: "Kartu kelas dikirim ulang, nunggu di-approve Owner." };
 }
 
+// Laoshi hapus kartu kelas dia sendiri -- cuma boleh buat yang masih
+// PENDING (belum di-approve) atau REJECTED (ditolak & ga mau diedit
+// lagi). Yang udah APPROVED sengaja ga boleh dihapus dari sini karena
+// kelasnya udah aktif & mungkin udah ada murid yang join -- itu urusan
+// Owner/Admin lewat halaman Classes.
+export async function deleteClassCard(id: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) {
+    return { success: false, message: "Kamu ga punya akses." };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("classes")
+    .select("id, created_by_teacher_id, approval_status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!existing) return { success: false, message: "Kartu kelas tidak ditemukan." };
+  if (existing.created_by_teacher_id !== ctx.teacherId) {
+    return { success: false, message: "Ini bukan kartu kelas kamu." };
+  }
+  if (existing.approval_status === "APPROVED") {
+    return {
+      success: false,
+      message:
+        "Kelas yang udah di-approve ga bisa dihapus dari sini -- hubungi Owner/Admin.",
+    };
+  }
+
+  const { error } = await supabase.from("classes").delete().eq("id", id);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Kartu kelas dihapus." };
+}
+
 // Owner approve kartu kelas -- baru dari sini kelasnya AKTIF, muncul di
 // halaman Classes (Admin), dan bisa dipilih Murid (kalau ga privat &
 // masih dalam periode pendaftaran).
@@ -370,6 +531,12 @@ export async function approveClassCard(id: string) {
   }
 
   const supabase = await createClient();
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("name, created_by_teacher_id")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("classes")
     .update({
@@ -377,10 +544,19 @@ export async function approveClassCard(id: string) {
       active: true,
       registration_open: true,
       rejection_note: null,
+      status_updated_at: new Date().toISOString(),
     })
     .eq("id", id);
 
   if (error) return { success: false, message: error.message };
+
+  if (cls?.created_by_teacher_id) {
+    await notifyTeacherClassCardStatus({
+      teacherId: cls.created_by_teacher_id,
+      className: cls.name,
+      approved: true,
+    });
+  }
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/classes");
@@ -400,6 +576,12 @@ export async function rejectClassCard(id: string, note: string) {
   }
 
   const supabase = await createClient();
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("name, created_by_teacher_id")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("classes")
     .update({
@@ -407,10 +589,20 @@ export async function rejectClassCard(id: string, note: string) {
       active: false,
       registration_open: false,
       rejection_note: note.trim(),
+      status_updated_at: new Date().toISOString(),
     })
     .eq("id", id);
 
   if (error) return { success: false, message: error.message };
+
+  if (cls?.created_by_teacher_id) {
+    await notifyTeacherClassCardStatus({
+      teacherId: cls.created_by_teacher_id,
+      className: cls.name,
+      approved: false,
+      rejectionNote: note.trim(),
+    });
+  }
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kelas di-reject, Laoshi bakal lihat alasannya." };
