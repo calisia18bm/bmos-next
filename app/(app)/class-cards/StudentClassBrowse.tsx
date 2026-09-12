@@ -89,7 +89,14 @@ export default function StudentClassBrowse({
             key={c.id}
             className="bg-white border border-bmos-border rounded-2xl p-4 flex flex-col gap-2"
           >
-            <p className="font-bold text-bmos-text">{c.name}</p>
+            <p className="font-bold text-bmos-text flex items-center gap-1.5">
+              {c.name}
+              {c.is_private && (
+                <span className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full">
+                  Private
+                </span>
+              )}
+            </p>
             <p className="text-xs text-bmos-text-light">
               👩‍🏫 {c.teacher_name || "-"}
             </p>

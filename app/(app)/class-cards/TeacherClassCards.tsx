@@ -360,8 +360,8 @@ export default function TeacherClassCards({
                   }
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 >
-                  <option value="umum">Umum (ditampilin di daftar pilihan Murid)</option>
-                  <option value="private">Private (ga ditampilin, daftarnya lewat Admin/Laoshi langsung)</option>
+                  <option value="umum">Umum (kelas grup, kuota lebih banyak)</option>
+                  <option value="private">Private (kuota kecil, misal 1-on-1)</option>
                 </select>
               </div>
 

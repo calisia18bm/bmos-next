@@ -366,12 +366,9 @@ export async function joinClassCard(classId: string) {
   if (cls.approval_status !== "APPROVED" || !cls.active) {
     return { success: false, message: "Kelas ini belum/ga bisa dijoin." };
   }
-  if (cls.is_private) {
-    return {
-      success: false,
-      message: "Kelas privat -- daftarnya lewat Admin/Laoshi langsung.",
-    };
-  }
+  // Catatan: kelas "Private" tetap ditampilin & bisa di-join sendiri sama
+  // Murid kayak kelas Umum -- bedanya cuma kuotanya (biasanya kecil,
+  // misal 1-on-1), bukan soal boleh/nggaknya daftar sendiri.
 
   const today = new Date().toISOString().slice(0, 10);
   if (cls.registration_start && today < cls.registration_start) {

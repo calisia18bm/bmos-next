@@ -114,7 +114,6 @@ export default async function ClassCardsPage({
         .select("*")
         .eq("approval_status", "APPROVED")
         .eq("active", true)
-        .eq("is_private", false)
         .not("created_by_teacher_id", "is", null)
         .order("created_at", { ascending: false }),
       previewAsStudent
