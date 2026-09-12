@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type UserProfile = {
@@ -11,7 +12,25 @@ export type UserProfile = {
   student_id: string | null;
 };
 
-export async function getCurrentProfile(): Promise<UserProfile | null> {
+// PENTING: dibungkus cache() dari React -- hampir SEMUA page.tsx manggil
+// getCurrentProfile() sendiri-sendiri, PADAHAL app/(app)/layout.tsx yang
+// selalu membungkus semua halaman itu JUGA manggil getCurrentProfile().
+// Jadi 1x buka/refresh halaman = getCurrentProfile() (dan auth.getUser()
+// di dalamnya) kepanggil 2x secara paralel dalam request yang sama.
+//
+// Kalau access token user lagi mepet/udah kadaluarsa pas itu (misal abis
+// ga buka web beberapa saat), auth.getUser() bakal coba refresh token.
+// Refresh token Supabase itu sekali pakai (rotating) -- kalau 2 panggilan
+// bareng-bareng SAMA-SAMA nyoba refresh pake refresh token yang sama,
+// yang kedua bakal gagal ("refresh token already used") dan getUser()
+// balikin user: null padahal user-nya beneran masih login. Ini penyebab
+// munculnya "Akun belum diaktifkan" yang ilang-ilangan pas refresh.
+//
+// cache() bikin React nge-dedupe: dalam satu request/render yang sama,
+// getCurrentProfile() cuma BENERAN jalan sekali (panggilan berikutnya
+// dalam request yang sama langsung dapet hasil yang sama), jadi cuma ada
+// 1 percobaan refresh token per request -- ga ada lagi race-nya.
+export const getCurrentProfile = cache(async (): Promise<UserProfile | null> => {
   const supabase = await createClient();
 
   const {
@@ -44,4 +63,4 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
     teacher_id: profile.teacher_id || null,
     student_id: profile.student_id || null,
   };
-}
+});
