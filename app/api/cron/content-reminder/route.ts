@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWhatsApp } from "@/lib/fonnte";
+import { SITE_URL } from "@/lib/site";
 
 export async function GET(req: NextRequest) {
   // Proteksi -- cuma Vercel Cron (atau orang yang tau CRON_SECRET) yang boleh panggil ini
@@ -30,7 +31,9 @@ export async function GET(req: NextRequest) {
   const lines = contentToday.map(
     (c) => `- ${c.title} (${c.platform})${c.notes ? " -- " + c.notes : ""}`
   );
-  const message = `📅 Reminder: ada ${contentToday.length} konten dijadwalkan posting hari ini:\n\n${lines.join("\n")}`;
+  const message = `📅 Reminder: ada ${contentToday.length} konten dijadwalkan posting hari ini:\n\n${lines.join(
+    "\n"
+  )}\n\nCek: ${SITE_URL}/content-calendar`;
 
   await sendWhatsApp(ownerPhone, message);
 

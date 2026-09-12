@@ -11,6 +11,7 @@ import {
 import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 import { generateSessionsForClass } from "../weekly-schedule/actions";
+import { SITE_URL } from "@/lib/site";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -99,11 +100,12 @@ async function notifyTeacherClassCardStatus(params: {
     return;
   }
 
+  const teacherClassCardLink = `${SITE_URL}/class-cards`;
   const message = params.approved
-    ? `✅ Kabar baik! Class Card "${params.className}" kamu udah di-APPROVE Owner & sekarang udah tayang buat Murid.`
+    ? `✅ Kabar baik! Class Card "${params.className}" kamu udah di-APPROVE Owner & sekarang udah tayang buat Murid.\n\nCek: ${teacherClassCardLink}`
     : `❌ Class Card "${params.className}" kamu di-TOLAK Owner.\n\nAlasan: ${
         params.rejectionNote || "-"
-      }\n\nCek & edit lagi di halaman Class Card ya.`;
+      }\n\nCek & edit lagi di sini: ${teacherClassCardLink}`;
 
   try {
     const result = await sendWhatsApp(normalizePhone(teacher.phone), message);
@@ -155,7 +157,7 @@ async function notifyOwnerNewClassCard(params: {
     `Laoshi: ${params.teacherName || "-"}\n` +
     `Nama Kelas: ${params.className}\n` +
     `Tipe: ${params.isPrivate ? "Private" : "Umum"} (kuota ${params.capacity})\n\n` +
-    `Cek & approve di halaman Class Card ya.`;
+    `Cek & approve di sini: ${SITE_URL}/class-cards`;
 
   try {
     // Di-log biar kalau WA-nya ga sampe, kita bisa liat di Vercel Runtime

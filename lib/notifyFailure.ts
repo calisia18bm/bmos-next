@@ -11,6 +11,7 @@
 // widget "Need Attention" Home Owner walau semua WA lagi mati.
 import { createClient } from "@/lib/supabase/server";
 import { sendWhatsApp } from "@/lib/fonnte";
+import { SITE_URL } from "@/lib/site";
 
 export async function recordNotificationFailure(message: string) {
   try {
@@ -31,7 +32,7 @@ export async function recordNotificationFailure(message: string) {
     try {
       const result = await sendWhatsApp(
         number,
-        `⚠️ Notifikasi WA gagal terkirim:\n\n${message}`
+        `⚠️ Notifikasi WA gagal terkirim:\n\n${message}\n\nCek: ${SITE_URL}`
       );
       console.log(
         "[recordNotificationFailure] hasil kirim alert WA:",
