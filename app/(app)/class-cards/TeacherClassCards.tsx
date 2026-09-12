@@ -363,6 +363,9 @@ export default function TeacherClassCards({
                   <option value="umum">Umum (kelas grup, kuota lebih banyak)</option>
                   <option value="private">Private (kuota kecil, misal 1-on-1)</option>
                 </select>
+                <p className="text-[11px] text-bmos-text-light mt-1">
+                  Private = kuota 1-3 murid. Umum = kuota 4 murid ke atas.
+                </p>
               </div>
 
               <div>

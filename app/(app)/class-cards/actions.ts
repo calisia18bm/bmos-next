@@ -53,6 +53,15 @@ function validateInput(input: ClassCardInput): string | null {
   }
   const capacity = Number(input.capacityMax) || 0;
   if (capacity < 1) return "Kuota kelas minimal 1 murid.";
+  // Private = kelas kecil (1-3 murid), Umum = kelas grup (lebih dari 3
+  // murid) -- dikunci biar Tipe Kelas & Kuota selalu konsisten, ga ada
+  // yang keliru pilih.
+  if (input.isPrivate && capacity > 3) {
+    return "Kelas Private maksimal kuota 3 murid. Kalau lebih dari itu, pilih Tipe Kelas Umum.";
+  }
+  if (!input.isPrivate && capacity <= 3) {
+    return "Kelas Umum minimal kuota 4 murid. Kalau kuotanya 1-3, pilih Tipe Kelas Private.";
+  }
   if (
     input.registrationStart &&
     input.registrationEnd &&
@@ -90,12 +99,6 @@ function buildAiNote(
         ).toLocaleString("id-ID")}).`
       );
     }
-  }
-
-  if (input.isPrivate && capacity > 2) {
-    notes.push(
-      `Ditandai kelas privat tapi kuotanya ${capacity} murid -- cek lagi apa maksudnya emang privat.`
-    );
   }
 
   if (!input.registrationStart || !input.registrationEnd) {
