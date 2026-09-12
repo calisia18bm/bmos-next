@@ -9,9 +9,9 @@ export default function NoAccessPage() {
           Akun belum diaktifkan
         </h1>
         <p className="text-sm text-bmos-text-light">
-          Akun kamu berhasil login, tapi belum di-assign role (Owner /
-          Teacher / Student) oleh admin. Hubungi admin BM Masterclass untuk
-          mengaktifkan akses kamu.
+          Akun kamu berhasil login, tapi belum di-assign role (Teacher /
+          Student) oleh admin. Hubungi admin BM Mandarin untuk mengaktifkan
+          akses kamu.
         </p>
       </div>
     </div>

@@ -86,6 +86,11 @@ export default async function PayrollPage() {
                 </td>
                 <td className="px-5 py-3 text-bmos-text">
                   {p.sessions_count}x
+                  {p.rate_type === "PACKAGE" && (
+                    <span className="block text-xs text-bmos-text-light">
+                      {p.packages_count} paket
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3 text-bmos-text font-medium">
                   {formatCurrency(p.total_amount)}

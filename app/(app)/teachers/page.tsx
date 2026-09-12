@@ -15,6 +15,16 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+// Rate laoshi bisa "per sesi" (rate_per_session x jumlah sesi) atau "per
+// paket" (flat per sekian sesi selesai) -- tampilin sesuai rate_type-nya
+// biar ga salah baca.
+function formatRate(t: { rate_type: string | null; rate_per_session: number | null; rate_per_package: number | null; sessions_per_payout: number | null }) {
+  if (t.rate_type === "PACKAGE") {
+    return `${formatCurrency(t.rate_per_package || 0)} / ${t.sessions_per_payout || 8} sesi`;
+  }
+  return `${formatCurrency(t.rate_per_session || 0)} / sesi`;
+}
+
 export default async function TeachersPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
@@ -38,7 +48,7 @@ export default async function TeachersPage() {
           </p>
           <h1 className="text-3xl font-extrabold text-bmos-text">Teachers</h1>
           <p className="text-bmos-text-light text-sm mt-1">
-            Kelola data laoshi dan rate per sesi.
+            Kelola data laoshi dan rate (per sesi atau per paket).
           </p>
         </div>
         <AddTeacherButton />
@@ -50,7 +60,7 @@ export default async function TeachersPage() {
             <tr className="text-left text-bmos-text-light border-b border-bmos-border">
               <th className="px-5 py-3 font-medium">Laoshi</th>
               <th className="px-5 py-3 font-medium">Kontak</th>
-              <th className="px-5 py-3 font-medium">Rate / Sesi</th>
+              <th className="px-5 py-3 font-medium">Rate</th>
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 font-medium">Aksi</th>
             </tr>
@@ -70,9 +80,7 @@ export default async function TeachersPage() {
                   </Link>
                 </td>
                 <td className="px-5 py-3 text-bmos-text">{t.phone || "-"}</td>
-                <td className="px-5 py-3 text-bmos-text">
-                  {formatCurrency(t.rate_per_session || 0)}
-                </td>
+                <td className="px-5 py-3 text-bmos-text">{formatRate(t)}</td>
                 <td className="px-5 py-3">
                   <span
                     className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${

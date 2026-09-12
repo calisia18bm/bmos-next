@@ -8,7 +8,9 @@ type TeacherData = {
   id: string;
   name: string;
   phone: string | null;
+  rate_type: string | null;
   rate_per_session: number | null;
+  rate_per_package: number | null;
   sessions_per_payout: number | null;
   active: boolean;
 };
@@ -18,7 +20,11 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(teacher.name);
   const [phone, setPhone] = useState(teacher.phone || "");
+  const [rateType, setRateType] = useState<"SESSION" | "PACKAGE">(
+    teacher.rate_type === "PACKAGE" ? "PACKAGE" : "SESSION"
+  );
   const [rate, setRate] = useState(String(teacher.rate_per_session || 0));
+  const [ratePerPackage, setRatePerPackage] = useState(String(teacher.rate_per_package || 0));
   const [payout, setPayout] = useState(String(teacher.sessions_per_payout || 8));
   const [active, setActive] = useState(teacher.active);
   const [loading, setLoading] = useState(false);
@@ -32,7 +38,9 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
     const result = await updateTeacher(teacher.id, {
       name,
       phone,
+      rateType,
       ratePerSession: rate,
+      ratePerPackage,
       sessionsPerPayout: payout,
       active,
     });
@@ -59,7 +67,7 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
 
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-bmos-text mb-4">
               Edit Laoshi
             </h2>
@@ -88,30 +96,105 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Rate / Sesi (Rp)
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-2">
+                  Cara Hitung Rate
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label
+                    className={`flex items-center gap-2 border rounded-xl px-3 py-2 text-sm cursor-pointer transition ${
+                      rateType === "SESSION"
+                        ? "border-bmos-primary bg-bmos-primary-soft"
+                        : "border-bmos-border hover:border-bmos-primary-light"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="rateTypeEdit"
+                      checked={rateType === "SESSION"}
+                      onChange={() => setRateType("SESSION")}
+                      className="accent-bmos-primary"
+                    />
+                    Per Sesi
                   </label>
-                  <input
-                    type="number"
-                    value={rate}
-                    onChange={(e) => setRate(e.target.value)}
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Sesi / Pembayaran
+                  <label
+                    className={`flex items-center gap-2 border rounded-xl px-3 py-2 text-sm cursor-pointer transition ${
+                      rateType === "PACKAGE"
+                        ? "border-bmos-primary bg-bmos-primary-soft"
+                        : "border-bmos-border hover:border-bmos-primary-light"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="rateTypeEdit"
+                      checked={rateType === "PACKAGE"}
+                      onChange={() => setRateType("PACKAGE")}
+                      className="accent-bmos-primary"
+                    />
+                    Per Paket
                   </label>
-                  <input
-                    type="number"
-                    value={payout}
-                    onChange={(e) => setPayout(e.target.value)}
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  />
                 </div>
               </div>
+
+              {rateType === "SESSION" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Rate / Sesi (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      value={rate}
+                      onChange={(e) => setRate(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Sesi / Pembayaran
+                    </label>
+                    <input
+                      type="number"
+                      value={payout}
+                      onChange={(e) => setPayout(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Sesi per Paket
+                    </label>
+                    <input
+                      type="number"
+                      value={payout}
+                      onChange={(e) => setPayout(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Rate per Paket (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      value={ratePerPackage}
+                      onChange={(e) => setRatePerPackage(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                </div>
+              )}
+              {rateType === "PACKAGE" && (
+                <p className="text-[11px] text-bmos-text-light -mt-2">
+                  Payroll dihitung: tiap kelipatan {payout || "?"} sesi yang udah
+                  diajar dalam periode = 1 paket, dibayar flat segitu. Sisa
+                  sesi yang belum genap 1 paket otomatis ikut dihitung di
+                  payroll periode berikutnya.
+                </p>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-bmos-text mb-1">

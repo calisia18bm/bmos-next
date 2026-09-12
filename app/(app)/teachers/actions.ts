@@ -32,7 +32,13 @@ export async function updateTeacher(
   formData: {
     name: string;
     phone: string;
+    // "SESSION" = dibayar per sesi diajar (rate_per_session x jumlah sesi).
+    // "PACKAGE" = dibayar flat per PAKET (sekian sesi selesai = flat
+    // rate_per_package), dipakai buat laoshi yang gajinya bukan hitungan
+    // per sesi.
+    rateType: "SESSION" | "PACKAGE";
     ratePerSession: string;
+    ratePerPackage: string;
     sessionsPerPayout: string;
     active: boolean;
   }
@@ -47,7 +53,9 @@ export async function updateTeacher(
     .update({
       name: formData.name,
       phone: formData.phone || null,
+      rate_type: formData.rateType,
       rate_per_session: Number(formData.ratePerSession) || 0,
+      rate_per_package: Number(formData.ratePerPackage) || 0,
       sessions_per_payout: Number(formData.sessionsPerPayout) || 8,
       active: formData.active,
     })
@@ -62,7 +70,10 @@ export async function updateTeacher(
 export async function addTeacher(formData: {
   name: string;
   phone: string;
+  rateType: "SESSION" | "PACKAGE";
   ratePerSession: string;
+  ratePerPackage: string;
+  sessionsPerPayout: string;
   // Opsional: kalau Owner mau sekalian bikinin akun login pas nambah
   // laoshi baru (bukan lewat halaman Accounts terpisah).
   createAccount?: boolean;
@@ -94,7 +105,10 @@ export async function addTeacher(formData: {
       teacher_code: teacherCode,
       name: formData.name,
       phone: formData.phone,
+      rate_type: formData.rateType,
       rate_per_session: Number(formData.ratePerSession) || 0,
+      rate_per_package: Number(formData.ratePerPackage) || 0,
+      sessions_per_payout: Number(formData.sessionsPerPayout) || 8,
       active: true,
     })
     .select("id")

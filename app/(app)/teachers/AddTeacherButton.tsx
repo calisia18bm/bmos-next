@@ -10,6 +10,15 @@ export default function AddTeacherButton() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [rate, setRate] = useState("");
+
+  // Rate laoshi bisa dihitung per SESI (tiap sesi diajar dikali rate) atau
+  // flat per PAKET (sekian sesi selesai dibayar flat, ga peduli rate per
+  // sesinya berapa) -- dipakai buat laoshi yang emang kesepakatannya bukan
+  // per sesi.
+  const [rateType, setRateType] = useState<"SESSION" | "PACKAGE">("SESSION");
+  const [ratePerPackage, setRatePerPackage] = useState("");
+  const [sessionsPerPackage, setSessionsPerPackage] = useState("8");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,6 +50,9 @@ export default function AddTeacherButton() {
     setName("");
     setPhone("");
     setRate("");
+    setRateType("SESSION");
+    setRatePerPackage("");
+    setSessionsPerPackage("8");
     setCreateAccount(false);
     setEmail("");
     setAccountPassword("");
@@ -57,7 +69,10 @@ export default function AddTeacherButton() {
     const result = await addTeacher({
       name,
       phone,
+      rateType,
       ratePerSession: rate,
+      ratePerPackage,
+      sessionsPerPayout: sessionsPerPackage,
       createAccount,
       email: createAccount ? email : undefined,
       password: createAccount ? accountPassword : undefined,
@@ -188,17 +203,94 @@ export default function AddTeacherButton() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-bmos-text mb-1">
-                      Rate per Sesi (Rp)
+                    <label className="block text-sm font-medium text-bmos-text mb-2">
+                      Cara Hitung Rate
                     </label>
-                    <input
-                      type="number"
-                      value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                      placeholder="75000"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <label
+                        className={`flex items-center gap-2 border rounded-xl px-3 py-2 text-sm cursor-pointer transition ${
+                          rateType === "SESSION"
+                            ? "border-bmos-primary bg-bmos-primary-soft"
+                            : "border-bmos-border hover:border-bmos-primary-light"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="rateType"
+                          checked={rateType === "SESSION"}
+                          onChange={() => setRateType("SESSION")}
+                          className="accent-bmos-primary"
+                        />
+                        Per Sesi
+                      </label>
+                      <label
+                        className={`flex items-center gap-2 border rounded-xl px-3 py-2 text-sm cursor-pointer transition ${
+                          rateType === "PACKAGE"
+                            ? "border-bmos-primary bg-bmos-primary-soft"
+                            : "border-bmos-border hover:border-bmos-primary-light"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="rateType"
+                          checked={rateType === "PACKAGE"}
+                          onChange={() => setRateType("PACKAGE")}
+                          className="accent-bmos-primary"
+                        />
+                        Per Paket
+                      </label>
+                    </div>
                   </div>
+
+                  {rateType === "SESSION" ? (
+                    <div>
+                      <label className="block text-sm font-medium text-bmos-text mb-1">
+                        Rate per Sesi (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                        className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                        placeholder="75000"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-bmos-text mb-1">
+                          Sesi per Paket
+                        </label>
+                        <input
+                          type="number"
+                          value={sessionsPerPackage}
+                          onChange={(e) => setSessionsPerPackage(e.target.value)}
+                          className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                          placeholder="8"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-bmos-text mb-1">
+                          Rate per Paket (Rp)
+                        </label>
+                        <input
+                          type="number"
+                          value={ratePerPackage}
+                          onChange={(e) => setRatePerPackage(e.target.value)}
+                          className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                          placeholder="500000"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {rateType === "PACKAGE" && (
+                    <p className="text-[11px] text-bmos-text-light -mt-2">
+                      Payroll nanti dihitung: tiap kelipatan {sessionsPerPackage || "?"}{" "}
+                      sesi yang udah diajar dalam periode = 1 paket, dibayar flat
+                      segitu. Sisa sesi yang belum genap 1 paket otomatis ikut
+                      dihitung di payroll periode berikutnya.
+                    </p>
+                  )}
 
                   <div className="border-t border-bmos-border pt-4">
                     <label className="flex items-center gap-2 text-sm font-medium text-bmos-text cursor-pointer">

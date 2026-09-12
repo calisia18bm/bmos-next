@@ -36,7 +36,7 @@ export async function generatePayrollDraft(formData: {
 
   const { data: teacher } = await supabase
     .from("teachers")
-    .select("name, rate_per_session")
+    .select("name, rate_type, rate_per_session, rate_per_package, sessions_per_payout")
     .eq("id", formData.teacherId)
     .maybeSingle();
 
@@ -80,8 +80,33 @@ export async function generatePayrollDraft(formData: {
     };
   }
 
+  const isPackageRate = teacher.rate_type === "PACKAGE";
   const ratePerSession = Number(teacher.rate_per_session) || 0;
-  const totalAmount = sessionsCount * ratePerSession;
+  const ratePerPackage = Number(teacher.rate_per_package) || 0;
+  const sessionsPerPackage = Number(teacher.sessions_per_payout) || 8;
+
+  // Per paket: cuma PAKET UTUH (kelipatan sessionsPerPackage) yang dibayar
+  // di periode ini -- sisa sesi yang belum genap 1 paket otomatis ke-hitung
+  // ulang di payroll periode berikutnya (asal tanggal sesinya dimasukin ke
+  // rentang periode itu), soalnya sessionsCount selalu dihitung ulang dari
+  // absensi tiap kali generate, bukan dari catatan "udah dibayar/belum".
+  const packagesCount = isPackageRate
+    ? Math.floor(sessionsCount / sessionsPerPackage)
+    : 0;
+  const leftoverSessions = isPackageRate
+    ? sessionsCount % sessionsPerPackage
+    : 0;
+
+  if (isPackageRate && packagesCount === 0) {
+    return {
+      success: false,
+      message: `Baru ${sessionsCount} dari ${sessionsPerPackage} sesi per paket -- belum genap 1 paket, jadi belum ada yang bisa dibayar di periode ini.`,
+    };
+  }
+
+  const totalAmount = isPackageRate
+    ? packagesCount * ratePerPackage
+    : sessionsCount * ratePerSession;
 
   const { data: last } = await supabase
     .from("payroll")
@@ -104,7 +129,10 @@ export async function generatePayrollDraft(formData: {
     period_start: formData.periodStart,
     period_end: formData.periodEnd,
     sessions_count: sessionsCount,
-    rate_per_session: ratePerSession,
+    rate_type: isPackageRate ? "PACKAGE" : "SESSION",
+    rate_per_session: isPackageRate ? 0 : ratePerSession,
+    rate_per_package: isPackageRate ? ratePerPackage : 0,
+    packages_count: packagesCount,
     total_amount: totalAmount,
     status: "DRAFT",
   });
@@ -114,6 +142,17 @@ export async function generatePayrollDraft(formData: {
   }
 
   revalidatePath("/payroll");
+
+  if (isPackageRate) {
+    let message = `Draft payroll dibuat: ${packagesCount} paket (${sessionsPerPackage} sesi/paket) x ${new Intl.NumberFormat(
+      "id-ID"
+    ).format(ratePerPackage)} = ${new Intl.NumberFormat("id-ID").format(totalAmount)}`;
+    if (leftoverSessions > 0) {
+      message += `. Sisa ${leftoverSessions} sesi belum genap 1 paket, otomatis ikut dihitung di payroll periode berikutnya.`;
+    }
+    return { success: true, message };
+  }
+
   return {
     success: true,
     message: `Draft payroll dibuat: ${sessionsCount} sesi x ${new Intl.NumberFormat(
