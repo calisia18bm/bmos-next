@@ -7,7 +7,7 @@ export default function NoAccessPage() {
   const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER;
   const waLink = adminPhone
     ? `https://wa.me/${normalizePhone(adminPhone)}?text=${encodeURIComponent(
-        "Halo, akun saya di BM Mandarin App belum diaktifkan, mohon dibantu ya 🙏"
+        "Halo, akun saya di BM Mandarin App belum diaktifkan, mohon dibantu ya"
       )}`
     : null;
 
