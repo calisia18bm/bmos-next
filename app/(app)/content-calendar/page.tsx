@@ -31,7 +31,7 @@ export default async function ContentCalendarPage() {
             Content Calendar
           </h1>
           <p className="text-bmos-text-light text-sm mt-1">
-            Jadwal posting media sosial BM Masterclass.
+            Jadwal posting media sosial BM Mandarin.
           </p>
         </div>
         <AddContentButton />

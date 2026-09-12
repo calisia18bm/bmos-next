@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 
-const SYSTEM_PROMPT_BASE = `Kamu adalah admin virtual BM Masterclass, sekolah les Mandarin.
+const SYSTEM_PROMPT_BASE = `Kamu adalah admin virtual BM Mandarin, sekolah les Mandarin.
 Jawab pesan dari murid/calon murid dengan ramah, singkat, dan jelas dalam
 Bahasa Indonesia. Kalau pertanyaannya di luar konteks sekolah atau kamu
 nggak yakin jawabannya, bilang akan diteruskan ke admin manusia, jangan

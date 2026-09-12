@@ -4,7 +4,7 @@ import { sendWhatsApp, normalizePhone, choiceLabel } from "@/lib/fonnte";
 import { parsePollName } from "@/lib/weeklyChoicePoll";
 import Anthropic from "@anthropic-ai/sdk";
 
-const DEFAULT_SYSTEM_PROMPT = `Kamu adalah admin virtual BM Masterclass, sekolah les Mandarin.
+const DEFAULT_SYSTEM_PROMPT = `Kamu adalah admin virtual BM Mandarin, sekolah les Mandarin.
 Jawab pesan WhatsApp dari murid/calon murid dengan ramah, singkat, dan jelas
 dalam Bahasa Indonesia. Kalau pertanyaannya di luar konteks sekolah atau kamu
 nggak yakin jawabannya, bilang akan diteruskan ke admin manusia, jangan
