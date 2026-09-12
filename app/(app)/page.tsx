@@ -10,6 +10,7 @@ import SimpleHome from "./SimpleHome";
 import { getAnnouncements } from "./announcements/actions";
 import AnnouncementsManage from "./announcements/AnnouncementsManage";
 import { getChallengeLaggards } from "./challenge/actions";
+import { getPendingClassCardCount } from "./class-cards/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -267,6 +268,17 @@ export default async function DashboardPage() {
     }
   }
 
+  // ===== Class Card yang lagi PENDING (nunggu di-approve) =====
+  const pendingClassCardCount = await getPendingClassCardCount();
+  if (pendingClassCardCount > 0) {
+    attentionItems.push({
+      icon: "🗂️",
+      title: `${pendingClassCardCount} Class Card menunggu approval`,
+      subtitle: "Laoshi submit kartu kelas baru, cek & approve dulu.",
+      href: "/class-cards",
+    });
+  }
+
   // ===== Challenge 30 Hari -- murid yang belum ngerjain hari ini /
   //       lagi kepepet mau reset karena freeze abis =====
   const challengeLaggardsRes = await getChallengeLaggards();
@@ -408,7 +420,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div className="bg-white border border-bmos-border rounded-2xl p-6">
           <h2 className="font-bold text-bmos-text text-lg mb-4">Recent Activities</h2>
           <div className="space-y-1">

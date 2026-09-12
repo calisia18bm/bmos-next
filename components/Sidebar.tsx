@@ -219,11 +219,13 @@ export default function Sidebar({
   menus,
   email,
   characterKey,
+  pendingClassCardCount = 0,
 }: {
   roles: string[];
   menus: string[];
   email: string;
   characterKey: string | null;
+  pendingClassCardCount?: number;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -278,6 +280,13 @@ export default function Sidebar({
                   const active =
                     pathname === itemPath &&
                     searchParams.toString() === (itemQuery || "");
+                  // Badge notif angka -- cuma buat menu "Approval Kelas"
+                  // (Owner/Admin), nunjukkin berapa Class Card yang lagi
+                  // nunggu di-approve. Menu key "class-cards" dipakai
+                  // bareng sama Murid/Laoshi juga, jadi dicek dari label-
+                  // nya biar ga ikut nongol di menu mereka.
+                  const showPendingBadge =
+                    item.label === "Approval Kelas" && pendingClassCardCount > 0;
                   return (
                     <Link
                       key={`${item.href}-${itemIndex}`}
@@ -289,7 +298,12 @@ export default function Sidebar({
                       }`}
                     >
                       <span>{item.icon}</span>
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {showPendingBadge && (
+                        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
+                          {pendingClassCardCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

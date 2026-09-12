@@ -8,6 +8,54 @@ import {
   DEFAULT_COMMISSION_TIERS,
   computeCommission,
 } from "@/lib/commission";
+import { sendWhatsApp } from "@/lib/fonnte";
+
+// Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
+// dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
+// widget "Need Attention" di Home. Cuma dihitung buat Owner/Admin (yang
+// emang bisa approve) -- role lain selalu dapet 0.
+export async function getPendingClassCardCount() {
+  const ctx = await getCallerContext();
+  if (!ctx) return 0;
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return 0;
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("classes")
+    .select("*", { count: "exact", head: true })
+    .eq("approval_status", "PENDING");
+
+  return count ?? 0;
+}
+
+// Kabarin Owner lewat WhatsApp tiap kali ada Class Card baru yang perlu
+// di-approve -- pakai nomor yang sama kayak reminder konten
+// (OWNER_WHATSAPP_NUMBER), lewat helper Fonnte yang udah ada. Kalau
+// nomornya belum di-set atau gagal kekirim, ga masalah -- kartu kelasnya
+// tetep kesimpen, cuma notifnya yang skip (biar Laoshi tetep bisa
+// submit walau WA lagi bermasalah).
+async function notifyOwnerNewClassCard(params: {
+  teacherName: string | null;
+  className: string;
+  isPrivate: boolean;
+  capacity: number;
+}) {
+  const ownerPhone = process.env.OWNER_WHATSAPP_NUMBER;
+  if (!ownerPhone) return;
+
+  const message =
+    `📋 Class Card baru menunggu approval!\n\n` +
+    `Laoshi: ${params.teacherName || "-"}\n` +
+    `Nama Kelas: ${params.className}\n` +
+    `Tipe: ${params.isPrivate ? "Private" : "Umum"} (kuota ${params.capacity})\n\n` +
+    `Cek & approve di halaman Class Card ya.`;
+
+  try {
+    await sendWhatsApp(ownerPhone, message);
+  } catch {
+    // sengaja diem -- notif gagal ga boleh ngegagalin submit kartu kelas
+  }
+}
 
 async function getCallerContext() {
   const supabase = await createClient();
@@ -210,6 +258,13 @@ export async function submitClassCard(input: ClassCardInput) {
     return { success: false, message: lastError?.message || "Gagal membuat kartu kelas." };
   }
 
+  await notifyOwnerNewClassCard({
+    teacherName: ctx.fullName,
+    className: input.name.trim(),
+    isPrivate: input.isPrivate,
+    capacity,
+  });
+
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kartu kelas dikirim, nunggu di-approve Owner." };
 }
@@ -281,6 +336,13 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
     .eq("id", id);
 
   if (error) return { success: false, message: error.message };
+
+  await notifyOwnerNewClassCard({
+    teacherName: ctx.fullName,
+    className: input.name.trim(),
+    isPrivate: input.isPrivate,
+    capacity,
+  });
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kartu kelas dikirim ulang, nunggu di-approve Owner." };

@@ -189,7 +189,7 @@ export default function EditClassButton({
 
               <div>
                 <label className="block text-sm font-medium text-bmos-text mb-1">
-                  ID Grup WA (khusus kelas fleksibel)
+                  ID Grup WA (opsional, buat kelas apa aja yang perlu)
                 </label>
                 <input
                   value={waGroupId}
