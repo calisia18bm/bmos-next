@@ -10,6 +10,7 @@ import {
 } from "@/lib/commission";
 import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
+import { generateSessionsForClass } from "../weekly-schedule/actions";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -560,6 +561,14 @@ export async function approveClassCard(id: string) {
       approved: true,
     });
   }
+
+  // Begitu di-approve, langsung generate sesi bertanggal buat kelas ini
+  // (dari day_of_week + start_date-nya) biar langsung muncul di Weekly
+  // Schedule (Laoshi/Owner/Admin) tanpa Owner/Admin harus klik "Generate
+  // Sessions" manual lagi. Murid yang nanti join kelas ini otomatis ikut
+  // liat sesinya juga karena my-schedule/my-class dia baca dari sesi yang
+  // sama (di-filter berdasarkan class_id).
+  await generateSessionsForClass(id);
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/classes");
