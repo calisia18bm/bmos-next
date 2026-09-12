@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { provisionLinkedAccount } from "@/lib/account-provisioning";
 
 // Cuma Owner/Admin yang boleh kelola data murid (nama, kontak, kelas,
 // status, dsb) -- Murid/Laoshi liat data ini lewat halaman portal mereka
@@ -67,6 +68,11 @@ export async function addStudent(formData: {
   classId?: string;
   status?: string;
   code?: string;
+  // Opsional: kalau Owner mau sekalian bikinin akun login pas nambah
+  // murid baru (bukan lewat halaman Accounts terpisah).
+  createAccount?: boolean;
+  email?: string;
+  password?: string;
 }) {
   const authError = await requireStaff();
   if (authError) return { success: false, message: authError };
@@ -118,25 +124,60 @@ export async function addStudent(formData: {
   }
 
   for (const studentCode of candidateCodes) {
-    const { error } = await supabase.from("students").insert({
-      student_code: studentCode,
-      name: formData.name,
-      phone: formData.phone,
-      class_id: formData.classId || null,
-      class_name: className,
-      teacher_name: teacherName,
-      status,
-    });
+    const { data: inserted, error } = await supabase
+      .from("students")
+      .insert({
+        student_code: studentCode,
+        name: formData.name,
+        phone: formData.phone,
+        class_id: formData.classId || null,
+        class_name: className,
+        teacher_name: teacherName,
+        status,
+      })
+      .select("id")
+      .single();
 
-    if (!error) {
+    if (!error && inserted) {
       revalidatePath("/students");
-      return { success: true, message: "Murid berhasil ditambahkan." };
+
+      // Kalau Owner centang "buatkan akun login sekaligus" dan isi email
+      // -- langsung bikinin akunnya juga, kesambung ke murid yang baru
+      // dibuat ini. Kalau gagal (misal bukan Owner yang nambah, atau
+      // emailnya udah dipakai), data muridnya TETAP kesimpen -- cuma
+      // akunnya yang ga jadi, dikasih tau lewat accountWarning.
+      let account: { email: string; password: string } | undefined;
+      let accountWarning: string | undefined;
+
+      if (formData.createAccount && formData.email) {
+        const result = await provisionLinkedAccount({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          roles: ["STUDENT"],
+          studentId: inserted.id,
+        });
+
+        if (result.created) {
+          account = { email: result.email, password: result.password };
+          revalidatePath("/accounts");
+        } else {
+          accountWarning = result.reason;
+        }
+      }
+
+      return {
+        success: true,
+        message: "Murid berhasil ditambahkan.",
+        account,
+        accountWarning,
+      };
     }
 
     const isDuplicateCode =
-      error.message.includes("students_student_code_key");
+      error?.message.includes("students_student_code_key");
     if (!isDuplicateCode) {
-      return { success: false, message: error.message };
+      return { success: false, message: error?.message || "Gagal menambahkan murid." };
     }
     // Kode yang dipilih di dropdown ternyata udah kepake duluan (misal
     // admin lain baru aja pakai kode yang sama) -- kasih tau biar user

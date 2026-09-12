@@ -41,6 +41,23 @@ export default function AddStudentButton({
   const [code, setCode] = useState("");
   const [codesLoading, setCodesLoading] = useState(false);
 
+  // Opsional: sekalian bikinin akun login pas nambah murid, biar ga usah
+  // ke halaman Accounts terpisah lagi. Cuma bisa jalan kalau yang lagi
+  // login itu Owner -- dicek ulang di server.
+  const [createAccount, setCreateAccount] = useState(false);
+  const [email, setEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+
+  // Hasil akun yang baru dibuat (email + password), ditampilin sekali abis
+  // simpan -- sama kayak alur di halaman Accounts.
+  const [accountResult, setAccountResult] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+  // Kalau murid berhasil disimpan tapi akunnya GAGAL dibuat (misal yang
+  // nambah bukan Owner), kasih tau di sini -- muridnya tetap kesimpen.
+  const [accountWarning, setAccountWarning] = useState("");
+
   // Ambil daftar kode murid yang masih kosong (termasuk "lubang" dari kode
   // lama) tiap kali modal dibuka, biar dropdown-nya selalu up to date --
   // jangan sampai nawarin kode yang baru aja kepake orang lain.
@@ -65,8 +82,13 @@ export default function AddStudentButton({
     setClassId("");
     setStatus("ACTIVE");
     setCode("");
+    setCreateAccount(false);
+    setEmail("");
+    setAccountPassword("");
     setError("");
     setCandidates(null);
+    setAccountResult(null);
+    setAccountWarning("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,7 +113,16 @@ export default function AddStudentButton({
     setLoading(true);
     setError("");
 
-    const result = await addStudent({ name, phone, classId, status, code });
+    const result = await addStudent({
+      name,
+      phone,
+      classId,
+      status,
+      code,
+      createAccount,
+      email: createAccount ? email : undefined,
+      password: createAccount ? accountPassword : undefined,
+    });
 
     setLoading(false);
 
@@ -103,6 +134,22 @@ export default function AddStudentButton({
         setCodeOptions(codes);
         setCode(codes[0] || "");
       });
+      return;
+    }
+
+    // Murid berhasil ditambahkan. Kalau sekalian minta bikin akun:
+    if (result.account) {
+      // Akun berhasil kebuat -- tampilin dulu email/password-nya sebelum
+      // modal ditutup.
+      setAccountResult(result.account);
+      router.refresh();
+      return;
+    }
+
+    if (result.accountWarning) {
+      // Murid tetap kesimpen, tapi akunnya ga jadi dibuat -- kasih tau.
+      setAccountWarning(result.accountWarning);
+      router.refresh();
       return;
     }
 
@@ -140,8 +187,66 @@ export default function AddStudentButton({
 
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            {candidates ? (
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            {accountResult ? (
+              <>
+                <h2 className="text-lg font-bold text-bmos-text mb-1">
+                  Murid & akun berhasil dibuat
+                </h2>
+                <p className="text-sm text-bmos-text-light mb-4">
+                  Kirim info login ini ke muridnya (lewat WhatsApp misalnya).
+                  Password ini cuma muncul sekali di sini, catat sekarang
+                  sebelum ditutup.
+                </p>
+                <div className="bg-bmos-primary-soft/40 rounded-xl p-4 space-y-2 mb-4">
+                  <p className="text-sm">
+                    <span className="text-bmos-text-light">Email: </span>
+                    <span className="font-semibold text-bmos-text">
+                      {accountResult.email}
+                    </span>
+                  </p>
+                  <p className="text-sm">
+                    <span className="text-bmos-text-light">Password: </span>
+                    <span className="font-semibold text-bmos-text font-mono">
+                      {accountResult.password}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      reset();
+                    }}
+                    className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition"
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </>
+            ) : accountWarning ? (
+              <>
+                <h2 className="text-lg font-bold text-bmos-text mb-1">
+                  Murid berhasil ditambahkan
+                </h2>
+                <p className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
+                  Tapi akun login belum dibuat: {accountWarning}
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      reset();
+                    }}
+                    className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </>
+            ) : candidates ? (
               <>
                 <h2 className="text-lg font-bold text-bmos-text mb-1">
                   Murid ini kemungkinan pernah terdaftar
@@ -300,6 +405,56 @@ export default function AddStudentButton({
                       <option value="ACTIVE">Aktif</option>
                       <option value="INACTIVE">Non-Aktif</option>
                     </select>
+                  </div>
+
+                  <div className="border-t border-bmos-border pt-4">
+                    <label className="flex items-center gap-2 text-sm font-medium text-bmos-text cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={createAccount}
+                        onChange={(e) => setCreateAccount(e.target.checked)}
+                        className="accent-bmos-primary"
+                      />
+                      Buatkan akun login sekaligus?
+                    </label>
+                    <p className="text-[11px] text-bmos-text-light mt-1">
+                      Biar muridnya langsung bisa login ke portal, ga usah
+                      dibuatin belakangan lewat halaman Accounts. (Cuma bisa
+                      kalau yang lagi kelola ini Owner.)
+                    </p>
+
+                    {createAccount && (
+                      <div className="space-y-3 mt-3">
+                        <div>
+                          <label className="block text-sm font-medium text-bmos-text mb-1">
+                            Email
+                          </label>
+                          <input
+                            required={createAccount}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-bmos-text mb-1">
+                            Password{" "}
+                            <span className="text-bmos-text-light font-normal">
+                              (opsional -- kosongin aja kalau mau di-generate
+                              otomatis)
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={accountPassword}
+                            onChange={(e) => setAccountPassword(e.target.value)}
+                            placeholder="Minimal 6 karakter"
+                            className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {error && (
