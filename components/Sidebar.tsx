@@ -237,12 +237,12 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-bmos-border h-screen fixed inset-y-0 left-0 flex flex-col z-20">
-      <div className="p-5 flex items-center gap-3 border-b border-bmos-border">
+    <aside className="w-64 shrink-0 bg-bmos-sidebar-bg border-r border-bmos-sidebar-border h-screen fixed inset-y-0 left-0 flex flex-col z-20">
+      <div className="p-5 flex items-center gap-3 border-b border-bmos-sidebar-border">
         <CharacterPicker characterKey={characterKey} />
         <div>
-          <p className="font-extrabold text-bmos-text leading-tight">BMOS</p>
-          <p className="text-xs text-bmos-text-light">BM Mandarin</p>
+          <p className="font-extrabold text-bmos-sidebar-text leading-tight">BMOS</p>
+          <p className="text-xs text-bmos-sidebar-text-light">BM Mandarin</p>
         </div>
       </div>
 
@@ -266,7 +266,7 @@ export default function Sidebar({
 
           return (
             <div key={`${group.label}-${groupIndex}`}>
-              <p className="text-[11px] font-bold tracking-wide text-bmos-text-light mb-2 px-2">
+              <p className="text-[11px] font-bold tracking-wide text-bmos-sidebar-text-light mb-2 px-2">
                 {group.label}
               </p>
               <div className="space-y-1">
@@ -285,7 +285,7 @@ export default function Sidebar({
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
                         active
                           ? "bg-bmos-primary text-white font-semibold"
-                          : "text-bmos-text hover:bg-bmos-primary-soft"
+                          : "text-bmos-sidebar-text hover:bg-bmos-sidebar-hover"
                       }`}
                     >
                       <span>{item.icon}</span>
@@ -299,15 +299,15 @@ export default function Sidebar({
         })}
       </nav>
 
-      <div className="p-4 border-t border-bmos-border">
-        <p className="text-xs text-bmos-text-light truncate mb-1">{email}</p>
-        <p className="text-[11px] text-bmos-primary font-semibold mb-2">
+      <div className="p-4 border-t border-bmos-sidebar-border">
+        <p className="text-xs text-bmos-sidebar-text-light truncate mb-1">{email}</p>
+        <p className="text-[11px] text-bmos-primary-light font-semibold mb-2">
           {roles.join(", ")}
         </p>
         <ChangePasswordButton email={email} />
         <button
           onClick={handleLogout}
-          className="w-full text-sm text-bmos-text-light hover:text-bmos-text text-left px-2 py-2"
+          className="w-full text-sm text-bmos-sidebar-text-light hover:text-bmos-sidebar-text text-left px-2 py-2"
         >
           Keluar
         </button>

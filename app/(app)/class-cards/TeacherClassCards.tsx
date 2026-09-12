@@ -261,7 +261,7 @@ export default function TeacherClassCards({
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Kelas Percakapan Sore"
+                  placeholder="白班"
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 />
               </div>
@@ -360,12 +360,9 @@ export default function TeacherClassCards({
                   }
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 >
-                  <option value="umum">Umum (kelas grup, kuota lebih banyak)</option>
-                  <option value="private">Private (kuota kecil, misal 1-on-1)</option>
+                  <option value="umum">Umum (ditampilin di daftar pilihan Murid)</option>
+                  <option value="private">Private (ga ditampilin, daftarnya lewat Admin/Laoshi langsung)</option>
                 </select>
-                <p className="text-[11px] text-bmos-text-light mt-1">
-                  Private = kuota 1-3 murid. Umum = kuota 4 murid ke atas.
-                </p>
               </div>
 
               <div>

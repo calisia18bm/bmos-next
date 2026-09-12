@@ -79,7 +79,7 @@ export default function ChangePasswordButton({ email }: { email: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full text-sm text-bmos-text-light hover:text-bmos-text text-left px-2 py-2"
+        className="w-full text-sm text-bmos-sidebar-text-light hover:text-bmos-sidebar-text text-left px-2 py-2"
       >
         Ganti Password
       </button>
