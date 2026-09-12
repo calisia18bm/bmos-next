@@ -11,7 +11,7 @@ const BM_LOGO_BOTTOM_PX = 80;
 export default function BmLogoBadge() {
   return (
     <div
-      className="fixed z-30 w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center pointer-events-none"
+      className="fixed z-30 w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center overflow-hidden pointer-events-none"
       style={{ left: BM_LOGO_LEFT_PX, bottom: BM_LOGO_BOTTOM_PX }}
     >
       <Image
@@ -19,8 +19,7 @@ export default function BmLogoBadge() {
         alt="Logo BM Mandarin"
         width={56}
         height={56}
-        style={{ height: 48 }}
-        className="w-auto object-contain"
+        className="w-full h-full object-cover"
         draggable={false}
       />
     </div>
