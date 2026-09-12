@@ -19,6 +19,16 @@ const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Draft",
 };
 
+// Urutan section pas kartu kelas dipisah per status -- yang paling
+// perlu perhatian Laoshi duluan (Pending, lalu Ditolak yang perlu
+// diedit ulang), yang udah beres (Disetujui) di paling bawah.
+const STATUS_SECTIONS: { status: string; heading: string }[] = [
+  { status: "PENDING", heading: "⏳ Menunggu Approval" },
+  { status: "REJECTED", heading: "❌ Ditolak -- Perlu Diedit Ulang" },
+  { status: "APPROVED", heading: "✅ Disetujui" },
+  { status: "DRAFT", heading: "📝 Draft" },
+];
+
 type FormState = {
   name: string;
   description: string;
@@ -128,6 +138,104 @@ export default function TeacherClassCards({
     setEditingId(null);
   }
 
+  function renderCard(c: ClassCard) {
+    const cComm = c.price ? computeCommission(c.price, tiers) : null;
+    return (
+      <div
+        key={c.id}
+        className="bg-white border border-bmos-border rounded-2xl p-4 flex flex-col gap-2"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-bold text-bmos-text">{c.name}</p>
+          <span
+            className={`shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full ${
+              STATUS_STYLE[c.approval_status]
+            }`}
+          >
+            {STATUS_LABEL[c.approval_status]}
+          </span>
+        </div>
+
+        <p className="text-xs text-bmos-text-light">
+          {c.day_of_week
+            ? `${c.day_of_week} · ${c.start_time?.slice(0, 5) || ""}-${
+                c.end_time?.slice(0, 5) || ""
+              }`
+            : "Jadwal belum diatur"}
+          {" · "}Kuota {c.capacity_max}
+          {c.is_private ? " · Privat" : ""}
+        </p>
+
+        {(c.goal_tags?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {c.goal_tags!.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {c.price ? (
+          <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1 space-y-1">
+            <div className="flex justify-between">
+              <span className="text-bmos-text-light">
+                Harga / murid ({c.sessions_count ?? "-"} sesi)
+              </span>
+              <span className="text-bmos-text font-semibold">
+                {formatRupiah(c.price)}
+              </span>
+            </div>
+            {cComm && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-bmos-text-light">
+                    Potongan BM ({cComm.pct}%)
+                  </span>
+                  <span className="text-red-600">
+                    - Rp {cComm.cut.toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-gray-200 pt-1">
+                  <span className="text-green-700 font-semibold">
+                    Kamu terima / murid
+                  </span>
+                  <span className="text-green-700 font-bold">
+                    {formatRupiah(cComm.net)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-bmos-text-light italic">
+            Harga belum diisi
+          </p>
+        )}
+
+        {c.approval_status === "REJECTED" && c.rejection_note && (
+          <div className="text-xs bg-red-50 border border-red-100 rounded-xl p-2.5 text-red-700">
+            <p className="font-semibold mb-0.5">Alasan ditolak:</p>
+            <p>{c.rejection_note}</p>
+          </div>
+        )}
+
+        {(c.approval_status === "REJECTED" ||
+          c.approval_status === "PENDING") && (
+          <button
+            onClick={() => openEdit(c)}
+            className="mt-1 text-xs font-semibold text-bmos-primary hover:underline self-start"
+          >
+            ✏️ Edit & submit ulang
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -144,101 +252,30 @@ export default function TeacherClassCards({
           Belum ada kartu kelas yang kamu buat.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cards.map((c) => {
-            const cComm = c.price ? computeCommission(c.price, tiers) : null;
+        // Dipisah per status (bukan digabung satu grid) biar Laoshi ga
+        // bingung ngebedain mana yang masih perlu ditunggu, mana yang
+        // udah beres, mana yang perlu diedit ulang. Urutannya sengaja
+        // yang paling perlu perhatian duluan: Pending -> Ditolak -> udah
+        // Disetujui (paling ga butuh aksi lagi, taro paling bawah).
+        <div className="space-y-8">
+          {STATUS_SECTIONS.map((section) => {
+            const sectionCards = cards.filter(
+              (c) => c.approval_status === section.status
+            );
+            if (sectionCards.length === 0) return null;
             return (
-              <div
-                key={c.id}
-                className="bg-white border border-bmos-border rounded-2xl p-4 flex flex-col gap-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold text-bmos-text">{c.name}</p>
-                  <span
-                    className={`shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full ${
-                      STATUS_STYLE[c.approval_status]
-                    }`}
-                  >
-                    {STATUS_LABEL[c.approval_status]}
+              <div key={section.status}>
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-sm font-bold text-bmos-text">
+                    {section.heading}
+                  </h2>
+                  <span className="text-xs text-bmos-text-light">
+                    ({sectionCards.length})
                   </span>
                 </div>
-
-                <p className="text-xs text-bmos-text-light">
-                  {c.day_of_week
-                    ? `${c.day_of_week} · ${c.start_time?.slice(0, 5) || ""}-${
-                        c.end_time?.slice(0, 5) || ""
-                      }`
-                    : "Jadwal belum diatur"}
-                  {" · "}Kuota {c.capacity_max}
-                  {c.is_private ? " · Privat" : ""}
-                </p>
-
-                {(c.goal_tags?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {c.goal_tags!.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary px-2 py-0.5 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {c.price ? (
-                  <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1 space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-bmos-text-light">
-                        Harga / murid ({c.sessions_count ?? "-"} sesi)
-                      </span>
-                      <span className="text-bmos-text font-semibold">
-                        {formatRupiah(c.price)}
-                      </span>
-                    </div>
-                    {cComm && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-bmos-text-light">
-                            Potongan BM ({cComm.pct}%)
-                          </span>
-                          <span className="text-red-600">
-                            - Rp {cComm.cut.toLocaleString("id-ID")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between border-t border-gray-200 pt-1">
-                          <span className="text-green-700 font-semibold">
-                            Kamu terima / murid
-                          </span>
-                          <span className="text-green-700 font-bold">
-                            {formatRupiah(cComm.net)}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-bmos-text-light italic">
-                    Harga belum diisi
-                  </p>
-                )}
-
-                {c.approval_status === "REJECTED" && c.rejection_note && (
-                  <div className="text-xs bg-red-50 border border-red-100 rounded-xl p-2.5 text-red-700">
-                    <p className="font-semibold mb-0.5">Alasan ditolak:</p>
-                    <p>{c.rejection_note}</p>
-                  </div>
-                )}
-
-                {(c.approval_status === "REJECTED" ||
-                  c.approval_status === "PENDING") && (
-                  <button
-                    onClick={() => openEdit(c)}
-                    className="mt-1 text-xs font-semibold text-bmos-primary hover:underline self-start"
-                  >
-                    ✏️ Edit & submit ulang
-                  </button>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sectionCards.map((c) => renderCard(c))}
+                </div>
               </div>
             );
           })}
@@ -360,9 +397,12 @@ export default function TeacherClassCards({
                   }
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 >
-                  <option value="umum">Umum (ditampilin di daftar pilihan Murid)</option>
-                  <option value="private">Private (ga ditampilin, daftarnya lewat Admin/Laoshi langsung)</option>
+                  <option value="umum">Umum (kelas grup, kuota lebih banyak)</option>
+                  <option value="private">Private (kuota kecil, misal 1-on-1)</option>
                 </select>
+                <p className="text-xs text-bmos-text-light mt-1">
+                  Private = kuota 1-3 murid. Umum = kuota 4 murid ke atas.
+                </p>
               </div>
 
               <div>

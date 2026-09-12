@@ -41,7 +41,12 @@ async function notifyOwnerNewClassCard(params: {
   capacity: number;
 }) {
   const ownerPhone = process.env.OWNER_WHATSAPP_NUMBER;
-  if (!ownerPhone) return;
+  if (!ownerPhone) {
+    console.error(
+      "[notifyOwnerNewClassCard] OWNER_WHATSAPP_NUMBER belum di-set, notif WA di-skip."
+    );
+    return;
+  }
 
   const message =
     `📋 Class Card baru menunggu approval!\n\n` +
@@ -51,9 +56,15 @@ async function notifyOwnerNewClassCard(params: {
     `Cek & approve di halaman Class Card ya.`;
 
   try {
-    await sendWhatsApp(ownerPhone, message);
-  } catch {
-    // sengaja diem -- notif gagal ga boleh ngegagalin submit kartu kelas
+    // Di-log biar kalau WA-nya ga sampe, kita bisa liat di Vercel Runtime
+    // Logs apa jawaban dari Fonnte-nya (misal token salah, nomor ga
+    // valid, dll) -- bukan cuma "gagal" tanpa alasan.
+    const result = await sendWhatsApp(ownerPhone, message);
+    console.log("[notifyOwnerNewClassCard] hasil kirim WA:", JSON.stringify(result));
+  } catch (err) {
+    // Notif gagal ga boleh ngegagalin submit kartu kelas -- tapi tetap
+    // di-log biar ketauan penyebabnya kalau perlu dicek lagi nanti.
+    console.error("[notifyOwnerNewClassCard] error kirim WA:", err);
   }
 }
 
