@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import TeacherClassCards from "./TeacherClassCards";
 import StudentClassBrowse from "./StudentClassBrowse";
 import OwnerApprovalQueue from "./OwnerApprovalQueue";
@@ -73,11 +74,22 @@ export default async function ClassCardsPage({
 
     // Laoshi asli (bukan preview Owner) yang buka halaman ini -- tandain
     // semua kartu kelas dia sebagai "udah dilihat" statusnya yang
-    // sekarang. Dipanggil SETELAH ambil myCards di atas, biar kunjungan
-    // ini sendiri masih sempat nampilin highlight "Baru" (pakai data lama
-    // sebelum di-update), baru kunjungan berikutnya highlight-nya ilang.
+    // sekarang, biar kunjungan BERIKUTNYA baru ilang highlight/badge-nya.
+    //
+    // PENTING: pake after() (bukan await langsung) -- dijadwalin jalan
+    // SETELAH response halaman ini selesai dikirim ke browser, bukan pas
+    // masih render. Soalnya app/(app)/layout.tsx (yang ngitung badge
+    // angka di sidebar) itu KOMPONEN TERPISAH yang Next.js boleh render
+    // BARENGAN (paralel) sama page ini dalam request yang sama -- kalau
+    // markClassCardsSeen() dipanggil langsung di sini (await), bisa aja
+    // dia keduluan/bareng sama layout.tsx lagi ngitung badge, jadi
+    // badge-nya kebaca masih "lama" (belum ke-update) walau kartunya
+    // udah keliatan ditandain dibuka. Ini yang bikin badge di sidebar ga
+    // ilang-ilang walau halamannya udah dibuka. Dengan after(), update-nya
+    // dipastikan baru jalan SETELAH render selesai, jadi request/refresh
+    // berikutnya pasti udah baca data yang fresh.
     if (!previewAsTeacher) {
-      await markClassCardsSeen();
+      after(() => markClassCardsSeen());
     }
 
     return (

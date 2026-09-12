@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { after } from "next/server";
 import Link from "next/link";
 import HomeBanner from "./HomeBanner";
 import NameEditor from "./NameEditor";
@@ -58,7 +59,17 @@ export default async function SimpleHome({
   // Laoshi/Murid/Admin baru buka Home & lihat widget Pengumuman ini --
   // tandain "udah dibaca sampai sekarang" biar badge notif angka di
   // sidebar (menu Home) ilang.
-  await markAnnouncementsRead();
+  //
+  // Pake after() (bukan await langsung) -- app/(app)/layout.tsx yang
+  // ngitung badge unreadAnnouncementCount itu komponen terpisah yang
+  // bisa aja dirender BARENGAN sama halaman Home ini dalam request yang
+  // sama, jadi kalau markAnnouncementsRead() langsung di-await di sini,
+  // badge di sidebar bisa aja kebaca duluan (masih data lama) sebelum
+  // update ini kesimpen -- hasilnya badge-nya ga ilang walau Home-nya
+  // udah dibuka. after() mastiin update ini baru jalan SETELAH response
+  // halaman ini selesai dikirim, jadi kunjungan/refresh berikutnya pasti
+  // udah baca data yang fresh.
+  after(() => markAnnouncementsRead());
 
   let linked = true;
   let nextClass: NextClass | null = null;
