@@ -85,34 +85,57 @@ export async function addTeacher(formData: {
 
   const supabase = await createClient();
 
-  const { data: last } = await supabase
+  // Sama kayak bug student_code yang udah dibenerin sebelumnya -- ambil
+  // nomor TERBESAR dari SEMUA kode yang ada (bukan cuma baris yang paling
+  // baru dibuat), soalnya bisa aja divergen kalau data ga selalu masuk
+  // berurutan. Dikasih retry kalau kebetulan masih bentrok (misal 2 orang
+  // nambah laoshi bebarengan).
+  const { data: allCodes } = await supabase
     .from("teachers")
-    .select("teacher_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("teacher_code");
 
-  let nextNumber = 1;
-  if (last?.teacher_code) {
-    const match = last.teacher_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
+  let maxNumber = 0;
+  (allCodes ?? []).forEach((row) => {
+    const match = row.teacher_code?.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10);
+      if (n > maxNumber) maxNumber = n;
+    }
+  });
+
+  let inserted: { id: string } | null = null;
+  let error: { message: string } | null = null;
+
+  for (let i = 0; i < 5; i++) {
+    const teacherCode = `L${String(maxNumber + 1 + i).padStart(3, "0")}`;
+
+    const result = await supabase
+      .from("teachers")
+      .insert({
+        teacher_code: teacherCode,
+        name: formData.name,
+        phone: formData.phone,
+        rate_type: formData.rateType,
+        rate_per_session: Number(formData.ratePerSession) || 0,
+        rate_per_package: Number(formData.ratePerPackage) || 0,
+        sessions_per_payout: Number(formData.sessionsPerPayout) || 8,
+        active: true,
+      })
+      .select("id")
+      .single();
+
+    if (!result.error && result.data) {
+      inserted = result.data;
+      error = null;
+      break;
+    }
+
+    error = result.error;
+    const isDuplicateCode = result.error?.message.includes("teachers_teacher_code_key");
+    if (!isDuplicateCode) break;
+    // Kode ini baru aja kepake (kemungkinan laoshi lain baru ditambahin
+    // bareng), coba nomor berikutnya.
   }
-  const teacherCode = `L${String(nextNumber).padStart(3, "0")}`;
-
-  const { data: inserted, error } = await supabase
-    .from("teachers")
-    .insert({
-      teacher_code: teacherCode,
-      name: formData.name,
-      phone: formData.phone,
-      rate_type: formData.rateType,
-      rate_per_session: Number(formData.ratePerSession) || 0,
-      rate_per_package: Number(formData.ratePerPackage) || 0,
-      sessions_per_payout: Number(formData.sessionsPerPayout) || 8,
-      active: true,
-    })
-    .select("id")
-    .single();
 
   if (error || !inserted) {
     return { success: false, message: error?.message || "Gagal menambahkan laoshi." };
