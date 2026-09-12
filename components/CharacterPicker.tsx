@@ -4,19 +4,17 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CHARACTERS, getCharacterFile } from "@/lib/characters";
-// Avatar di sidebar itu SATU karakter GLOBAL buat semua akun (bukan
-// punya masing-masing user), jadi yang dipanggil pas Owner ganti karakter
-// harus updateGlobalCharacter -- BUKAN updateMyCharacter (itu cuma
-// nyimpen ke profil user yang lagi login sendiri, ga kepake buat avatar
-// yang ditampilin di Sidebar/Login).
-import { updateGlobalCharacter } from "@/app/(app)/settings/branding/actions";
+// Avatar di sidebar ini sekarang MILIK MASING-MASING orang (murid, laoshi,
+// admin, owner) -- disimpan di user_profiles.character_key punya akun yang
+// lagi login, lewat updateMyCharacter. Ganti punya sendiri ga ngubah punya
+// orang lain. (Karakter di halaman Login itu BEDA -- itu tetap satu brand
+// global yang cuma Owner bisa atur, lihat settings/branding/actions.ts.)
+import { updateMyCharacter } from "@/app/(app)/account/actions";
 
 export default function CharacterPicker({
   characterKey,
-  canEdit = false,
 }: {
   characterKey: string | null;
-  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -25,22 +23,10 @@ export default function CharacterPicker({
 
   async function handlePick(key: string) {
     setLoading(true);
-    await updateGlobalCharacter(key);
+    await updateMyCharacter(key);
     setLoading(false);
     setOpen(false);
     router.refresh();
-  }
-
-  // Yang bukan Owner cuma liat avatarnya, ga bisa buka picker buat ganti.
-  if (!canEdit) {
-    return (
-      <div
-        title="Karaktermu"
-        className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center overflow-hidden shrink-0"
-      >
-        <Image src={currentFile} alt="Karaktermu" width={28} height={28} className="object-contain" />
-      </div>
-    );
   }
 
   return (
@@ -48,7 +34,7 @@ export default function CharacterPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="Ganti karakter"
+        title="Ganti karaktermu"
         className="w-10 h-10 rounded-xl bg-bmos-primary-soft flex items-center justify-center overflow-hidden shrink-0 hover:opacity-80 transition"
       >
         <Image src={currentFile} alt="Karaktermu" width={28} height={28} className="object-contain" />
@@ -61,7 +47,8 @@ export default function CharacterPicker({
               Pilih Karaktermu
             </h2>
             <p className="text-xs text-bmos-text-light mb-4">
-              Karakter ini muncul sebagai avatarmu di sidebar & dashboard.
+              Karakter ini cuma muncul sebagai avatarmu sendiri (di sidebar
+              akunmu) -- ga ngubah avatar orang lain.
             </p>
             <div className="grid grid-cols-4 gap-3">
               {CHARACTERS.map((c) => (
