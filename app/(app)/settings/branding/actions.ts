@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BannerItem } from "@/lib/characters";
 
@@ -15,22 +16,14 @@ export async function getBannerLayout(): Promise<BannerItem[] | null> {
 }
 
 export async function saveBannerLayout(layout: BannerItem[]) {
-  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  if (!profile) return { success: false, message: "Belum login." };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Belum login." };
-
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!(myProfile?.roles || []).includes("OWNER")) {
+  if (!profile.roles.includes("OWNER")) {
     return { success: false, message: "Cuma Owner yang bisa atur banner." };
   }
+
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("app_settings")
@@ -57,22 +50,14 @@ export async function getGlobalCharacter(): Promise<string | null> {
 }
 
 export async function updateGlobalCharacter(characterKey: string) {
-  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  if (!profile) return { success: false, message: "Belum login." };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Belum login." };
-
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!(myProfile?.roles || []).includes("OWNER")) {
+  if (!profile.roles.includes("OWNER")) {
     return { success: false, message: "Cuma Owner yang bisa ganti karakter." };
   }
+
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("app_settings")

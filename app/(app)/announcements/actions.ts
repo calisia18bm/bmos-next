@@ -1,23 +1,21 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
+// PENTING: dulu tiap fungsi di file ini nembak auth.getUser() + query
+// user_profiles-nya SENDIRI-SENDIRI, padahal getCurrentProfile() (yang
+// di-cache per request di lib/auth.ts) udah nyimpen hasil yang SAMA
+// PERSIS. Ganti ke getCurrentProfile() di sini ngilangin panggilan
+// auth+DB yang dobel-dobel itu -- kerasa lumayan di halaman Home yang
+// manggil getUnreadAnnouncementCount() & markAnnouncementsRead() sekali
+// jalan.
 async function requireOwnerOrAdmin(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return "Belum login.";
+  const profile = await getCurrentProfile();
+  if (!profile) return "Belum login.";
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const myRoles = myProfile?.roles || [];
-  if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
+  if (!profile.roles.includes("OWNER") && !profile.roles.includes("ADMIN")) {
     return "Cuma Owner/Admin yang bisa posting pengumuman.";
   }
   return null;
@@ -47,35 +45,24 @@ export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
 // dihitung (dashboard Owner sendiri ga nampilin widget Pengumuman, jadi
 // ga relevan buat dia).
 export async function getUnreadAnnouncementCount(): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return 0;
+  const profile = await getCurrentProfile();
+  if (!profile) return 0;
+  if (profile.roles.includes("OWNER")) return 0;
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles, last_announcement_read_at")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!myProfile) return 0;
-
-  const roles = (myProfile.roles || []) as string[];
-  if (roles.includes("OWNER")) return 0;
-
-  const isTeacher = roles.includes("TEACHER");
-  const isStudent = roles.includes("STUDENT");
+  const isTeacher = profile.roles.includes("TEACHER");
+  const isStudent = profile.roles.includes("STUDENT");
   const audience = isTeacher
     ? ["ALL", "TEACHER"]
     : isStudent
     ? ["ALL", "STUDENT"]
     : ["ALL"];
 
+  const supabase = await createClient();
   const { count } = await supabase
     .from("announcements")
     .select("*", { count: "exact", head: true })
     .in("audience", audience)
-    .gt("created_at", myProfile.last_announcement_read_at);
+    .gt("created_at", profile.last_announcement_read_at);
 
   return count ?? 0;
 }
@@ -84,16 +71,14 @@ export async function getUnreadAnnouncementCount(): Promise<number> {
 // buka halaman itu & lihat widget Pengumuman -- nandain "udah dibaca
 // sampai sekarang", biar badge notif di sidebar ilang.
 export async function markAnnouncementsRead() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const profile = await getCurrentProfile();
+  if (!profile) return;
 
+  const supabase = await createClient();
   await supabase
     .from("user_profiles")
     .update({ last_announcement_read_at: new Date().toISOString() })
-    .eq("id", user.id);
+    .eq("id", profile.id);
 }
 
 export async function createAnnouncement(input: {
@@ -104,15 +89,7 @@ export async function createAnnouncement(input: {
   const authError = await requireOwnerOrAdmin();
   if (authError) return { success: false, message: authError };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("full_name")
-    .eq("id", user!.id)
-    .maybeSingle();
+  const profile = await getCurrentProfile();
 
   const title = input.title.trim();
   const message = input.message.trim();
@@ -120,11 +97,12 @@ export async function createAnnouncement(input: {
     return { success: false, message: "Judul dan isi pengumuman wajib diisi." };
   }
 
+  const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({
     title,
     message,
     audience: input.audience,
-    created_by: myProfile?.full_name || "Owner/Admin",
+    created_by: profile?.full_name || "Owner/Admin",
   });
 
   if (error) return { success: false, message: error.message };

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 const DAYS = [
@@ -16,19 +17,11 @@ const DAYS = [
 // Cuma Owner/Admin yang boleh kelola data kelas (jadwal, kapasitas,
 // laoshi pengampu, dsb).
 async function requireStaff(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return "Belum login.";
+  const profile = await getCurrentProfile();
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (!profile) return "Belum login.";
 
-  const myRoles = myProfile?.roles || [];
+  const myRoles = profile.roles;
   if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
     return "Kamu ga punya akses buat kelola data kelas.";
   }

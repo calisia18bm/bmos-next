@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 // ============================================================
@@ -24,25 +25,19 @@ import { revalidatePath } from "next/cache";
 // dikirim dari sisi client), bukan pola baru.
 // ============================================================
 
+// Pake getCurrentProfile() (di-cache per request di lib/auth.ts) --
+// biar ga nembak auth.getUser() + query user_profiles sendiri lagi
+// padahal datanya sama persis kayak yang udah diambil di tempat lain
+// dalam request yang sama (misal app/(app)/layout.tsx).
 async function getCallerContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles, teacher_id, student_id, full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!myProfile) return null;
   return {
-    roles: (myProfile.roles || []) as string[],
-    teacherId: myProfile.teacher_id as string | null,
-    studentId: myProfile.student_id as string | null,
-    fullName: myProfile.full_name as string | null,
+    roles: profile.roles,
+    teacherId: profile.teacher_id,
+    studentId: profile.student_id,
+    fullName: profile.full_name,
   };
 }
 

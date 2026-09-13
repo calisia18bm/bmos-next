@@ -1,22 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 async function requireOwnerOrAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, message: "Belum login." };
+  const profile = await getCurrentProfile();
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (!profile) return { ok: false as const, message: "Belum login." };
 
-  const roles = (myProfile?.roles || []) as string[];
+  const roles = (profile.roles) as string[];
   if (!roles.includes("OWNER") && !roles.includes("ADMIN")) {
     return { ok: false as const, message: "Cuma Owner/Admin yang bisa atur soal placement test." };
   }

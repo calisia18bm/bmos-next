@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { CLASS_DAYS, DEFAULT_GOAL_TAGS } from "@/lib/classCards";
 import {
@@ -184,25 +185,24 @@ async function notifyOwnerNewClassCard(params: {
   }
 }
 
+// Dulu fungsi ini nembak auth.getUser() + query user_profiles SENDIRI
+// (terpisah dari getCurrentProfile() di lib/auth.ts yang udah di-cache
+// per request) -- jadi tiap halaman Class Card kebuka, ada 2 kali cek
+// login + 2 kali query profil yang sebenernya nanya hal yang SAMA
+// PERSIS. Sekarang tinggal "nerjemahin" hasil getCurrentProfile() (yang
+// dalam 1 request cuma jalan sekali beneran, sisanya dari cache) ke
+// bentuk field yang dipake di file ini -- 13 tempat yang manggil
+// getCallerContext() otomatis ikut lebih cepat tanpa perlu diubah
+// satu-satu.
 async function getCallerContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles, teacher_id, student_id, full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!myProfile) return null;
   return {
-    roles: (myProfile.roles || []) as string[],
-    teacherId: myProfile.teacher_id as string | null,
-    studentId: myProfile.student_id as string | null,
-    fullName: myProfile.full_name as string | null,
+    roles: profile.roles,
+    teacherId: profile.teacher_id,
+    studentId: profile.student_id,
+    fullName: profile.full_name,
   };
 }
 

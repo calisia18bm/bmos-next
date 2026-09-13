@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 function generatePassword() {
@@ -22,25 +22,16 @@ function generatePassword() {
 async function requireOwner(): Promise<
   { error: string } | { error: null; userId: string; roles: string[] }
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getCurrentProfile();
 
-  if (!user) return { error: "Belum login." };
+  if (!profile) return { error: "Belum login." };
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const myRoles = myProfile?.roles || [];
+  const myRoles = profile.roles;
   if (!myRoles.includes("OWNER")) {
     return { error: "Cuma Owner yang bisa kelola akun." };
   }
 
-  return { error: null, userId: user.id, roles: myRoles };
+  return { error: null, userId: profile.id, roles: myRoles };
 }
 
 // Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { provisionLinkedAccount } from "@/lib/account-provisioning";
 
@@ -8,19 +9,11 @@ import { provisionLinkedAccount } from "@/lib/account-provisioning";
 // status, dsb) -- Murid/Laoshi liat data ini lewat halaman portal mereka
 // sendiri (my-class, my-students), bukan dari sini.
 async function requireStaff(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return "Belum login.";
+  const profile = await getCurrentProfile();
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (!profile) return "Belum login.";
 
-  const myRoles = myProfile?.roles || [];
+  const myRoles = profile.roles;
   if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
     return "Kamu ga punya akses buat kelola data murid.";
   }
@@ -32,19 +25,11 @@ async function requireStaff(): Promise<string | null> {
 // requireStaff() di atas karena requireStaff ngizinin Admin kelola data
 // murid biasa (nama/kelas/dll), tapi khusus akun login tetap Owner-only.
 async function requireOwnerForAccount(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return "Belum login.";
+  const profile = await getCurrentProfile();
 
-  const { data: myProfile } = await supabase
-    .from("user_profiles")
-    .select("roles")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (!profile) return "Belum login.";
 
-  if (!(myProfile?.roles || []).includes("OWNER")) {
+  if (!(profile.roles).includes("OWNER")) {
     return "Cuma Owner yang bisa kelola akun login.";
   }
   return null;

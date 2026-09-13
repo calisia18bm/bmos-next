@@ -10,6 +10,7 @@ export type UserProfile = {
   full_name: string | null;
   teacher_id: string | null;
   student_id: string | null;
+  last_announcement_read_at: string;
 };
 
 // PENTING: dibungkus cache() dari React -- hampir SEMUA page.tsx manggil
@@ -52,7 +53,7 @@ export const getCurrentProfile = cache(async (): Promise<UserProfile | null> => 
   const { data: profile } = await supabase
     .from("user_profiles")
     .select(
-      "id, email, roles, active_role, character_key, full_name, teacher_id, student_id"
+      "id, email, roles, active_role, character_key, full_name, teacher_id, student_id, last_announcement_read_at"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -72,5 +73,6 @@ export const getCurrentProfile = cache(async (): Promise<UserProfile | null> => 
     full_name: profile.full_name || null,
     teacher_id: profile.teacher_id || null,
     student_id: profile.student_id || null,
+    last_announcement_read_at: profile.last_announcement_read_at,
   };
 });
