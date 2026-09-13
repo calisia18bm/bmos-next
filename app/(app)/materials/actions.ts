@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { readPaymentProofWithAI } from "@/lib/paymentProof";
 
 // Pake getCurrentProfile() (di-cache per request di lib/auth.ts) --
 // biar ga nembak auth.getUser() + query user_profiles sendiri lagi
@@ -124,6 +125,7 @@ export async function createTeacherResource(input: {
   originalFileUrl: string;
   originalFileName: string;
   originalFilePath: string;
+  price?: string;
 }) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
@@ -148,6 +150,7 @@ export async function createTeacherResource(input: {
     original_file_name: input.originalFileName || null,
     original_file_path: input.originalFilePath || null,
     uploaded_by_name: ctx.fullName,
+    price: Number(input.price) || 0,
   });
 
   if (error) return { success: false, message: error.message };
@@ -215,6 +218,7 @@ export async function approveTeacherResourceSubmission(
     originalFileUrl: string;
     originalFileName: string;
     originalFilePath: string;
+    price?: string;
   }
 ) {
   const ctx = await getCallerContext();
@@ -252,6 +256,7 @@ export async function approveTeacherResourceSubmission(
       original_file_name: input.originalFileName || null,
       original_file_path: input.originalFilePath || null,
       uploaded_by_name: ctx.fullName,
+      price: Number(input.price) || 0,
     })
     .select("id")
     .single();
@@ -337,4 +342,226 @@ export async function deleteTeacherResource(id: string) {
 
   revalidatePath("/materials", "layout");
   return { success: true, message: "Bahan ajar dihapus." };
+}
+
+// ============================================================
+// Beli Bahan Ajar Berbayar -- Owner/Admin bisa kasih harga (atau Rp 0 /
+// Gratis) pas upload bahan ajar. Kalau harganya > 0, Laoshi WAJIB upload
+// bukti transfer dulu (mirip alur Join Kelas Murid), request-nya
+// di-review manual Owner/Admin (AI cuma bantu baca bukti, BUKAN yang
+// mutusin approve/reject).
+// ============================================================
+
+export type MyResourcePurchase = {
+  purchaseId: string;
+  resourceId: string;
+  requestStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionNote: string | null;
+  aiPaymentNote: string | null;
+};
+
+// Status pembelian bahan ajar berbayar buat Laoshi yang login -- dipakai
+// TeacherResourceList buat mutusin resource mana yang udah bisa didownload
+// (Gratis, atau harga > 0 tapi requestnya APPROVED) vs yang masih perlu
+// "Beli PPT" dulu.
+export async function getMyResourcePurchases(): Promise<MyResourcePurchase[]> {
+  const ctx = await getCallerContext();
+  if (!ctx || !ctx.teacherId) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id, resource_id, request_status, rejection_note, ai_payment_note")
+    .eq("teacher_id", ctx.teacherId)
+    .neq("status", "CANCELLED")
+    .order("requested_at", { ascending: false });
+
+  return (data ?? []).map((row) => ({
+    purchaseId: row.id,
+    resourceId: row.resource_id,
+    requestStatus: row.request_status,
+    rejectionNote: row.rejection_note,
+    aiPaymentNote: row.ai_payment_note,
+  }));
+}
+
+// Laoshi submit request beli bahan ajar berbayar -- WAJIB upload bukti
+// transfer. Ga langsung bisa download, nunggu di-approve Owner/Admin.
+export async function requestPurchaseResource(
+  resourceId: string,
+  proof: { fileUrl: string; fileName: string; filePath: string }
+) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) {
+    return {
+      success: false,
+      message: "Cuma akun Laoshi yang terhubung ke data Laoshi yang bisa beli bahan ajar.",
+    };
+  }
+  if (!proof.fileUrl) {
+    return { success: false, message: "Bukti transfer wajib diupload dulu." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: resource } = await supabase
+    .from("teacher_resources")
+    .select("id, title, price")
+    .eq("id", resourceId)
+    .maybeSingle();
+  if (!resource) return { success: false, message: "Bahan ajar tidak ditemukan." };
+  if (!resource.price || resource.price <= 0) {
+    return { success: false, message: "Bahan ajar ini gratis, ga perlu beli." };
+  }
+
+  const { data: existingPending } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id")
+    .eq("teacher_id", ctx.teacherId)
+    .eq("resource_id", resourceId)
+    .eq("request_status", "PENDING")
+    .maybeSingle();
+  if (existingPending) {
+    return {
+      success: false,
+      message: "Kamu udah punya request beli buat bahan ajar ini, tunggu di-review Admin ya.",
+    };
+  }
+
+  const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
+    name: resource.title,
+    price: resource.price,
+  });
+
+  const { error } = await supabase.from("teacher_resource_purchases").insert({
+    teacher_id: ctx.teacherId,
+    resource_id: resourceId,
+    status: "PENDING",
+    request_status: "PENDING",
+    payment_proof_url: proof.fileUrl,
+    payment_proof_path: proof.filePath,
+    ai_payment_note: aiNote,
+    requested_at: new Date().toISOString(),
+  });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return {
+    success: true,
+    message: `Request beli "${resource.title}" terkirim, tunggu di-review Admin ya.`,
+  };
+}
+
+export type PendingResourcePurchase = {
+  purchaseId: string;
+  teacherId: string;
+  teacherName: string;
+  resourceId: string;
+  resourceTitle: string;
+  price: number | null;
+  paymentProofUrl: string | null;
+  aiPaymentNote: string | null;
+  requestedAt: string;
+};
+
+// Daftar request beli bahan ajar yang lagi PENDING -- dipakai Owner/Admin
+// buat approve/reject di halaman Materi.
+export async function getPendingResourcePurchases(): Promise<PendingResourcePurchase[]> {
+  const ctx = await getCallerContext();
+  if (!ctx) return [];
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("teacher_resource_purchases")
+    .select(
+      "id, teacher_id, resource_id, payment_proof_url, ai_payment_note, requested_at, teachers:teacher_id (name), teacher_resources:resource_id (title, price)"
+    )
+    .eq("request_status", "PENDING")
+    .order("requested_at", { ascending: true });
+
+  return (data ?? []).map((row: any) => ({
+    purchaseId: row.id,
+    teacherId: row.teacher_id,
+    teacherName: row.teachers?.name ?? "-",
+    resourceId: row.resource_id,
+    resourceTitle: row.teacher_resources?.title ?? "-",
+    price: row.teacher_resources?.price ?? null,
+    paymentProofUrl: row.payment_proof_url,
+    aiPaymentNote: row.ai_payment_note,
+    requestedAt: row.requested_at,
+  }));
+}
+
+export async function approveResourcePurchase(purchaseId: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa approve request beli." };
+  }
+
+  const supabase = await createClient();
+  const { data: purchase } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id, request_status")
+    .eq("id", purchaseId)
+    .maybeSingle();
+  if (!purchase) return { success: false, message: "Request tidak ditemukan." };
+  if (purchase.request_status !== "PENDING") {
+    return { success: false, message: "Request ini udah diproses sebelumnya." };
+  }
+
+  const { error } = await supabase
+    .from("teacher_resource_purchases")
+    .update({
+      request_status: "APPROVED",
+      status: "ACTIVE",
+      reviewed_by_name: ctx.fullName,
+      rejection_note: null,
+    })
+    .eq("id", purchaseId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return { success: true, message: "Request beli disetujui." };
+}
+
+export async function rejectResourcePurchase(purchaseId: string, note: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa tolak request beli." };
+  }
+
+  const cleanedNote = note.trim();
+  if (!cleanedNote) {
+    return { success: false, message: "Kasih catatan alasan penolakan dulu buat Laoshi." };
+  }
+
+  const supabase = await createClient();
+  const { data: purchase } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id, request_status")
+    .eq("id", purchaseId)
+    .maybeSingle();
+  if (!purchase) return { success: false, message: "Request tidak ditemukan." };
+  if (purchase.request_status !== "PENDING") {
+    return { success: false, message: "Request ini udah diproses sebelumnya." };
+  }
+
+  const { error } = await supabase
+    .from("teacher_resource_purchases")
+    .update({
+      request_status: "REJECTED",
+      status: "CANCELLED",
+      rejection_note: cleanedNote,
+      reviewed_by_name: ctx.fullName,
+    })
+    .eq("id", purchaseId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return { success: true, message: "Request beli ditolak." };
 }

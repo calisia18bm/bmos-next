@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { requestJoinClassCard, MyClassEnrollment } from "./actions";
 import { ClassCard, formatRupiah } from "@/lib/classCards";
+import { BANK_ACCOUNT } from "@/lib/paymentProof";
 
 const REQUEST_STATUS_LABEL: Record<string, string> = {
   PENDING: "⏳ Menunggu Review Admin",
@@ -44,6 +45,7 @@ export default function StudentClassBrowse({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<{ id: string; text: string; ok: boolean } | null>(
     null
   );
@@ -82,6 +84,7 @@ export default function StudentClassBrowse({
     setModalCard(card);
     setFile(null);
     setModalError("");
+    setCopied(false);
   }
 
   function closeModal() {
@@ -89,6 +92,17 @@ export default function StudentClassBrowse({
     setFile(null);
     setModalError("");
     setUploading(false);
+  }
+
+  async function handleCopyAccountNumber() {
+    try {
+      await navigator.clipboard.writeText(BANK_ACCOUNT.number);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API bisa gagal (browser lama/permission) -- Murid masih
+      // bisa select-copy manual dari teksnya, jadi ga perlu ditampilin error.
+    }
   }
 
   async function handleSubmitRequest() {
@@ -325,11 +339,29 @@ export default function StudentClassBrowse({
             <h3 className="font-bold text-bmos-text text-lg mb-1">
               Join {modalCard.name}
             </h3>
-            <p className="text-sm text-bmos-text-light mb-4">
+            <p className="text-sm text-bmos-text-light mb-3">
               {modalCard.price
-                ? `Transfer ${formatRupiah(modalCard.price)} dulu, terus upload bukti transfernya di bawah ini. Admin bakal review & konfirmasi setelah ini.`
-                : "Upload bukti transfer/pembayaran kamu di bawah ini. Admin bakal review & konfirmasi setelah ini."}
+                ? `Biaya: ${formatRupiah(modalCard.price)}. Mohon ditransfer ke rekening berikut, lalu upload bukti transfernya di bawah ini ya.`
+                : "Upload bukti transfer/pembayaran kamu di bawah ini ya."}
             </p>
+
+            {modalCard.price && (
+              <div className="bg-bmos-primary-soft rounded-xl px-4 py-3 mb-4 text-sm text-bmos-text">
+                <p className="font-semibold">{BANK_ACCOUNT.bank}</p>
+                <p>a/n {BANK_ACCOUNT.holder}</p>
+                <button
+                  type="button"
+                  onClick={handleCopyAccountNumber}
+                  className="flex items-center gap-2 font-bold tracking-wide mt-0.5 hover:opacity-80 transition"
+                  title="Salin nomor rekening"
+                >
+                  {BANK_ACCOUNT.number}
+                  <span className="text-xs font-semibold text-bmos-primary">
+                    {copied ? "✓ Disalin" : "Salin"}
+                  </span>
+                </button>
+              </div>
+            )}
 
             <label
               htmlFor="payment-proof-input"

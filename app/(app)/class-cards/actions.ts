@@ -13,7 +13,7 @@ import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 import { generateSessionsForClass } from "../weekly-schedule/actions";
 import { SITE_URL } from "@/lib/site";
-import Anthropic from "@anthropic-ai/sdk";
+import { readPaymentProofWithAI } from "@/lib/paymentProof";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -673,74 +673,6 @@ async function getNextEnrollmentCode(
     if (match) nextNumber = parseInt(match[0], 10) + 1;
   }
   return `ENR${String(nextNumber).padStart(5, "0")}`;
-}
-
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
-type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
-
-// Baca gambar bukti transfer pake Claude (vision) -- CUMA bantu Admin
-// baca nominal/tanggal/pengirim, BUKAN yang mutusin approve/reject.
-// Kalau ANTHROPIC_API_KEY belum diset atau ada error apapun, tetep balikin
-// pesan yang jelas (bukan lempar exception) biar request join-nya TETAP
-// kesimpen -- Admin masih bisa review manual dari foto bukti bayarnya
-// langsung meski AI-nya gagal baca.
-async function readPaymentProofWithAI(
-  imageUrl: string,
-  classInfo: { name: string; price: number | null }
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return "AI belum bisa baca otomatis (ANTHROPIC_API_KEY belum diset di Vercel) -- tolong dicek manual dari fotonya.";
-  }
-
-  try {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) {
-      return "AI gagal ambil gambar bukti bayar -- tolong dicek manual dari fotonya.";
-    }
-    const arrayBuffer = await imgRes.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const rawType = imgRes.headers.get("content-type") || "image/jpeg";
-    const mediaType: AllowedImageType = (
-      ALLOWED_IMAGE_TYPES as readonly string[]
-    ).includes(rawType)
-      ? (rawType as AllowedImageType)
-      : "image/jpeg";
-
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 300,
-      system:
-        'Kamu bantu Admin sekolah les Mandarin BACA bukti transfer/pembayaran yang diupload Murid. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan Admin manusia. Jawab singkat 2-3 kalimat Bahasa Indonesia.',
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: base64 },
-            },
-            {
-              type: "text",
-              text: `Kelas: ${classInfo.name}, harga paket: ${
-                classInfo.price ? `Rp ${classInfo.price.toLocaleString("id-ID")}` : "-"
-              }. Tolong baca bukti pembayaran ini buat bantu Admin.`,
-            },
-          ],
-        },
-      ],
-    });
-
-    const textBlock = response.content.find((b) => b.type === "text");
-    return textBlock && "text" in textBlock
-      ? textBlock.text
-      : "AI ga bisa baca gambar ini -- tolong dicek manual.";
-  } catch (error) {
-    return `AI gagal baca bukti bayar (${
-      error instanceof Error ? error.message : "error"
-    }) -- tolong dicek manual dari fotonya.`;
-  }
 }
 
 export type MyClassEnrollment = {

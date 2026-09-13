@@ -19,6 +19,7 @@ type Resource = {
   original_file_url: string | null;
   original_file_name: string | null;
   uploaded_by_name: string | null;
+  price?: number | null;
   created_at: string;
 };
 
@@ -34,15 +35,24 @@ type Submission = {
   created_at: string;
 };
 
+function formatRupiah(n: number | null | undefined): string {
+  if (!n) return "Gratis";
+  return `Rp ${n.toLocaleString("id-ID")}`;
+}
+
 // Panel review 1 submission -- Admin/Owner download draft-nya, cek/edit
 // sendiri di luar, terus upload versi PDF final buat approve (otomatis
 // dipublish ke teacher_resources, bisa dipakai SEMUA Laoshi). Bisa juga
 // reject dengan catatan biar Laoshi tau harus perbaiki apa.
+//
+// Owner/Admin juga bisa langsung kasih harga di sini pas approve -- kalau
+// dikosongin/0 berarti Gratis buat semua Laoshi.
 function SubmissionReviewRow({ s }: { s: Submission }) {
   const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [price, setPrice] = useState("");
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -77,6 +87,7 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
         originalFileUrl: original?.url || "",
         originalFileName: original?.name || "",
         originalFilePath: original?.path || "",
+        price,
       });
       if (!res.success) {
         setError(res.message);
@@ -164,7 +175,7 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
               accept="application/pdf"
               onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
               className="text-xs w-full"
-            />
+          />
           </div>
           <div>
             <label className="block text-xs font-medium text-bmos-text mb-1">
@@ -174,7 +185,20 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
               type="file"
               onChange={(e) => setOriginalFile(e.target.files?.[0] || null)}
               className="text-xs w-full"
-            />
+          />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-bmos-text mb-1">
+              Harga buat Laoshi (opsional, kosong/0 = Gratis)
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0"
+              className="w-full border border-bmos-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+          />
           </div>
           {error && (
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-2 py-1.5">{error}</p>
@@ -237,6 +261,10 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
 // Owner/Admin upload bahan ajar buat Laoshi -- WAJIB upload versi PDF
 // (yang bakal dilihat Laoshi), file asli (PPT/dll) OPSIONAL, cuma buat
 // arsip Owner/Admin sendiri, Laoshi ga pernah dikasih akses ke file asli.
+// Owner/Admin juga bisa kasih harga di sini (kosong/0 = Gratis) -- kalau
+// berbayar, Laoshi harus upload bukti transfer & nunggu approve Admin
+// dulu sebelum bisa download (lihat TeacherResourceList.tsx +
+// ResourcePurchaseQueue.tsx).
 // Panel ini juga nampilin submission materi dari Laoshi yang lagi
 // nunggu direview (lihat SubmissionReviewRow di atas).
 export default function TeacherResourceManage({
@@ -251,6 +279,7 @@ export default function TeacherResourceManage({
   const [description, setDescription] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [price, setPrice] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -292,6 +321,7 @@ export default function TeacherResourceManage({
         originalFileUrl: original?.url || "",
         originalFileName: original?.name || "",
         originalFilePath: original?.path || "",
+        price,
       });
 
       if (!res.success) {
@@ -303,6 +333,7 @@ export default function TeacherResourceManage({
       setDescription("");
       setPdfFile(null);
       setOriginalFile(null);
+      setPrice("");
       const pdfInput = document.getElementById("resource-pdf-input") as HTMLInputElement | null;
       if (pdfInput) pdfInput.value = "";
       const origInput = document.getElementById("resource-original-input") as HTMLInputElement | null;
@@ -389,7 +420,7 @@ export default function TeacherResourceManage({
               accept="application/pdf"
               onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
               className="hidden"
-            />
+          />
           </div>
 
           <div>
@@ -412,7 +443,25 @@ export default function TeacherResourceManage({
               type="file"
               onChange={(e) => setOriginalFile(e.target.files?.[0] || null)}
               className="hidden"
-            />
+          />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-bmos-text mb-1">
+              Harga buat Laoshi (opsional)
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Kosongin / isi 0 kalau Gratis"
+              className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+          />
+            <p className="text-xs text-bmos-text-light mt-1">
+              Kalau diisi lebih dari 0, Laoshi harus transfer & upload bukti
+              dulu sebelum bisa download bahan ajar ini.
+            </p>
           </div>
 
           {error && (
@@ -446,7 +495,14 @@ export default function TeacherResourceManage({
                 className="flex items-start justify-between border-b border-bmos-border last:border-0 pb-3 last:pb-0"
               >
                 <div>
-                  <p className="text-sm font-semibold text-bmos-text">{r.title}</p>
+                  <p className="text-sm font-semibold text-bmos-text flex items-center gap-1.5 flex-wrap">
+                    {r.title}
+                    {!!r.price && r.price > 0 && (
+                      <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        💰 {formatRupiah(r.price)}
+                      </span>
+                    )}
+                  </p>
                   {r.uploaded_by_name && (
                     <p className="text-xs text-bmos-text-light">
                       diupload {r.uploaded_by_name}
