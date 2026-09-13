@@ -13,6 +13,7 @@ import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 import { generateSessionsForClass } from "../weekly-schedule/actions";
 import { SITE_URL } from "@/lib/site";
+import Anthropic from "@anthropic-ai/sdk";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -220,6 +221,7 @@ type ClassCardInput = {
   price: string;
   sessionsCount: string;
   goalTags: string[];
+  classType: "REGULAR" | "SEMINAR";
 };
 
 function validateInput(input: ClassCardInput): string | null {
@@ -368,6 +370,7 @@ export async function submitClassCard(input: ClassCardInput) {
       price: price || null,
       sessions_count: Number(input.sessionsCount) || null,
       goal_tags: input.goalTags,
+      class_type: input.classType === "SEMINAR" ? "SEMINAR" : "REGULAR",
       approval_status: "PENDING",
       active: false,
       registration_open: false,
@@ -465,6 +468,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
       price: price || null,
       sessions_count: Number(input.sessionsCount) || null,
       goal_tags: input.goalTags,
+      class_type: input.classType === "SEMINAR" ? "SEMINAR" : "REGULAR",
       approval_status: "PENDING",
       rejection_note: null,
       ai_note: buildAiNote(input, capacity, price, avgPrice),
@@ -626,7 +630,172 @@ export async function rejectClassCard(id: string, note: string) {
 // kuota & periode pendaftaran. Buat v1: cuma Murid yang BELUM punya
 // kelas aktif yang bisa self-join (biar ga kesenggol pindah kelas
 // otomatis) -- kalau udah ada kelas, arahin ke Admin buat pindah kelas.
-export async function joinClassCard(classId: string) {
+// ============================================================
+// Request Join Kelas (payment-gated, dengan bantuan AI baca bukti bayar)
+// ============================================================
+//
+// Alur baru (ganti yang lama, joinClassCard() yang langsung masukin
+// Murid ke kelas instant): Murid klik "Join Kelas" -> upload bukti
+// transfer -> baris enrollments dibikin dengan request_status=PENDING
+// -> AI (Claude) baca gambar buktinya sekadar buat BANTU Admin (nominal/
+// tanggal/pengirim kalau keliatan) -- AI TIDAK PERNAH auto-approve/
+// reject, itu tetap keputusan Owner/Admin manual lewat
+// approveJoinRequest()/rejectJoinRequest() di bawah.
+//
+// Kelas REGULAR (mingguan) tetap cuma boleh 1 slot aktif/pending per
+// Murid (kayak restriksi lama). Kelas SEMINAR (sekali pertemuan) boleh
+// dipunya Murid lebih dari 1 sekaligus, SELAMA jadwalnya (hari + jam)
+// ga bentrok sama kelas aktif/pending Murid yang lain -- itu yang dicek
+// hasScheduleConflict() di bawah.
+
+function timeRangesOverlap(
+  aStart?: string | null,
+  aEnd?: string | null,
+  bStart?: string | null,
+  bEnd?: string | null
+): boolean {
+  if (!aStart || !aEnd || !bStart || !bEnd) return false; // jadwal belum diatur -- ga bisa dicek, anggap ga bentrok
+  return aStart < bEnd && bStart < aEnd;
+}
+
+async function getNextEnrollmentCode(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string> {
+  const { data: last } = await supabase
+    .from("enrollments")
+    .select("enrollment_code")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let nextNumber = 1;
+  if (last?.enrollment_code) {
+    const match = last.enrollment_code.match(/\d+/);
+    if (match) nextNumber = parseInt(match[0], 10) + 1;
+  }
+  return `ENR${String(nextNumber).padStart(5, "0")}`;
+}
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
+
+// Baca gambar bukti transfer pake Claude (vision) -- CUMA bantu Admin
+// baca nominal/tanggal/pengirim, BUKAN yang mutusin approve/reject.
+// Kalau ANTHROPIC_API_KEY belum diset atau ada error apapun, tetep balikin
+// pesan yang jelas (bukan lempar exception) biar request join-nya TETAP
+// kesimpen -- Admin masih bisa review manual dari foto bukti bayarnya
+// langsung meski AI-nya gagal baca.
+async function readPaymentProofWithAI(
+  imageUrl: string,
+  classInfo: { name: string; price: number | null }
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return "AI belum bisa baca otomatis (ANTHROPIC_API_KEY belum diset di Vercel) -- tolong dicek manual dari fotonya.";
+  }
+
+  try {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      return "AI gagal ambil gambar bukti bayar -- tolong dicek manual dari fotonya.";
+    }
+    const arrayBuffer = await imgRes.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const rawType = imgRes.headers.get("content-type") || "image/jpeg";
+    const mediaType: AllowedImageType = (
+      ALLOWED_IMAGE_TYPES as readonly string[]
+    ).includes(rawType)
+      ? (rawType as AllowedImageType)
+      : "image/jpeg";
+
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 300,
+      system:
+        'Kamu bantu Admin sekolah les Mandarin BACA bukti transfer/pembayaran yang diupload Murid. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan Admin manusia. Jawab singkat 2-3 kalimat Bahasa Indonesia.',
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: mediaType, data: base64 },
+            },
+            {
+              type: "text",
+              text: `Kelas: ${classInfo.name}, harga paket: ${
+                classInfo.price ? `Rp ${classInfo.price.toLocaleString("id-ID")}` : "-"
+              }. Tolong baca bukti pembayaran ini buat bantu Admin.`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    return textBlock && "text" in textBlock
+      ? textBlock.text
+      : "AI ga bisa baca gambar ini -- tolong dicek manual.";
+  } catch (error) {
+    return `AI gagal baca bukti bayar (${
+      error instanceof Error ? error.message : "error"
+    }) -- tolong dicek manual dari fotonya.`;
+  }
+}
+
+export type MyClassEnrollment = {
+  enrollmentId: string;
+  classId: string;
+  className: string;
+  classType: "REGULAR" | "SEMINAR";
+  dayOfWeek: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  requestStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionNote: string | null;
+  aiPaymentNote: string | null;
+};
+
+// Kelas yang lagi aktif/diproses buat Murid yang login -- dipakai di
+// halaman Class Card Murid buat: (1) nampilin status request dia, (2)
+// cek slot Reguler & bentrok jadwal sebelum ngirim request baru.
+export async function getMyClassEnrollments(): Promise<MyClassEnrollment[]> {
+  const ctx = await getCallerContext();
+  if (!ctx || !ctx.studentId) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("enrollments")
+    .select(
+      "id, class_id, request_status, rejection_note, ai_payment_note, requested_at, classes:class_id (name, class_type, day_of_week, start_time, end_time)"
+    )
+    .eq("student_id", ctx.studentId)
+    .in("request_status", ["PENDING", "APPROVED", "REJECTED"])
+    .neq("status", "CANCELLED")
+    .order("requested_at", { ascending: false });
+
+  return (data ?? [])
+    .filter((row: any) => row.classes)
+    .map((row: any) => ({
+      enrollmentId: row.id,
+      classId: row.class_id,
+      className: row.classes?.name ?? "-",
+      classType: row.classes?.class_type ?? "REGULAR",
+      dayOfWeek: row.classes?.day_of_week ?? null,
+      startTime: row.classes?.start_time ?? null,
+      endTime: row.classes?.end_time ?? null,
+      requestStatus: row.request_status,
+      rejectionNote: row.rejection_note,
+      aiPaymentNote: row.ai_payment_note,
+    }));
+}
+
+// Murid submit request join kelas (bukan langsung masuk) -- WAJIB upload
+// bukti transfer dulu. Ga langsung aktif, nunggu di-approve Owner/Admin.
+export async function requestJoinClassCard(
+  classId: string,
+  proof: { fileUrl: string; fileName: string; filePath: string }
+) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("STUDENT") || !ctx.studentId) {
@@ -635,28 +804,16 @@ export async function joinClassCard(classId: string) {
       message: "Cuma akun Murid yang terhubung ke data Murid yang bisa join kelas.",
     };
   }
+  if (!proof.fileUrl) {
+    return { success: false, message: "Bukti transfer wajib diupload dulu." };
+  }
 
   const supabase = await createClient();
-
-  const { data: student } = await supabase
-    .from("students")
-    .select("id, class_id")
-    .eq("id", ctx.studentId)
-    .maybeSingle();
-
-  if (!student) return { success: false, message: "Data murid tidak ditemukan." };
-  if (student.class_id) {
-    return {
-      success: false,
-      message:
-        "Kamu udah terdaftar di kelas lain. Hubungi Admin kalau mau pindah kelas.",
-    };
-  }
 
   const { data: cls } = await supabase
     .from("classes")
     .select(
-      "id, class_code, name, teacher_id, teacher_name, capacity_max, approval_status, active, is_private, registration_start, registration_end"
+      "id, class_code, name, teacher_id, teacher_name, capacity_max, approval_status, active, is_private, registration_start, registration_end, class_type, day_of_week, start_time, end_time, price"
     )
     .eq("id", classId)
     .maybeSingle();
@@ -680,49 +837,247 @@ export async function joinClassCard(classId: string) {
     return { success: false, message: "Pendaftaran kelas ini udah ditutup." };
   }
 
+  // Udah ada request PENDING buat kelas yang SAMA -- ga usah dobel.
+  const { data: existingPending } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("student_id", ctx.studentId)
+    .eq("class_id", cls.id)
+    .eq("request_status", "PENDING")
+    .maybeSingle();
+  if (existingPending) {
+    return {
+      success: false,
+      message: "Kamu udah punya request join buat kelas ini, tunggu di-review Admin ya.",
+    };
+  }
+
+  // Kelas aktif/lagi diproses Murid ini -- buat cek slot Reguler & bentrok jadwal.
+  const { data: myEnrollments } = await supabase
+    .from("enrollments")
+    .select(
+      "class_id, request_status, classes:class_id (class_type, day_of_week, start_time, end_time)"
+    )
+    .eq("student_id", ctx.studentId)
+    .in("request_status", ["PENDING", "APPROVED"]);
+
+  const activeOrPending = (myEnrollments ?? []).filter((e: any) => e.classes);
+
+  if (cls.class_type === "REGULAR") {
+    const hasRegular = activeOrPending.some(
+      (e: any) => e.classes?.class_type === "REGULAR"
+    );
+    if (hasRegular) {
+      return {
+        success: false,
+        message:
+          "Kamu udah punya kelas Reguler aktif/lagi diproses. Hubungi Admin kalau mau pindah kelas.",
+      };
+    }
+  }
+
+  const hasConflict = activeOrPending.some(
+    (e: any) =>
+      e.classes?.day_of_week &&
+      cls.day_of_week &&
+      e.classes.day_of_week === cls.day_of_week &&
+      timeRangesOverlap(cls.start_time, cls.end_time, e.classes?.start_time, e.classes?.end_time)
+  );
+  if (hasConflict) {
+    return {
+      success: false,
+      message: "Jadwal kelas ini bentrok sama kelas kamu yang lain.",
+    };
+  }
+
   const { count } = await supabase
-    .from("students")
+    .from("enrollments")
     .select("id", { count: "exact", head: true })
-    .eq("class_id", cls.id);
+    .eq("class_id", cls.id)
+    .eq("request_status", "APPROVED")
+    .eq("status", "ACTIVE");
 
   if ((count ?? 0) >= cls.capacity_max) {
     return { success: false, message: "Kelas ini udah penuh." };
   }
 
-  const { error: updateError } = await supabase
-    .from("students")
-    .update({
-      class_id: cls.id,
-      class_name: cls.name,
-      teacher_name: cls.teacher_name,
-    })
-    .eq("id", student.id);
-
-  if (updateError) return { success: false, message: updateError.message };
-
-  const { data: last } = await supabase
-    .from("enrollments")
-    .select("enrollment_code")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  let nextNumber = 1;
-  if (last?.enrollment_code) {
-    const match = last.enrollment_code.match(/\d+/);
-    if (match) nextNumber = parseInt(match[0], 10) + 1;
-  }
-  const enrollmentCode = `ENR${String(nextNumber).padStart(5, "0")}`;
-
-  await supabase.from("enrollments").insert({
-    enrollment_code: enrollmentCode,
-    student_id: student.id,
-    class_id: cls.id,
-    status: "ACTIVE",
+  const enrollmentCode = await getNextEnrollmentCode(supabase);
+  const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
+    name: cls.name,
+    price: cls.price ?? null,
   });
+
+  const { error } = await supabase.from("enrollments").insert({
+    enrollment_code: enrollmentCode,
+    student_id: ctx.studentId,
+    class_id: cls.id,
+    status: "PENDING",
+    request_status: "PENDING",
+    payment_proof_url: proof.fileUrl,
+    payment_proof_path: proof.filePath,
+    ai_payment_note: aiNote,
+    requested_at: new Date().toISOString(),
+  });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return {
+    success: true,
+    message: `Request join ${cls.name} terkirim, tunggu di-review Admin ya.`,
+  };
+}
+
+export type PendingJoinRequest = {
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className: string;
+  classType: "REGULAR" | "SEMINAR";
+  price: number | null;
+  paymentProofUrl: string | null;
+  aiPaymentNote: string | null;
+  requestedAt: string;
+};
+
+// Daftar request join yang lagi PENDING -- dipakai Owner/Admin buat
+// approve/reject di halaman Class Card.
+export async function getPendingJoinRequests(): Promise<PendingJoinRequest[]> {
+  const ctx = await getCallerContext();
+  if (!ctx) return [];
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("enrollments")
+    .select(
+      "id, student_id, class_id, payment_proof_url, ai_payment_note, requested_at, students:student_id (name), classes:class_id (name, class_type, price)"
+    )
+    .eq("request_status", "PENDING")
+    .order("requested_at", { ascending: true });
+
+  return (data ?? []).map((row: any) => ({
+    enrollmentId: row.id,
+    studentId: row.student_id,
+    studentName: row.students?.name ?? "-",
+    classId: row.class_id,
+    className: row.classes?.name ?? "-",
+    classType: row.classes?.class_type ?? "REGULAR",
+    price: row.classes?.price ?? null,
+    paymentProofUrl: row.payment_proof_url,
+    aiPaymentNote: row.ai_payment_note,
+    requestedAt: row.requested_at,
+  }));
+}
+
+// Owner/Admin approve request join -- SETELAH ini baru murid beneran
+// kecatat aktif di kelasnya. Kalau kelasnya REGULAR, students.class_id
+// ikut di-update (biar semua fitur lain -- Attendance/PR/Materi/Payroll/
+// Weekly Schedule/dll -- yang masih ngandelin students.class_id tetap
+// jalan tanpa perlu diubah). Kalau SEMINAR, students.class_id SENGAJA
+// ga disentuh -- keanggotaan Seminar cukup lewat tabel enrollments,
+// biar Murid tetap bisa punya beberapa Seminar sekaligus.
+export async function approveJoinRequest(enrollmentId: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa approve request join." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: enrollment } = await supabase
+    .from("enrollments")
+    .select("id, student_id, class_id, request_status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+
+  if (!enrollment) return { success: false, message: "Request tidak ditemukan." };
+  if (enrollment.request_status !== "PENDING") {
+    return { success: false, message: "Request ini udah diproses sebelumnya." };
+  }
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("id, name, teacher_name, class_type, capacity_max")
+    .eq("id", enrollment.class_id)
+    .maybeSingle();
+  if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
+
+  const { count } = await supabase
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("class_id", cls.id)
+    .eq("request_status", "APPROVED")
+    .eq("status", "ACTIVE");
+  if ((count ?? 0) >= cls.capacity_max) {
+    return { success: false, message: "Kelas ini udah penuh, ga bisa approve lagi." };
+  }
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({
+      request_status: "APPROVED",
+      status: "ACTIVE",
+      reviewed_by_name: ctx.fullName,
+      rejection_note: null,
+    })
+    .eq("id", enrollmentId);
+  if (error) return { success: false, message: error.message };
+
+  if (cls.class_type === "REGULAR") {
+    await supabase
+      .from("students")
+      .update({
+        class_id: cls.id,
+        class_name: cls.name,
+        teacher_name: cls.teacher_name,
+      })
+      .eq("id", enrollment.student_id);
+  }
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/", "layout");
-  return { success: true, message: `Berhasil join ${cls.name}!` };
+  return { success: true, message: `Request join ${cls.name} disetujui.` };
+}
+
+export async function rejectJoinRequest(enrollmentId: string, note: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa tolak request join." };
+  }
+
+  const cleanedNote = note.trim();
+  if (!cleanedNote) {
+    return { success: false, message: "Kasih catatan alasan penolakan dulu buat Murid." };
+  }
+
+  const supabase = await createClient();
+  const { data: enrollment } = await supabase
+    .from("enrollments")
+    .select("id, request_status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+  if (!enrollment) return { success: false, message: "Request tidak ditemukan." };
+  if (enrollment.request_status !== "PENDING") {
+    return { success: false, message: "Request ini udah diproses sebelumnya." };
+  }
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({
+      request_status: "REJECTED",
+      status: "CANCELLED",
+      rejection_note: cleanedNote,
+      reviewed_by_name: ctx.fullName,
+    })
+    .eq("id", enrollmentId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Request join ditolak." };
 }
 
 export async function getCommissionTiers(): Promise<CommissionTier[]> {

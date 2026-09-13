@@ -58,6 +58,7 @@ type FormState = {
   price: string;
   sessionsCount: string;
   goalTags: string[];
+  classType: "REGULAR" | "SEMINAR";
 };
 
 const EMPTY_FORM: FormState = {
@@ -74,6 +75,7 @@ const EMPTY_FORM: FormState = {
   price: "",
   sessionsCount: "4",
   goalTags: [],
+  classType: "REGULAR",
 };
 
 function cardToForm(c: ClassCard): FormState {
@@ -91,6 +93,7 @@ function cardToForm(c: ClassCard): FormState {
     price: c.price ? String(c.price) : "",
     sessionsCount: c.sessions_count ? String(c.sessions_count) : "",
     goalTags: c.goal_tags || [],
+    classType: c.class_type || "REGULAR",
   };
 }
 
@@ -207,6 +210,7 @@ export default function TeacherClassCards({
             : "Jadwal belum diatur"}
           {" · "}Kuota {c.capacity_max}
           {c.is_private ? " · Privat" : ""}
+          {c.class_type === "SEMINAR" ? " · Seminar" : ""}
         </p>
         {c.start_date && (
           <p className="text-xs text-bmos-text-light">
@@ -484,6 +488,31 @@ export default function TeacherClassCards({
                 </select>
                 <p className="text-xs text-bmos-text-light mt-1">
                   Private = kuota 1-3 murid. Umum = kuota 4 murid ke atas.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Format Kelas
+                </label>
+                <select
+                  value={form.classType}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      classType: e.target.value === "SEMINAR" ? "SEMINAR" : "REGULAR",
+                    }))
+                  }
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                >
+                  <option value="REGULAR">Reguler (kelas mingguan berkelanjutan)</option>
+                  <option value="SEMINAR">Seminar / Sekali Pertemuan</option>
+                </select>
+                <p className="text-xs text-bmos-text-light mt-1">
+                  Reguler: Murid cuma bisa aktif di 1 kelas Reguler dalam
+                  satu waktu (kayak sebelumnya). Seminar: Murid boleh join
+                  beberapa Seminar sekaligus, asal jadwalnya ga bentrok
+                  jam sama kelas aktif Murid yang lain.
                 </p>
               </div>
 

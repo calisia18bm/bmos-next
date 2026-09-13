@@ -8,9 +8,12 @@ import OwnerApprovalQueue from "./OwnerApprovalQueue";
 import {
   getCommissionTiers,
   getGoalTags,
+  getMyClassEnrollments,
+  getPendingJoinRequests,
   getRegistrationFormUrl,
   markClassCardsSeen,
 } from "./actions";
+import JoinRequestsQueue from "./JoinRequestsQueue";
 import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
@@ -134,7 +137,7 @@ export default async function ClassCardsPage({
       );
     }
 
-    const [{ data: cards }, { data: me }, registrationFormUrl] = await Promise.all([
+    const [{ data: cards }, myEnrollments, registrationFormUrl] = await Promise.all([
       supabase
         .from("classes")
         .select("*")
@@ -142,27 +145,29 @@ export default async function ClassCardsPage({
         .eq("active", true)
         .not("created_by_teacher_id", "is", null)
         .order("created_at", { ascending: false }),
-      previewAsStudent
-        ? Promise.resolve({ data: null })
-        : supabase
-            .from("students")
-            .select("class_id")
-            .eq("id", profile.student_id!)
-            .maybeSingle(),
+      previewAsStudent ? Promise.resolve([]) : getMyClassEnrollments(),
       getRegistrationFormUrl(),
     ]);
 
+    // Kuota per kelas sekarang dihitung dari enrollments (request_status
+    // APPROVED + status ACTIVE) -- bukan dari students.class_id lagi,
+    // soalnya students.class_id cuma kepake buat kelas REGULAR (lihat
+    // approveJoinRequest() di actions.ts). Kalau cuma ngandelin
+    // students.class_id, Murid yang join Seminar ga bakal kehitung.
     const classIds = (cards ?? []).map((c) => c.id);
-    const { data: studentsInClasses } = classIds.length
-      ? await supabase.from("students").select("class_id").in("class_id", classIds)
+    const { data: approvedEnrollments } = classIds.length
+      ? await supabase
+          .from("enrollments")
+          .select("class_id")
+          .in("class_id", classIds)
+          .eq("request_status", "APPROVED")
+          .eq("status", "ACTIVE")
       : { data: [] };
     const countByClass = new Map<string, number>();
-    (studentsInClasses ?? []).forEach((s) => {
-      if (!s.class_id) return;
-      countByClass.set(s.class_id, (countByClass.get(s.class_id) ?? 0) + 1);
+    (approvedEnrollments ?? []).forEach((e) => {
+      if (!e.class_id) return;
+      countByClass.set(e.class_id, (countByClass.get(e.class_id) ?? 0) + 1);
     });
-
-    const alreadyHasClass = previewAsStudent ? false : !!me?.class_id;
 
     return (
       <div>
@@ -184,7 +189,7 @@ export default async function ClassCardsPage({
         <StudentClassBrowse
           cards={(cards ?? []) as ClassCard[]}
           countByClass={Object.fromEntries(countByClass)}
-          alreadyHasClass={alreadyHasClass}
+          myEnrollments={myEnrollments}
           disabled={previewAsStudent}
           registrationFormUrl={registrationFormUrl}
         />
@@ -194,16 +199,18 @@ export default async function ClassCardsPage({
 
   // ===== OWNER/ADMIN: approval queue + pantau semua kartu kelas =====
   if (isStaff) {
-    const [{ data: cards }, tiers, goalTags, registrationFormUrl] = await Promise.all([
-      supabase
-        .from("classes")
-        .select("*")
-        .not("created_by_teacher_id", "is", null)
-        .order("created_at", { ascending: false }),
-      getCommissionTiers(),
-      getGoalTags(),
-      getRegistrationFormUrl(),
-    ]);
+    const [{ data: cards }, tiers, goalTags, registrationFormUrl, joinRequests] =
+      await Promise.all([
+        supabase
+          .from("classes")
+          .select("*")
+          .not("created_by_teacher_id", "is", null)
+          .order("created_at", { ascending: false }),
+        getCommissionTiers(),
+        getGoalTags(),
+        getRegistrationFormUrl(),
+        getPendingJoinRequests(),
+      ]);
 
     return (
       <div>
@@ -217,6 +224,7 @@ export default async function ClassCardsPage({
           Kartu kelas yang disubmit Laoshi -- approve biar tayang di
           Classes & bisa dipilih Murid.
         </p>
+        <JoinRequestsQueue requests={joinRequests} />
         <OwnerApprovalQueue
           cards={(cards ?? []) as ClassCard[]}
           tiers={tiers}

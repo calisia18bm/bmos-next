@@ -34,6 +34,13 @@ export const DEFAULT_GOAL_TAGS = [
 
 export type ClassCardStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 
+// REGULAR = kelas mingguan biasa, tetap cuma boleh 1 slot aktif per Murid
+// (kayak sebelumnya). SEMINAR = kelas sekali pertemuan/short course --
+// Murid boleh join lebih dari 1 Seminar sekaligus, asal jadwalnya ga
+// bentrok jam sama kelas aktif Murid yang lain (lihat hasScheduleConflict
+// di app/(app)/class-cards/actions.ts).
+export type ClassType = "REGULAR" | "SEMINAR";
+
 export type ClassCard = {
   id: string;
   class_code: string;
@@ -41,6 +48,7 @@ export type ClassCard = {
   description: string | null;
   teacher_id: string | null;
   teacher_name: string | null;
+  class_type: ClassType;
   created_by_teacher_id: string | null;
   day_of_week: string | null;
   start_time: string | null;
