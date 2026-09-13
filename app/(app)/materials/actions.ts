@@ -20,8 +20,13 @@ async function getCallerContext() {
   };
 }
 
-// Laoshi cuma boleh upload ke kelas yang dia ajar sendiri. Owner/Admin
-// boleh upload ke kelas mana aja.
+// Cuma Owner/Admin yang boleh upload materi langsung ke kelas -- Laoshi
+// SUDAH GA BISA upload materi sendiri lagi (baik langsung ke kelas,
+// maupun submit draft ke Admin, lihat submitTeacherResourceDraft di
+// bawah). Alur baru: Admin/Owner upload bahan ajar berbayar/gratis ke
+// teacher_resources, Laoshi beli (kalau berbayar), abis itu Admin/Owner
+// yang "Kirim ke Murid" -- itu yang bikin baris baru di tabel materials
+// ini (lihat sendResourceToClasses di bawah).
 export async function createMaterial(input: {
   classId: string;
   title: string;
@@ -34,10 +39,13 @@ export async function createMaterial(input: {
   if (!ctx) return { success: false, message: "Belum login." };
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
-  const isTeacher = ctx.roles.includes("TEACHER");
 
-  if (!isStaff && !isTeacher) {
-    return { success: false, message: "Kamu ga punya akses upload materi." };
+  if (!isStaff) {
+    return {
+      success: false,
+      message:
+        "Laoshi sudah ga bisa upload materi sendiri lagi -- materi sekarang dikirim otomatis sama Admin/Owner setelah beli bahan ajar.",
+    };
   }
 
   const supabase = await createClient();
@@ -50,21 +58,14 @@ export async function createMaterial(input: {
 
   if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
 
-  if (!isStaff && cls.teacher_id !== ctx.teacherId) {
-    return {
-      success: false,
-      message: "Kamu cuma bisa upload materi ke kelas yang kamu ajar.",
-    };
-  }
-
   const title = input.title.trim();
   if (!title) return { success: false, message: "Judul materi wajib diisi." };
 
   const { error } = await supabase.from("materials").insert({
     class_id: cls.id,
     class_name: cls.name,
-    teacher_id: isTeacher ? ctx.teacherId : cls.teacher_id,
-    teacher_name: isTeacher ? ctx.fullName : cls.teacher_name,
+    teacher_id: cls.teacher_id,
+    teacher_name: cls.teacher_name,
     title,
     description: input.description.trim() || null,
     file_url: input.fileUrl,
@@ -93,10 +94,8 @@ export async function deleteMaterial(id: string) {
   if (!material) return { success: false, message: "Materi tidak ditemukan." };
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
-  const isOwnUpload =
-    ctx.roles.includes("TEACHER") && material.teacher_id === ctx.teacherId;
 
-  if (!isStaff && !isOwnUpload) {
+  if (!isStaff) {
     return { success: false, message: "Kamu ga punya akses hapus materi ini." };
   }
 
@@ -160,55 +159,33 @@ export async function createTeacherResource(input: {
 }
 
 // ============================================================
-// Submit Materi dari Laoshi -> direview Admin/Owner -> dipublish balik
-// jadi PDF di teacher_resources (bisa dipakai SEMUA Laoshi).
+// [DIHENTIKAN] Dulu Laoshi bisa submit draft materi buat direview Admin.
+// Sekarang semua bahan ajar HARUS diupload langsung sama Admin/Owner
+// (createTeacherResource di atas) -- Laoshi cuma bisa beli & pake, ga
+// bisa upload/submit apa-apa lagi. Fungsi ini sengaja dibiarin ada
+// (bukan dihapus) supaya kalau ada kode lama yang masih manggil ini
+// (cache client lama dll) dapet pesan yang jelas, bukan error nyasar.
+// Submission LAMA yang statusnya masih PENDING tetap bisa direview
+// Admin/Owner seperti biasa lewat approveTeacherResourceSubmission /
+// rejectTeacherResourceSubmission di bawah.
 // ============================================================
-export async function submitTeacherResourceDraft(input: {
+export async function submitTeacherResourceDraft(_input: {
   title: string;
   description: string;
   fileUrl: string;
   fileName: string;
   filePath: string;
 }) {
-  const ctx = await getCallerContext();
-  if (!ctx) return { success: false, message: "Belum login." };
-
-  const isTeacher = ctx.roles.includes("TEACHER");
-  if (!isTeacher) {
-    return { success: false, message: "Cuma Laoshi yang bisa submit materi buat direview." };
-  }
-  if (!ctx.teacherId) {
-    return {
-      success: false,
-      message: "Akun belum selesai diverifikasi, hubungi admin.",
-    };
-  }
-
-  const title = input.title.trim();
-  if (!title) return { success: false, message: "Judul materi wajib diisi." };
-  if (!input.fileUrl) return { success: false, message: "File materi wajib diupload." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("teacher_resource_submissions").insert({
-    teacher_id: ctx.teacherId,
-    teacher_name: ctx.fullName,
-    title,
-    description: input.description.trim() || null,
-    submitted_file_url: input.fileUrl,
-    submitted_file_name: input.fileName,
-    submitted_file_path: input.filePath,
-    status: "PENDING",
-  });
-
-  if (error) return { success: false, message: error.message };
-
-  revalidatePath("/materials", "layout");
-  return { success: true, message: "Materi berhasil disubmit, menunggu review Admin/Owner." };
+  return {
+    success: false,
+    message:
+      "Fitur submit materi oleh Laoshi sudah ga ada lagi -- bahan ajar sekarang diupload langsung sama Admin/Owner.",
+  };
 }
 
-// Owner/Admin approve submission -- WAJIB upload versi PDF final, yang
-// otomatis dipublish ke teacher_resources (jadi bisa dipakai semua Laoshi,
-// bukan cuma yang submit).
+// Owner/Admin approve submission LAMA (peninggalan sebelum fitur submit
+// Laoshi dihentikan) -- WAJIB upload versi PDF final, yang otomatis
+// dipublish ke teacher_resources (jadi bisa dipakai semua Laoshi).
 export async function approveTeacherResourceSubmission(
   submissionId: string,
   input: {
@@ -564,4 +541,196 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
 
   revalidatePath("/materials", "layout");
   return { success: true, message: "Request beli ditolak." };
+}
+
+// ============================================================
+// Kirim Bahan Ajar (yang udah dibeli Laoshi) ke Murid -- Admin/Owner
+// pilih kelas Laoshi yang mana aja (bisa lebih dari 1, Laoshi yang sama
+// bisa dipake di beberapa kelas dia), materinya otomatis nongol di
+// halaman Materi murid-murid kelas itu (nulis ke tabel `materials`,
+// tabel yang sama yang dipakai murid buat lihat materi kelas). Ga ada
+// status "kelas selesai" atau apapun -- Admin bisa kirim kapan aja.
+// ============================================================
+
+export type ResourceDeliveryClass = {
+  classId: string;
+  className: string;
+  alreadySent: boolean;
+};
+
+export type ResourceDelivery = {
+  purchaseId: string;
+  resourceId: string;
+  resourceTitle: string;
+  resourceDescription: string | null;
+  fileUrl: string;
+  fileName: string | null;
+  teacherId: string;
+  teacherName: string;
+  classes: ResourceDeliveryClass[];
+};
+
+// Daftar bahan ajar yang udah APPROVED dibeli Laoshi, lengkap sama daftar
+// kelas Laoshi itu (buat Admin milih mau dikirim ke kelas mana) dan
+// status "udah pernah dikirim" per kelas (biar Admin ga dobel-kirim
+// tanpa sadar, tapi tetap bisa kalau emang mau).
+export async function getResourceDeliveries(): Promise<ResourceDelivery[]> {
+  const ctx = await getCallerContext();
+  if (!ctx) return [];
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return [];
+
+  const supabase = await createClient();
+
+  const { data: purchases } = await supabase
+    .from("teacher_resource_purchases")
+    .select(
+      "id, teacher_id, resource_id, teachers:teacher_id (name), teacher_resources:resource_id (title, description, pdf_file_url, pdf_file_name)"
+    )
+    .eq("request_status", "APPROVED")
+    .order("requested_at", { ascending: false });
+
+  const rows = (purchases ?? []) as any[];
+  if (rows.length === 0) return [];
+
+  const teacherIds = Array.from(new Set(rows.map((r) => r.teacher_id).filter(Boolean)));
+
+  const [{ data: classes }, { data: existingMaterials }] = await Promise.all([
+    teacherIds.length
+      ? supabase
+          .from("classes")
+          .select("id, name, teacher_id")
+          .in("teacher_id", teacherIds)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+    teacherIds.length
+      ? supabase
+          .from("materials")
+          .select("class_id, teacher_id, file_url")
+          .in("teacher_id", teacherIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const classesByTeacher = new Map<string, { id: string; name: string }[]>();
+  for (const c of classes ?? []) {
+    const list = classesByTeacher.get(c.teacher_id) ?? [];
+    list.push({ id: c.id, name: c.name });
+    classesByTeacher.set(c.teacher_id, list);
+  }
+
+  const sentSet = new Set(
+    (existingMaterials ?? []).map((m) => `${m.teacher_id}|${m.class_id}|${m.file_url}`)
+  );
+
+  return rows
+    .filter((r) => r.teacher_resources && r.teachers)
+    .map((r) => {
+      const fileUrl = r.teacher_resources.pdf_file_url as string;
+      const classesForTeacher = classesByTeacher.get(r.teacher_id) ?? [];
+      return {
+        purchaseId: r.id,
+        resourceId: r.resource_id,
+        resourceTitle: r.teacher_resources.title,
+        resourceDescription: r.teacher_resources.description,
+        fileUrl,
+        fileName: r.teacher_resources.pdf_file_name,
+        teacherId: r.teacher_id,
+        teacherName: r.teachers.name ?? "-",
+        classes: classesForTeacher.map((c) => ({
+          classId: c.id,
+          className: c.name,
+          alreadySent: sentSet.has(`${r.teacher_id}|${c.id}|${fileUrl}`),
+        })),
+      };
+    });
+}
+
+// Admin/Owner kirim 1 bahan ajar (yang udah dibeli & APPROVED) ke murid
+// di kelas-kelas yang dipilih. Kelas WAJIB kelas Laoshi yang bersangkutan
+// (dicek server-side, bukan cuma dari UI) -- kelas yang udah pernah
+// dikirimin bahan ajar yang sama dilewatin otomatis, ga bikin dobel.
+export async function sendResourceToClasses(purchaseId: string, classIds: string[]) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa kirim materi ke murid." };
+  }
+
+  const cleanedClassIds = Array.from(new Set(classIds.filter(Boolean)));
+  if (cleanedClassIds.length === 0) {
+    return { success: false, message: "Pilih minimal 1 kelas dulu." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: purchase } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id, teacher_id, resource_id, request_status")
+    .eq("id", purchaseId)
+    .maybeSingle();
+  if (!purchase) return { success: false, message: "Data pembelian tidak ditemukan." };
+  if (purchase.request_status !== "APPROVED") {
+    return { success: false, message: "Bahan ajar ini belum di-approve pembeliannya." };
+  }
+
+  const [{ data: resource }, { data: teacher }, { data: classes }] = await Promise.all([
+    supabase
+      .from("teacher_resources")
+      .select("title, description, pdf_file_url, pdf_file_name")
+      .eq("id", purchase.resource_id)
+      .maybeSingle(),
+    supabase.from("teachers").select("name").eq("id", purchase.teacher_id).maybeSingle(),
+    supabase
+      .from("classes")
+      .select("id, name")
+      .in("id", cleanedClassIds)
+      .eq("teacher_id", purchase.teacher_id),
+  ]);
+
+  if (!resource) return { success: false, message: "Bahan ajar tidak ditemukan." };
+  if (!classes || classes.length === 0) {
+    return {
+      success: false,
+      message: "Kelas yang dipilih tidak valid buat Laoshi ini.",
+    };
+  }
+
+  const { data: existingMaterials } = await supabase
+    .from("materials")
+    .select("class_id")
+    .eq("teacher_id", purchase.teacher_id)
+    .eq("file_url", resource.pdf_file_url)
+    .in(
+      "class_id",
+      classes.map((c) => c.id)
+    );
+
+  const alreadySentClassIds = new Set((existingMaterials ?? []).map((m) => m.class_id));
+  const classesToSend = classes.filter((c) => !alreadySentClassIds.has(c.id));
+
+  if (classesToSend.length === 0) {
+    return {
+      success: false,
+      message: "Semua kelas yang dipilih udah pernah dikirimin bahan ajar ini.",
+    };
+  }
+
+  const rowsToInsert = classesToSend.map((c) => ({
+    class_id: c.id,
+    class_name: c.name,
+    teacher_id: purchase.teacher_id,
+    teacher_name: teacher?.name ?? null,
+    title: resource.title,
+    description: resource.description,
+    file_url: resource.pdf_file_url,
+    file_name: resource.pdf_file_name,
+  }));
+
+  const { error } = await supabase.from("materials").insert(rowsToInsert);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/materials", "layout");
+  return {
+    success: true,
+    message: `Materi terkirim ke ${classesToSend.length} kelas.`,
+  };
 }

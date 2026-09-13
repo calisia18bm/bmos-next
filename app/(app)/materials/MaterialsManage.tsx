@@ -20,20 +20,24 @@ type Material = {
   created_at: string;
 };
 
-// Dipakai buat Laoshi (upload ke kelas dia sendiri) & Owner/Admin (upload
-// ke kelas mana aja, bisa hapus punya siapapun). Bedanya cuma dari props
-// `classes` (Laoshi cuma dikasih kelas dia) dan `isStaff` (ngatur siapa
-// yang boleh hapus punya orang lain).
+// Dipakai buat Owner/Admin (upload materi langsung ke kelas mana aja +
+// hapus). Laoshi SUDAH GA BISA upload materi sendiri lagi -- di halaman
+// Laoshi komponen ini dipakai dengan readOnly=true, jadi cuma nampilin
+// daftar materi yang udah dikirim ke kelas dia (dari bahan ajar yang dia
+// beli, dikirim Admin/Owner lewat ResourceDeliveryQueue), tanpa form
+// upload atau tombol hapus sama sekali.
 export default function MaterialsManage({
   classes,
   materials,
   isStaff,
   myTeacherId,
+  readOnly = false,
 }: {
   classes: ClassOption[];
   materials: Material[];
   isStaff: boolean;
   myTeacherId: string | null;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [classId, setClassId] = useState(classes[0]?.id || "");
@@ -113,96 +117,106 @@ export default function MaterialsManage({
   }
 
   function canDelete(m: Material) {
+    if (readOnly) return false;
     return isStaff || (myTeacherId && m.teacher_id === myTeacherId);
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-bmos-border rounded-2xl p-6">
-        <h2 className="font-bold text-bmos-text text-lg mb-1">
-          Upload Materi Baru
-        </h2>
-        <p className="text-xs text-bmos-text-light mb-4">
-          File akan langsung bisa dilihat/didownload murid di kelas yang
-          dipilih.
-        </p>
-
-        {classes.length === 0 ? (
-          <p className="text-sm text-bmos-text-light">
-            Belum ada kelas yang bisa diupload materinya.
+      {!readOnly && (
+        <div className="bg-white border border-bmos-border rounded-2xl p-6">
+          <h2 className="font-bold text-bmos-text text-lg mb-1">
+            Upload Materi Baru
+          </h2>
+          <p className="text-xs text-bmos-text-light mb-4">
+            File akan langsung bisa dilihat/didownload murid di kelas yang
+            dipilih.
           </p>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <select
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-            >
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Judul materi"
-              required
-              className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Keterangan (opsional)"
-              rows={2}
-              className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-            />
-            <div>
-              <label className="block text-sm font-medium text-bmos-text mb-1">
-                File Materi
-              </label>
-              <label
-                htmlFor="material-file-input"
-                className="flex items-center gap-3 border border-dashed border-bmos-border rounded-xl px-4 py-3 cursor-pointer hover:border-bmos-primary-light hover:bg-bmos-primary-soft/40 transition"
+
+          {classes.length === 0 ? (
+            <p className="text-sm text-bmos-text-light">
+              Belum ada kelas yang bisa diupload materinya.
+            </p>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
               >
-                <span className="shrink-0 bg-bmos-primary text-white text-xs font-semibold rounded-lg px-3 py-1.5">
-                  Pilih File
-                </span>
-                <span className="text-sm text-bmos-text-light truncate">
-                  {file ? file.name : "Belum ada file dipilih"}
-                </span>
-              </label>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
               <input
-                id="material-file-input"
-                type="file"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Judul materi"
                 required
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="hidden"
+                className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
               />
-            </div>
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={uploading}
-                className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
-              >
-                {uploading ? "Mengupload..." : "Upload"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Keterangan (opsional)"
+                rows={2}
+                className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+              />
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  File Materi
+                </label>
+                <label
+                  htmlFor="material-file-input"
+                  className="flex items-center gap-3 border border-dashed border-bmos-border rounded-xl px-4 py-3 cursor-pointer hover:border-bmos-primary-light hover:bg-bmos-primary-soft/40 transition"
+                >
+                  <span className="shrink-0 bg-bmos-primary text-white text-xs font-semibold rounded-lg px-3 py-1.5">
+                    Pilih File
+                  </span>
+                  <span className="text-sm text-bmos-text-light truncate">
+                    {file ? file.name : "Belum ada file dipilih"}
+                  </span>
+                </label>
+                <input
+                  id="material-file-input"
+                  type="file"
+                  required
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
+                >
+                  {uploading ? "Mengupload..." : "Upload"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       <div className="bg-white border border-bmos-border rounded-2xl p-6">
         <h2 className="font-bold text-bmos-text text-lg mb-4">
-          Materi Terupload
+          {readOnly ? "Materi buat Murid" : "Materi Terupload"}
         </h2>
+        {readOnly && (
+          <p className="text-xs text-bmos-text-light mb-4">
+            Ini materi yang udah dikirim Admin/Owner ke kelas kamu (dari
+            bahan ajar yang kamu beli) -- murid di kelas ini udah bisa
+            lihat & download.
+          </p>
+        )}
 
         {materials.length === 0 ? (
           <p className="text-sm text-bmos-text-light text-center py-8">

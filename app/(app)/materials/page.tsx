@@ -4,9 +4,13 @@ import { redirect } from "next/navigation";
 import MaterialsManage from "./MaterialsManage";
 import TeacherResourceManage from "./TeacherResourceManage";
 import TeacherResourceList from "./TeacherResourceList";
-import TeacherResourceSubmit from "./TeacherResourceSubmit";
 import ResourcePurchaseQueue from "./ResourcePurchaseQueue";
-import { getMyResourcePurchases, getPendingResourcePurchases } from "./actions";
+import ResourceDeliveryQueue from "./ResourceDeliveryQueue";
+import {
+  getMyResourcePurchases,
+  getPendingResourcePurchases,
+  getResourceDeliveries,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +40,13 @@ type SubmissionRow = {
 // login dengan role sendiri, bukan lewat query param ini. Server action
 // upload/hapus (actions.ts) juga selalu ngecek role asli si pengguna, jadi
 // preview ini ga bisa disalahgunakan buat beneran upload sebagai Murid.
+//
+// Catatan penting: Laoshi SUDAH GA BISA upload/submit materi sendiri lagi
+// (baik langsung ke kelas, maupun submit draft ke Admin) -- semua bahan
+// ajar diupload Admin/Owner (lihat TeacherResourceManage), Laoshi cuma
+// beli & pake (TeacherResourceList), abis itu Admin/Owner yang "kirim ke
+// murid" (ResourceDeliveryQueue) yang bikin materinya nongol di halaman
+// Materi murid. Jadi tampilan Laoshi di sini murni read-only.
 export default async function MaterialsPage({
   searchParams,
 }: {
@@ -164,8 +175,9 @@ export default async function MaterialsPage({
     );
   }
 
-  // ===== LAOSHI: upload/hapus materi ke kelas dia sendiri =====
-  // (atau Owner/Admin lagi preview tampilan Laoshi)
+  // ===== LAOSHI: read-only -- lihat materi yang udah dikirim Admin ke
+  // kelas dia, & bahan ajar yang bisa dibeli. GA BISA upload/submit materi
+  // sendiri lagi (atau Owner/Admin lagi preview tampilan Laoshi) =====
   if ((isTeacher && !isStaff) || previewAsTeacher) {
     if (!previewAsTeacher && !profile.teacher_id) {
       return (
@@ -193,32 +205,22 @@ export default async function MaterialsPage({
     // kolom pdf_file_* + price -- kolom original_file_* (file asli PPT/dll)
     // ga pernah ikut ke-fetch buat role Laoshi, jadi ga ada cara halaman
     // ini ngasih akses ke file aslinya walau nge-inspect response sekalipun.
-    const [{ data: materials }, { data: resources }, { data: mySubmissions }, myPurchases] =
-      await Promise.all([
-        classIds.length
-          ? supabase
-              .from("materials")
-              .select(
-                "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
-              )
-              .in("class_id", classIds)
-              .order("created_at", { ascending: false })
-          : Promise.resolve({ data: [] }),
-        supabase
-          .from("teacher_resources")
-          .select("id, title, description, pdf_file_url, pdf_file_name, price, created_at")
-          .order("created_at", { ascending: false }),
-        previewAsTeacher
-          ? Promise.resolve({ data: [] as SubmissionRow[] })
-          : supabase
-              .from("teacher_resource_submissions")
-              .select(
-                "id, title, description, submitted_file_url, submitted_file_name, status, rejection_note, created_at"
-              )
-              .eq("teacher_id", profile.teacher_id!)
-              .order("created_at", { ascending: false }),
-        previewAsTeacher ? Promise.resolve([]) : getMyResourcePurchases(),
-      ]);
+    const [{ data: materials }, { data: resources }, myPurchases] = await Promise.all([
+      classIds.length
+        ? supabase
+            .from("materials")
+            .select(
+              "id, class_id, class_name, teacher_id, teacher_name, title, description, file_url, file_name, created_at"
+            )
+            .in("class_id", classIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("teacher_resources")
+        .select("id, title, description, pdf_file_url, pdf_file_name, price, created_at")
+        .order("created_at", { ascending: false }),
+      previewAsTeacher ? Promise.resolve([]) : getMyResourcePurchases(),
+    ]);
 
     return (
       <div>
@@ -230,22 +232,19 @@ export default async function MaterialsPage({
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Materi</h1>
         {previewAsTeacher && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
-            👁️ Preview tampilan Laoshi -- upload/hapus di sini tetap
-            beneran kesimpen (login-nya tetap sebagai kamu), cuma buat
-            liat tampilannya aja.
+            👁️ Preview tampilan Laoshi -- ini yang beneran dilihat akun
+            Laoshi (ga ada tombol upload, Laoshi cuma beli & pake bahan
+            ajar dari Admin/Owner).
           </div>
         )}
         <div className="space-y-6">
           <TeacherResourceList resources={resources ?? []} myPurchases={myPurchases} />
-          <TeacherResourceSubmit
-            submissions={mySubmissions ?? []}
-            disabled={previewAsTeacher}
-          />
           <MaterialsManage
             classes={classes ?? []}
             materials={materials ?? []}
-            isStaff={previewAsTeacher}
-            myTeacherId={previewAsTeacher ? null : profile.teacher_id}
+            isStaff={false}
+            myTeacherId={null}
+            readOnly
           />
         </div>
       </div>
@@ -260,6 +259,7 @@ export default async function MaterialsPage({
       { data: resources },
       { data: submissions },
       pendingPurchases,
+      deliveries,
     ] = await Promise.all([
       supabase.from("classes").select("id, name").order("name"),
       supabase
@@ -277,8 +277,10 @@ export default async function MaterialsPage({
         .select(
           "id, teacher_name, title, description, submitted_file_url, submitted_file_name, status, rejection_note, created_at"
         )
+        .eq("status", "PENDING")
         .order("created_at", { ascending: false }),
       getPendingResourcePurchases(),
+      getResourceDeliveries(),
     ]);
 
     return (
@@ -288,8 +290,12 @@ export default async function MaterialsPage({
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">Materi</h1>
         <div className="space-y-8">
+          <ResourceDeliveryQueue deliveries={deliveries} />
           <ResourcePurchaseQueue requests={pendingPurchases} />
-          <TeacherResourceManage resources={resources ?? []} submissions={submissions ?? []} />
+          <TeacherResourceManage
+            resources={resources ?? []}
+            submissions={(submissions ?? []) as SubmissionRow[]}
+          />
           <div>
             <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-3">
               Materi per Kelas
