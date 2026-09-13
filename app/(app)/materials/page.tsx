@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 type SubmissionRow = {
   id: string;
-  teacher_name?: string | null;
+  teacher_name: string | null;
   title: string;
   description: string | null;
   submitted_file_url: string;
