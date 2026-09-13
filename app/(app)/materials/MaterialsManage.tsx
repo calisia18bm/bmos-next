@@ -20,11 +20,11 @@ type Material = {
   created_at: string;
 };
 
-// Dipakai buat BM (upload materi langsung ke kelas mana aja +
+// Dipakai buat Owner/Admin (upload materi langsung ke kelas mana aja +
 // hapus). Laoshi SUDAH GA BISA upload materi sendiri lagi -- di halaman
 // Laoshi komponen ini dipakai dengan readOnly=true, jadi cuma nampilin
 // daftar materi yang udah dikirim ke kelas dia (dari bahan ajar yang dia
-// beli, dikirim BM lewat ResourceDeliveryQueue), tanpa form
+// beli, dikirim Admin/Owner lewat ResourceDeliveryQueue), tanpa form
 // upload atau tombol hapus sama sekali.
 export default function MaterialsManage({
   classes,
@@ -212,7 +212,7 @@ export default function MaterialsManage({
         </h2>
         {readOnly && (
           <p className="text-xs text-bmos-text-light mb-4">
-            Ini materi yang udah dikirim BM ke kelas kamu (dari
+            Ini materi yang udah dikirim Admin/Owner ke kelas kamu (dari
             bahan ajar yang kamu beli) -- murid di kelas ini udah bisa
             lihat & download.
           </p>
@@ -227,9 +227,9 @@ export default function MaterialsManage({
             {materials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-start justify-between border-b border-bmos-border last:border-0 pb-3 last:pb-0"
+                className="flex items-start justify-between gap-3 border border-bmos-border bg-bmos-primary-soft/20 rounded-xl p-4"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-bmos-text">
                     {m.title}
                   </p>
@@ -246,7 +246,7 @@ export default function MaterialsManage({
                     href={m.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-bmos-primary hover:underline mt-1 inline-block"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-bmos-primary rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light transition mt-2"
                   >
                     📎 {m.file_name || "Buka file"}
                   </a>

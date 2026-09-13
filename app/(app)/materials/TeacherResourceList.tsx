@@ -10,6 +10,11 @@
 // SENGAJA dibikin beda visual (badge kuning/amber "Berbayar", bukan ungu
 // kayak badge Seminar di Class Card) biar Laoshi ga ketuker sama fitur
 // Join Kelas.
+//
+// Tiap bahan ajar ditampilin sebagai kotak/card sendiri-sendiri (bukan
+// cuma list bergaris) biar jelas kelihatan mana yang GRATIS (langsung
+// bisa diklik & download) vs BERBAYAR (kotak kuning, ada tombol "Beli
+// PPT Ini" -- baru bisa download setelah BM approve bukti transfernya).
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -145,10 +150,9 @@ export default function TeacherResourceList({
         Bahan Ajar dari BM
       </h2>
       <p className="text-xs text-bmos-text-light mb-4">
-        Cuma bisa dilihat/didownload dalam bentuk PDF -- dipakai sebagai
-        bahan ngajar ke Murid. Beberapa bahan ajar berbayar (ditandai
-        badge kuning) -- perlu transfer & upload bukti dulu sebelum bisa
-        didownload.
+        Yang kotaknya putih polos = GRATIS, langsung klik buat buka/download.
+        Yang kotaknya kuning = BERBAYAR, transfer &amp; upload bukti dulu,
+        baru bisa download setelah BM approve.
       </p>
 
       {resources.length === 0 ? (
@@ -161,24 +165,46 @@ export default function TeacherResourceList({
             const isPaid = !!r.price && r.price > 0;
             const purchase = isPaid ? purchaseFor(r.id) : undefined;
             const unlocked = !isPaid || purchase?.requestStatus === "APPROVED";
+            const isPending = isPaid && purchase?.requestStatus === "PENDING";
+            const isRejected = isPaid && purchase?.requestStatus === "REJECTED";
+
+            const cardStyle = !isPaid
+              ? "border-bmos-border bg-white"
+              : unlocked
+                ? "border-green-200 bg-green-50/50"
+                : isPending
+                  ? "border-yellow-200 bg-yellow-50/50"
+                  : "border-amber-200 bg-amber-50/60";
 
             return (
-              <div key={r.id} className="border-b border-bmos-border last:border-0 pb-3 last:pb-0">
-                <p className="text-sm font-semibold text-bmos-text flex items-center gap-1.5 flex-wrap">
-                  {r.title}
-                  {isPaid && (
-                    <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                      💰 Berbayar · {formatRupiah(r.price)}
-                    </span>
-                  )}
-                </p>
-                {r.description && (
-                  <p className="text-sm text-bmos-text-light mt-1">{r.description}</p>
-                )}
+              <div
+                key={r.id}
+                className={`border rounded-xl p-4 ${cardStyle}`}
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-bmos-text flex items-center gap-1.5 flex-wrap">
+                      {r.title}
+                      {!isPaid && (
+                        <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          🆓 Gratis
+                        </span>
+                      )}
+                      {isPaid && (
+                        <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                          💰 Berbayar · {formatRupiah(r.price)}
+                        </span>
+                      )}
+                    </p>
+                    {r.description && (
+                      <p className="text-sm text-bmos-text-light mt-1">{r.description}</p>
+                    )}
+                  </div>
+                </div>
 
                 {message?.id === r.id && (
                   <p
-                    className={`text-xs rounded-lg px-2.5 py-1.5 mt-1.5 ${
+                    className={`text-xs rounded-lg px-2.5 py-1.5 mt-2 ${
                       message.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
                     }`}
                   >
@@ -186,39 +212,41 @@ export default function TeacherResourceList({
                   </p>
                 )}
 
-                {unlocked ? (
-                  <a
-                    href={r.pdf_file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-bmos-primary hover:underline mt-1 inline-block"
-                  >
-                    📄 {r.pdf_file_name || "Buka PDF"}
-                  </a>
-                ) : (
-                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                    {purchase && purchase.requestStatus !== "REJECTED" ? (
-                      <span
-                        className={`text-[11px] font-semibold px-2 py-1 rounded-full ${STATUS_STYLE[purchase.requestStatus]}`}
-                      >
-                        {STATUS_LABEL[purchase.requestStatus]}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => openModal(r)}
-                        className="text-xs font-semibold text-white bg-amber-600 rounded-lg px-3 py-1.5 hover:bg-amber-700 transition"
-                      >
-                        💰 Beli PPT Ini
-                      </button>
-                    )}
-                    {purchase?.requestStatus === "REJECTED" && purchase.rejectionNote && (
-                      <span className="text-xs text-red-600">
-                        Ditolak: {purchase.rejectionNote}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div className="mt-2.5">
+                  {unlocked ? (
+                    <a
+                      href={r.pdf_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-bmos-primary rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light transition"
+                    >
+                      📄 {r.pdf_file_name || "Buka PDF"}
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isPending ? (
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-1 rounded-full ${STATUS_STYLE.PENDING}`}
+                        >
+                          {STATUS_LABEL.PENDING}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openModal(r)}
+                          className="text-xs font-semibold text-white bg-amber-600 rounded-lg px-3 py-1.5 hover:bg-amber-700 transition"
+                        >
+                          💰 Beli PPT Ini
+                        </button>
+                      )}
+                      {isRejected && purchase?.rejectionNote && (
+                        <span className="text-xs text-red-600">
+                          Ditolak: {purchase.rejectionNote}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
