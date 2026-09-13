@@ -8,7 +8,7 @@ import { CHARACTERS, getCharacterFile } from "@/lib/characters";
 // admin, owner) -- disimpan di user_profiles.character_key punya akun yang
 // lagi login, lewat updateMyCharacter. Ganti punya sendiri ga ngubah punya
 // orang lain. (Karakter di halaman Login itu BEDA -- itu tetap satu brand
-// global yang cuma Owner bisa atur, lihat settings/branding/actions.ts.)
+// global yang cuma BM bisa atur, lihat settings/branding/actions.ts.)
 import { updateMyCharacter } from "@/app/(app)/account/actions";
 
 export default function CharacterPicker({

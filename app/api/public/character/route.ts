@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // Endpoint publik (TANPA login) buat halaman Login -- biar logo di
 // halaman Login bisa nunjukkin karakter maskot yang sama kayak yang
-// dipilih Owner di sidebar (app_settings.global_character_key), tanpa
+// dipilih BM di sidebar (app_settings.global_character_key), tanpa
 // perlu buka akses RLS app_settings ke user anonim. Cuma balikin 1 field
 // doang (character key), ga ada data sensitif.
 export async function GET() {

@@ -22,7 +22,7 @@ export function getCharacterFile(key: string | null | undefined) {
 }
 
 // Semua elemen yang bisa muncul di banner dashboard Home (logo + karakter),
-// dipakai sbg katalog default buat halaman "Atur Banner". Owner bisa ubah
+// dipakai sbg katalog default buat halaman "Atur Banner". BM bisa ubah
 // ukuran & urutannya sendiri lewat halaman itu -- hasilnya disimpan di
 // app_settings.banner_layout (lihat database/add_banner_layout.sql).
 export type BannerItem = {
@@ -39,7 +39,7 @@ export type BannerItem = {
 
 // Susun posisi default buat item yang BELUM PERNAH digeser manual (belum
 // punya x/y tersimpan). Item yang UDAH punya x/y tersimpan (misal karakter
-// yang udah diatur Owner ke kanan-atas) sama sekali ga disentuh/dipindah.
+// yang udah diatur BM ke kanan-atas) sama sekali ga disentuh/dipindah.
 // Item baru yang belum pernah diatur (misal logo yang baru ditambah ke
 // katalog) ditaruh NEMPEL DI SEBELAH item yang udah ada posisinya -- biar
 // keliatan "gabung" ke baris yang sama, bukan nongol sendiri di pojok

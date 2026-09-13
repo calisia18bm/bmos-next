@@ -7,8 +7,8 @@ import EditAccountButton from "./EditAccountButton";
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
+  OWNER: "BM",
+  ADMIN: "BM",
   TEACHER: "Laoshi",
   STUDENT: "Murid",
 };
@@ -16,7 +16,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default async function AccountsPage() {
   const profile = await getCurrentProfile();
   // Pengelolaan akun (bikin/edit akun, reset password orang lain) cuma
-  // buat Owner -- Admin ga boleh lagi masuk ke sini.
+  // buat BM -- BM ga boleh lagi masuk ke sini.
   const canView = profile?.roles?.includes("OWNER") ?? false;
 
   if (!canView) {
@@ -60,7 +60,7 @@ export default async function AccountsPage() {
           </p>
           <h1 className="text-3xl font-extrabold text-bmos-text">Accounts</h1>
           <p className="text-bmos-text-light text-sm mt-1">
-            Kelola akun login BMOS untuk owner, admin, laoshi, dan murid.
+            Kelola akun login BMOS untuk BM, laoshi, dan murid.
           </p>
         </div>
         <AddAccountButton

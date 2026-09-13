@@ -18,9 +18,9 @@ import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
 
-// Sama kayak halaman Materi -- Owner/Admin liat SEMUA sudut pandang
-// (Murid/Laoshi/Admin) di akun mereka sendiri lewat query ?as=..., biar
-// gampang QA tanpa perlu akun terpisah. Murid/Laoshi asli (bukan Owner)
+// Sama kayak halaman Materi -- BM liat SEMUA sudut pandang
+// (Murid/Laoshi/BM) di akun mereka sendiri lewat query ?as=..., biar
+// gampang QA tanpa perlu akun terpisah. Murid/Laoshi asli (bukan BM)
 // yang buka /class-cards langsung dapet tampilan role mereka sendiri.
 export default async function ClassCardsPage({
   searchParams,
@@ -48,7 +48,7 @@ export default async function ClassCardsPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Class Card</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun kamu belum dihubungkan ke data Laoshi. Minta Owner buat
+            Akun kamu belum dihubungkan ke data Laoshi. Minta BM buat
             hubungkan lewat halaman Accounts.
           </div>
         </div>
@@ -75,7 +75,7 @@ export default async function ClassCardsPage({
       getGoalTags(),
     ]);
 
-    // Laoshi asli (bukan preview Owner) yang buka halaman ini -- tandain
+    // Laoshi asli (bukan preview BM) yang buka halaman ini -- tandain
     // semua kartu kelas dia sebagai "udah dilihat" statusnya yang
     // sekarang, biar kunjungan BERIKUTNYA baru ilang highlight/badge-nya.
     //
@@ -105,7 +105,7 @@ export default async function ClassCardsPage({
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Class Card</h1>
         <p className="text-bmos-text-light text-sm mb-6">
           Bikin kartu kelas sendiri (jadwal, harga, kuota, tujuan belajar),
-          submit buat di-approve Owner sebelum tayang buat Murid.
+          submit buat di-approve BM sebelum tayang buat Murid.
         </p>
         {previewAsTeacher && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
@@ -130,7 +130,7 @@ export default async function ClassCardsPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Class Card</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun kamu belum dihubungkan ke data Murid. Minta Owner buat
+            Akun kamu belum dihubungkan ke data Murid. Minta BM buat
             hubungkan lewat halaman Accounts.
           </div>
         </div>
@@ -215,7 +215,7 @@ export default async function ClassCardsPage({
     return (
       <div>
         <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-          Admin
+          BM
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">
           Approval Kelas

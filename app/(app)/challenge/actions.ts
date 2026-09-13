@@ -205,7 +205,7 @@ async function fetchWordsForDay(level: string, dayNumber: number) {
   return words || [];
 }
 
-// Owner/Admin buka /challenge buat preview tampilan Murid (akun mereka
+// BM buka /challenge buat preview tampilan Murid (akun mereka
 // sendiri ga punya progress beneran) -- selalu nampilin Hari 1, ga ada
 // freeze/frozen_day, submit-nya dimatiin di sisi UI (prop `disabled`).
 export async function getPreviewChallenge(level: "DASAR" | "MENENGAH") {
@@ -372,7 +372,7 @@ export async function submitDayTest(input: {
 }
 
 // ------------------------------------------------------------
-// Admin -- kelola bank kosakata
+// BM -- kelola bank kosakata
 // ------------------------------------------------------------
 export async function listVocabWords(level: "DASAR" | "MENENGAH") {
   const ctx = await getCallerContext();

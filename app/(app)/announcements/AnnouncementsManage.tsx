@@ -25,7 +25,7 @@ const AUDIENCE_LABEL: Record<string, string> = {
   STUDENT: "Murid",
 };
 
-// Widget buat Owner/Admin posting pengumuman yang muncul di Home murid
+// Widget buat BM posting pengumuman yang muncul di Home murid
 // & laoshi -- bisa ditarget khusus (semua / laoshi aja / murid aja).
 export default function AnnouncementsManage({
   announcements,

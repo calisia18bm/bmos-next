@@ -13,11 +13,11 @@ export const BANK_ACCOUNT = {
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
 type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 
-// Baca gambar bukti transfer pake Claude (vision) -- CUMA bantu Admin
+// Baca gambar bukti transfer pake Claude (vision) -- CUMA bantu BM
 // baca nominal/tanggal/pengirim, BUKAN yang mutusin approve/reject.
 // Kalau ANTHROPIC_API_KEY belum diset atau ada error apapun, tetep balikin
 // pesan yang jelas (bukan lempar exception) biar request-nya TETAP
-// kesimpen -- Admin masih bisa review manual dari foto bukti bayarnya
+// kesimpen -- BM masih bisa review manual dari foto bukti bayarnya
 // langsung meski AI-nya gagal baca. Dipakai bareng oleh fitur Join Kelas
 // (app/(app)/class-cards/actions.ts) & Beli Bahan Ajar
 // (app/(app)/materials/actions.ts).
@@ -49,7 +49,7 @@ export async function readPaymentProofWithAI(
       model: "claude-sonnet-4-6",
       max_tokens: 300,
       system:
-        'Kamu bantu Admin sekolah les Mandarin BACA bukti transfer/pembayaran. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan Admin manusia. Jawab singkat 2-3 kalimat Bahasa Indonesia.',
+        'Kamu bantu BM sekolah les Mandarin BACA bukti transfer/pembayaran. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan BM manusia. Jawab singkat 2-3 kalimat Bahasa Indonesia.',
       messages: [
         {
           role: "user",
@@ -62,7 +62,7 @@ export async function readPaymentProofWithAI(
               type: "text",
               text: `Item: ${itemInfo.name}, harga: ${
                 itemInfo.price ? `Rp ${itemInfo.price.toLocaleString("id-ID")}` : "-"
-              }. Tolong baca bukti pembayaran ini buat bantu Admin.`,
+              }. Tolong baca bukti pembayaran ini buat bantu BM.`,
             },
           ],
         },

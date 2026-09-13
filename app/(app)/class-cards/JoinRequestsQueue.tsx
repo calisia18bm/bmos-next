@@ -4,10 +4,10 @@ import { useState } from "react";
 import { approveJoinRequest, rejectJoinRequest, PendingJoinRequest } from "./actions";
 import { formatRupiah } from "@/lib/classCards";
 
-// Widget buat Owner/Admin di halaman Class Card -- daftar request join
+// Widget buat BM di halaman Class Card -- daftar request join
 // (dari Murid) yang lagi PENDING, lengkap sama bukti transfer & catatan
 // AI (yang CUMA bantu baca, bukan yang mutusin). Approve/Reject-nya tetap
-// manual diklik Admin/Owner sendiri.
+// manual diklik BM sendiri.
 export default function JoinRequestsQueue({
   requests,
 }: {

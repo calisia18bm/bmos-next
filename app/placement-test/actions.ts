@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Nentuin saran level dari persentase jawaban bener -- sederhana, bisa
-// disesuaikan lagi nanti kalau Owner mau tier yang beda.
+// disesuaikan lagi nanti kalau BM mau tier yang beda.
 function suggestLevel(pct: number): string {
   if (pct >= 90) return "Mahir (Lanjutan)";
   if (pct >= 70) return "Menengah";
@@ -34,7 +34,7 @@ export async function submitPlacementTest(input: {
     return { success: false, message: "Soal placement test belum tersedia." };
   }
 
-  // Tiap soal bisa punya poin beda-beda (diatur Owner/Admin) -- skor
+  // Tiap soal bisa punya poin beda-beda (diatur BM) -- skor
   // akhir dihitung dari total poin soal yang dijawab bener dibagi total
   // poin semua soal, BUKAN sekadar jumlah soal bener (biar soal yang
   // dikasih poin lebih gede beneran ngaruh ke skor akhir).

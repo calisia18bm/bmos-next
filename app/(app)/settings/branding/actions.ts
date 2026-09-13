@@ -20,7 +20,7 @@ export async function saveBannerLayout(layout: BannerItem[]) {
   if (!profile) return { success: false, message: "Belum login." };
 
   if (!profile.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma Owner yang bisa atur banner." };
+    return { success: false, message: "Cuma BM yang bisa atur banner." };
   }
 
   const supabase = await createClient();
@@ -37,7 +37,7 @@ export async function saveBannerLayout(layout: BannerItem[]) {
 
 // Avatar karakter di sidebar itu SATU aja buat semua akun (bukan per-user
 // lagi), disimpan di app_settings biar sama persis dimana-mana -- murid,
-// laoshi, admin, semuanya liat karakter yang sama, yang cuma Owner bisa
+// laoshi, BM, semuanya liat karakter yang sama, yang cuma BM bisa
 // ganti.
 export async function getGlobalCharacter(): Promise<string | null> {
   const supabase = await createClient();
@@ -54,7 +54,7 @@ export async function updateGlobalCharacter(characterKey: string) {
   if (!profile) return { success: false, message: "Belum login." };
 
   if (!profile.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma Owner yang bisa ganti karakter." };
+    return { success: false, message: "Cuma BM yang bisa ganti karakter." };
   }
 
   const supabase = await createClient();

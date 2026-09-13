@@ -18,7 +18,7 @@ type SubmissionRow = {
   submitted_at: string;
 };
 
-// Pola sama kayak halaman Materi & Class Card -- Owner/Admin liat SEMUA
+// Pola sama kayak halaman Materi & Class Card -- BM liat SEMUA
 // sudut pandang lewat ?as=..., Murid/Laoshi asli langsung dapet
 // tampilan role mereka sendiri.
 export default async function HomeworkPage({
@@ -47,7 +47,7 @@ export default async function HomeworkPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">PR</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         </div>
       );
@@ -136,7 +136,7 @@ export default async function HomeworkPage({
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">PR</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         </div>
       );
@@ -249,7 +249,7 @@ export default async function HomeworkPage({
     return (
       <div>
         <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-          Admin
+          BM
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">PR</h1>
         <TeacherHomework

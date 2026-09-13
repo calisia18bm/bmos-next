@@ -14,7 +14,7 @@ const DAYS = [
   "Minggu",
 ];
 
-// Cuma Owner/Admin yang boleh kelola data kelas (jadwal, kapasitas,
+// Cuma BM yang boleh kelola data kelas (jadwal, kapasitas,
 // laoshi pengampu, dsb).
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();

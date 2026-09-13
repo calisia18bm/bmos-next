@@ -7,7 +7,7 @@ import { ClassCard, formatRupiah } from "@/lib/classCards";
 import { BANK_ACCOUNT } from "@/lib/paymentProof";
 
 const REQUEST_STATUS_LABEL: Record<string, string> = {
-  PENDING: "⏳ Menunggu Review Admin",
+  PENDING: "⏳ Menunggu Review BM",
   APPROVED: "✅ Aktif",
   REJECTED: "❌ Ditolak",
 };

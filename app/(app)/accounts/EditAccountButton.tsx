@@ -11,8 +11,8 @@ import {
 } from "./actions";
 
 const ROLE_OPTIONS = [
-  { key: "OWNER", label: "Owner" },
-  { key: "ADMIN", label: "Admin" },
+  { key: "OWNER", label: "BM" },
+  { key: "ADMIN", label: "BM" },
   { key: "TEACHER", label: "Laoshi (Teacher)" },
   { key: "STUDENT", label: "Murid (Student)" },
 ];

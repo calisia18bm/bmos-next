@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 // Halaman PUBLIK (di luar folder (app), jadi ga ke-gate login) -- calon
 // murid/murid bisa langsung isi placement test dari website tanpa perlu
-// akun BMOS dulu. Soalnya diatur Owner/Admin dari halaman
-// /placement-test-manage (di dalam (app), butuh login Owner/Admin).
+// akun BMOS dulu. Soalnya diatur BM dari halaman
+// /placement-test-manage (di dalam (app), butuh login BM).
 export default async function PlacementTestPage() {
   const supabase = await createClient();
   const { data: questions } = await supabase

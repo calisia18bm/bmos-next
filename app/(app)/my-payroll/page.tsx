@@ -21,10 +21,10 @@ const STATUS_STYLE: Record<string, string> = {
 
 // Versi Payroll khusus Laoshi -- read-only, cuma liat gaji dia sendiri.
 // Bikin/setujui/tandai-lunas payroll tetap cuma lewat halaman Payroll
-// punya Owner/Admin.
+// punya BM.
 //
-// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
-// sini -- ini data gaji personal, sengaja ga dikasih ke Admin.
+// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Laoshi tertentu di
+// sini -- ini data gaji personal, sengaja ga dikasih ke BM.
 export default async function MyPayrollPage({
   searchParams,
 }: {
@@ -76,7 +76,7 @@ export default async function MyPayrollPage({
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// Cuma Owner/Admin yang boleh catat pengeluaran.
+// Cuma BM yang boleh catat pengeluaran.
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();
 

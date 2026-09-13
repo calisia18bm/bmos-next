@@ -6,7 +6,7 @@
 // jadi ga ada cara buat Laoshi dapetin file aslinya dari halaman ini.
 //
 // Dijadiin client component biar bisa nampilin modal "Beli PPT" (upload
-// bukti transfer) buat bahan ajar yang dikasih harga sama Owner/Admin --
+// bukti transfer) buat bahan ajar yang dikasih harga sama BM --
 // SENGAJA dibikin beda visual (badge kuning/amber "Berbayar", bukan ungu
 // kayak badge Seminar di Class Card) biar Laoshi ga ketuker sama fitur
 // Join Kelas.
@@ -32,7 +32,7 @@ function formatRupiah(n: number | null | undefined): string {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  PENDING: "⏳ Menunggu Review Admin",
+  PENDING: "⏳ Menunggu Review BM",
   REJECTED: "❌ Ditolak",
 };
 const STATUS_STYLE: Record<string, string> = {
@@ -142,7 +142,7 @@ export default function TeacherResourceList({
   return (
     <div className="bg-white border border-bmos-border rounded-2xl p-6">
       <h2 className="font-bold text-bmos-text text-lg mb-1">
-        Bahan Ajar dari Admin/Owner
+        Bahan Ajar dari BM
       </h2>
       <p className="text-xs text-bmos-text-light mb-4">
         Cuma bisa dilihat/didownload dalam bentuk PDF -- dipakai sebagai
@@ -153,7 +153,7 @@ export default function TeacherResourceList({
 
       {resources.length === 0 ? (
         <p className="text-sm text-bmos-text-light text-center py-8">
-          Belum ada bahan ajar dari Admin/Owner.
+          Belum ada bahan ajar dari BM.
         </p>
       ) : (
         <div className="space-y-3">

@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
-// Versi generic dari WeekNavigator punya Owner (app/(app)/weekly-schedule) --
+// Versi generic dari WeekNavigator punya BM (app/(app)/weekly-schedule) --
 // bedanya ini otomatis nempel ke halaman mana aja (pakai usePathname),
 // dan tetap mempertahankan query param lain yang udah ada di URL (misal
 // ?teacherId=... / ?studentId=... dari OwnerPreviewPicker), jadi pas

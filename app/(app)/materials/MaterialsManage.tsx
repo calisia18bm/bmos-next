@@ -20,11 +20,11 @@ type Material = {
   created_at: string;
 };
 
-// Dipakai buat Owner/Admin (upload materi langsung ke kelas mana aja +
+// Dipakai buat BM (upload materi langsung ke kelas mana aja +
 // hapus). Laoshi SUDAH GA BISA upload materi sendiri lagi -- di halaman
 // Laoshi komponen ini dipakai dengan readOnly=true, jadi cuma nampilin
 // daftar materi yang udah dikirim ke kelas dia (dari bahan ajar yang dia
-// beli, dikirim Admin/Owner lewat ResourceDeliveryQueue), tanpa form
+// beli, dikirim BM lewat ResourceDeliveryQueue), tanpa form
 // upload atau tombol hapus sama sekali.
 export default function MaterialsManage({
   classes,
@@ -212,7 +212,7 @@ export default function MaterialsManage({
         </h2>
         {readOnly && (
           <p className="text-xs text-bmos-text-light mb-4">
-            Ini materi yang udah dikirim Admin/Owner ke kelas kamu (dari
+            Ini materi yang udah dikirim BM ke kelas kamu (dari
             bahan ajar yang kamu beli) -- murid di kelas ini udah bisa
             lihat & download.
           </p>

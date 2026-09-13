@@ -21,11 +21,11 @@ export default async function AppLayout({
   // Badge notif angka di sidebar -- masing-masing fungsi udah ngecek role
   // sendiri (jadi role yang ga relevan selalu dapet 0), aman dipanggil
   // bareng buat semua role:
-  // - pendingClassCardCount: Class Card nunggu di-approve (Owner/Admin).
+  // - pendingClassCardCount: Class Card nunggu di-approve (BM).
   // - unseenClassCardStatusCount: Class Card punya Laoshi sendiri yang
   //   baru di-approve/di-reject tapi belum sempat dia buka (Laoshi).
   // - unreadAnnouncementCount: Pengumuman yang belum dibuka (Laoshi/
-  //   Murid/Admin -- Owner ga punya widget Pengumuman jadi selalu 0).
+  //   Murid/BM -- BM ga punya widget Pengumuman jadi selalu 0).
   const [pendingClassCardCount, unseenClassCardStatusCount, unreadAnnouncementCount] =
     await Promise.all([
       getPendingClassCardCount(),

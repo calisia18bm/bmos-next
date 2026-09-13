@@ -1,6 +1,6 @@
 import { normalizePhone } from "@/lib/fonnte";
 
-// Tombol "Hubungi Admin" cuma muncul kalau ADMIN_WHATSAPP_NUMBER di-set
+// Tombol "Hubungi BM" cuma muncul kalau ADMIN_WHATSAPP_NUMBER di-set
 // di Vercel -- kalau belum di-set, halaman tetap tampil (cuma tanpa
 // tombolnya) daripada rusak/error.
 export default function NoAccessPage() {
@@ -21,8 +21,8 @@ export default function NoAccessPage() {
           Akun belum diaktifkan
         </h1>
         <p className="text-sm text-bmos-text-light mb-6">
-          Akun kamu berhasil login, tapi belum diaktifkan oleh admin.
-          Hubungi admin BM Mandarin untuk mengaktifkan akses kamu.
+          Akun kamu berhasil login, tapi belum diaktifkan oleh BM.
+          Hubungi BM Mandarin untuk mengaktifkan akses kamu.
         </p>
         {waLink && (
           <a
@@ -31,7 +31,7 @@ export default function NoAccessPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 bg-bmos-primary text-white font-semibold rounded-xl px-5 py-3 hover:opacity-90 transition"
           >
-            💬 Hubungi Admin via WhatsApp
+            💬 Hubungi BM via WhatsApp
           </a>
         )}
       </div>

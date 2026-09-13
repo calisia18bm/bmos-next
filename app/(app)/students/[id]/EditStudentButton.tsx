@@ -42,13 +42,13 @@ export default function EditStudentButton({
   const [error, setError] = useState("");
 
   // Status akun login murid ini -- undefined = belum dicek, null = udah
-  // dicek tapi ga ada (atau yang buka bukan Owner, section-nya nanti
+  // dicek tapi ga ada (atau yang buka bukan BM, section-nya nanti
   // disembunyiin), object = ada akun kesambung.
   const [accountSectionVisible, setAccountSectionVisible] = useState(false);
   const [linkedAccount, setLinkedAccount] = useState<{ id: string; email: string } | null>(null);
   const [accountLoading, setAccountLoading] = useState(false);
 
-  // Dipakai kalau murid ini BELUM punya akun -- Owner bisa langsung
+  // Dipakai kalau murid ini BELUM punya akun -- BM bisa langsung
   // bikinin dari sini juga.
   const [createAccount, setCreateAccount] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -133,7 +133,7 @@ export default function EditStudentButton({
       return;
     }
 
-    // Kalau murid ini belum punya akun dan Owner centang "buatkan akun
+    // Kalau murid ini belum punya akun dan BM centang "buatkan akun
     // login" -- bikin akunnya sekarang, sesudah data muridnya kesimpen.
     if (!linkedAccount && createAccount && newEmail && !passwordTooShort) {
       setNewAccountLoading(true);

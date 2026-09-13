@@ -14,7 +14,7 @@ const DAY_INDEX: Record<string, number> = {
   Sabtu: 6,
 };
 
-// Cuma Owner/Admin yang boleh generate/kelola jadwal mingguan. Laoshi/Murid
+// Cuma BM yang boleh generate/kelola jadwal mingguan. Laoshi/Murid
 // liat jadwal mereka sendiri lewat halaman "my-schedule" (route terpisah).
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();
@@ -39,7 +39,7 @@ type ClassRow = {
 };
 
 // Inti logika generate sesi -- dipakai bareng oleh generateUpcomingSessions
-// (tombol manual Owner/Admin, jalan buat SEMUA kelas aktif) dan
+// (tombol manual BM, jalan buat SEMUA kelas aktif) dan
 // generateSessionsForClass (dipanggil otomatis pas 1 kelas di-approve,
 // lihat class-cards/actions.ts). Idempotent -- sesi yang udah ada
 // (class_id + tanggal yang sama) dilewatin, ga dobel.
@@ -130,7 +130,7 @@ async function generateSessionsForClasses(
  * Generate Session (baris bertanggal) dari pola kelas berulang
  * (classes.day_of_week) buat N hari ke depan, buat SEMUA kelas aktif.
  * Idempotent -- kalau sesi buat kelas+tanggal itu udah ada, dilewatin
- * (nggak dobel). Dipanggil Owner/Admin lewat tombol di halaman Weekly
+ * (nggak dobel). Dipanggil BM lewat tombol di halaman Weekly
  * Schedule -- berguna buat kelas lama yang sesi-nya belum ke-generate,
  * atau buat nambah sesi lebih jauh ke depan.
  */
@@ -159,11 +159,11 @@ export async function generateUpcomingSessions(daysAhead: number = 60) {
 }
 
 // Generate sesi buat SATU kelas aja -- dipanggil otomatis dari
-// approveClassCard tiap kali Owner approve Class Card, biar begitu
-// disetujui langsung muncul di Weekly Schedule (Laoshi/Owner/Admin) &
-// jadwal Murid yang join, tanpa Owner/Admin harus inget klik "Generate
+// approveClassCard tiap kali BM approve Class Card, biar begitu
+// disetujui langsung muncul di Weekly Schedule (Laoshi/BM) &
+// jadwal Murid yang join, tanpa BM harus inget klik "Generate
 // Sessions" manual lagi. TIDAK ada requireStaff() di sini (bukan dipanggil
-// langsung dari UI) -- pemanggilnya (approveClassCard) udah ngecek Owner
+// langsung dari UI) -- pemanggilnya (approveClassCard) udah ngecek BM
 // duluan.
 export async function generateSessionsForClass(classId: string, daysAhead = 90) {
   const supabase = await createClient();

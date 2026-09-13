@@ -5,7 +5,7 @@ import QuestionManage from "./QuestionManage";
 
 export const dynamic = "force-dynamic";
 
-// Owner/Admin doang -- atur soal placement test & pantau hasilnya.
+// BM doang -- atur soal placement test & pantau hasilnya.
 // Soalnya sendiri diisi calon murid/murid dari halaman publik
 // /placement-test (di luar (app), ga perlu login).
 export default async function PlacementTestManagePage() {
@@ -33,7 +33,7 @@ export default async function PlacementTestManagePage() {
   return (
     <div>
       <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-        Admin
+        BM
       </p>
       <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Placement Test</h1>
       <p className="text-bmos-text-light text-sm mb-6">

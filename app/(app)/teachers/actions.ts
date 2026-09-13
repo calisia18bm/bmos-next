@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { provisionLinkedAccount } from "@/lib/account-provisioning";
 
-// Cuma Owner/Admin yang boleh kelola data laoshi (kontak, rate per sesi,
+// Cuma BM yang boleh kelola data laoshi (kontak, rate per sesi,
 // dsb) -- Laoshi liat data mereka sendiri lewat halaman portal (my-schedule,
 // my-payroll), bukan dari sini.
 async function requireStaff(): Promise<string | null> {
@@ -67,7 +67,7 @@ export async function addTeacher(formData: {
   ratePerSession: string;
   ratePerPackage: string;
   sessionsPerPayout: string;
-  // Opsional: kalau Owner mau sekalian bikinin akun login pas nambah
+  // Opsional: kalau BM mau sekalian bikinin akun login pas nambah
   // laoshi baru (bukan lewat halaman Accounts terpisah).
   createAccount?: boolean;
   email?: string;
@@ -136,9 +136,9 @@ export async function addTeacher(formData: {
 
   revalidatePath("/teachers");
 
-  // Kalau Owner centang "buatkan akun login sekaligus" dan isi email --
+  // Kalau BM centang "buatkan akun login sekaligus" dan isi email --
   // langsung bikinin akunnya juga, kesambung ke laoshi yang baru dibuat
-  // ini. Kalau gagal (misal bukan Owner yang nambah, atau emailnya udah
+  // ini. Kalau gagal (misal bukan BM yang nambah, atau emailnya udah
   // dipakai), data laoshinya TETAP kesimpen -- cuma akunnya yang ga jadi,
   // dikasih tau lewat accountWarning.
   let account: { email: string; password: string } | undefined;

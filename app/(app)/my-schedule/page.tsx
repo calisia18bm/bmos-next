@@ -29,11 +29,11 @@ function formatDateID(date: Date) {
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
+// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Laoshi tertentu di
 // sini -- ini data personal (jadwal) milik Laoshi, sengaja ga dikasih ke
-// Admin. Laoshi asli tetap cuma bisa liat jadwal dirinya sendiri.
+// BM. Laoshi asli tetap cuma bisa liat jadwal dirinya sendiri.
 //
-// Tampilannya dibikin sama kayak Weekly Schedule punya Owner (grid 7
+// Tampilannya dibikin sama kayak Weekly Schedule punya BM (grid 7
 // hari per minggu, bisa geser minggu), bukan tabel list lagi.
 export default async function MyScheduleTeacherPage({
   searchParams,
@@ -86,7 +86,7 @@ export default async function MyScheduleTeacherPage({
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         )}
       </div>

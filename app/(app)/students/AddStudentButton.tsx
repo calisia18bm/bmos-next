@@ -43,7 +43,7 @@ export default function AddStudentButton({
 
   // Opsional: sekalian bikinin akun login pas nambah murid, biar ga usah
   // ke halaman Accounts terpisah lagi. Cuma bisa jalan kalau yang lagi
-  // login itu Owner -- dicek ulang di server.
+  // login itu BM -- dicek ulang di server.
   const [createAccount, setCreateAccount] = useState(false);
   const [email, setEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
@@ -55,7 +55,7 @@ export default function AddStudentButton({
     password: string;
   } | null>(null);
   // Kalau murid berhasil disimpan tapi akunnya GAGAL dibuat (misal yang
-  // nambah bukan Owner), kasih tau di sini -- muridnya tetap kesimpen.
+  // nambah bukan BM), kasih tau di sini -- muridnya tetap kesimpen.
   const [accountWarning, setAccountWarning] = useState("");
 
   // Password minimal 6 karakter (aturan Supabase Auth) -- dicek di sini
@@ -427,7 +427,7 @@ export default function AddStudentButton({
                     <p className="text-[11px] text-bmos-text-light mt-1">
                       Biar muridnya langsung bisa login ke portal, ga usah
                       dibuatin belakangan lewat halaman Accounts. (Cuma bisa
-                      kalau yang lagi kelola ini Owner.)
+                      kalau yang lagi kelola ini BM.)
                     </p>
 
                     {createAccount && (

@@ -29,10 +29,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Laoshi submit draft materi mereka sendiri (file asli, misal PPT) buat
-// direview Admin/Owner dulu. Kalau di-approve, Admin/Owner upload versi
+// direview BM dulu. Kalau di-approve, BM upload versi
 // PDF final dan materinya otomatis kepublish jadi bahan ajar buat SEMUA
 // Laoshi (bukan cuma yang submit) -- liat di bagian "Bahan Ajar dari
-// Admin/Owner" di atas. Laoshi ga pernah bisa edit lagi setelah submit,
+// BM" di atas. Laoshi ga pernah bisa edit lagi setelah submit,
 // cuma bisa lihat status & catatan penolakan kalau ditolak.
 export default function TeacherResourceSubmit({
   submissions,
@@ -99,9 +99,9 @@ export default function TeacherResourceSubmit({
       <h2 className="font-bold text-bmos-text text-lg mb-1">Submit Materi Kamu</h2>
       <p className="text-xs text-bmos-text-light mb-4">
         Upload draft materi kamu (PPT/Word/dll) buat dicek & diedit dulu
-        sama Admin/Owner. Kalau disetujui, materinya bakal dipublish jadi
+        sama BM. Kalau disetujui, materinya bakal dipublish jadi
         PDF dan bisa dipakai semua Laoshi di halaman &quot;Bahan Ajar dari
-        Admin/Owner&quot; di atas.
+        BM&quot; di atas.
       </p>
 
       {disabled ? (
@@ -154,7 +154,7 @@ export default function TeacherResourceSubmit({
               disabled={uploading}
               className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
             >
-              {uploading ? "Mengupload..." : "Submit ke Admin/Owner"}
+              {uploading ? "Mengupload..." : "Submit ke BM"}
             </button>
           </div>
         </form>
@@ -195,7 +195,7 @@ export default function TeacherResourceSubmit({
               </a>
               {s.status === "REJECTED" && s.rejection_note && (
                 <div className="text-xs bg-red-50 border border-red-100 rounded-xl p-2.5 text-red-700 mt-1.5">
-                  <p className="font-semibold mb-0.5">Catatan dari Admin/Owner:</p>
+                  <p className="font-semibold mb-0.5">Catatan dari BM:</p>
                   <p>{s.rejection_note}</p>
                 </div>
               )}

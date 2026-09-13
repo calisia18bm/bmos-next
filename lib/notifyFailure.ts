@@ -1,14 +1,14 @@
-// Helper buat nyatet & ngabarin Owner/Admin tiap kali notifikasi
-// WhatsApp ke Laoshi/Murid/Admin GAGAL terkirim -- entah karena nomor
+// Helper buat nyatet & ngabarin BM tiap kali notifikasi
+// WhatsApp ke Laoshi/Murid/BM GAGAL terkirim -- entah karena nomor
 // HP-nya kosong di data, atau errornya dari Fonnte sendiri. Dipanggil
 // dari mana aja yang ngirim WA proaktif ke orang lain (bukan cuma
 // Class Card, biar gampang dipake lagi kalau ada fitur WA baru nanti).
 //
 // Kenapa dicatet ke DB (bukan cuma dikirim WA doang): kalau yang lagi
 // bermasalah itu WhatsApp-nya sendiri (misal device Fonnte disconnect),
-// alert WA ke Owner/Admin juga ikut gagal terkirim -- jadi Owner/Admin
+// alert WA ke BM juga ikut gagal terkirim -- jadi BM
 // ga akan pernah tau ada yang gagal. Catatan di DB tetep muncul di
-// widget "Need Attention" Home Owner walau semua WA lagi mati.
+// widget "Need Attention" Home BM walau semua WA lagi mati.
 import { createClient } from "@/lib/supabase/server";
 import { sendWhatsApp } from "@/lib/fonnte";
 import { SITE_URL } from "@/lib/site";
@@ -21,7 +21,7 @@ export async function recordNotificationFailure(message: string) {
     console.error("[recordNotificationFailure] gagal simpan ke DB:", err);
   }
 
-  // Best effort -- kirim juga ke WA Owner & (kalau di-set) Admin. Kalau
+  // Best effort -- kirim juga ke WA BM & (kalau di-set) BM. Kalau
   // dua-duanya kosong atau gagal, ga masalah, catatan di DB tetap ada.
   const alertNumbers = [
     process.env.OWNER_WHATSAPP_NUMBER,

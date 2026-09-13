@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { provisionLinkedAccount } from "@/lib/account-provisioning";
 
-// Cuma Owner/Admin yang boleh kelola data murid (nama, kontak, kelas,
+// Cuma BM yang boleh kelola data murid (nama, kontak, kelas,
 // status, dsb) -- Murid/Laoshi liat data ini lewat halaman portal mereka
 // sendiri (my-class, my-students), bukan dari sini.
 async function requireStaff(): Promise<string | null> {
@@ -21,24 +21,24 @@ async function requireStaff(): Promise<string | null> {
 }
 
 // Sama kayak halaman Accounts -- pengelolaan akun LOGIN (buat/lihat status
-// akun murid) cuma buat Owner, Admin ga boleh. Ini dicek terpisah dari
-// requireStaff() di atas karena requireStaff ngizinin Admin kelola data
-// murid biasa (nama/kelas/dll), tapi khusus akun login tetap Owner-only.
+// akun murid) cuma buat BM, BM ga boleh. Ini dicek terpisah dari
+// requireStaff() di atas karena requireStaff ngizinin BM kelola data
+// murid biasa (nama/kelas/dll), tapi khusus akun login tetap BM-only.
 async function requireOwnerForAccount(): Promise<string | null> {
   const profile = await getCurrentProfile();
 
   if (!profile) return "Belum login.";
 
   if (!(profile.roles).includes("OWNER")) {
-    return "Cuma Owner yang bisa kelola akun login.";
+    return "Cuma BM yang bisa kelola akun login.";
   }
   return null;
 }
 
 // Dipanggil dari EditStudentButton buat cek apakah murid ini udah punya
-// akun login atau belum. `visible: false` artinya yang buka BUKAN Owner --
+// akun login atau belum. `visible: false` artinya yang buka BUKAN BM --
 // jadi section akun login-nya disembunyiin sama sekali di form Edit
-// (sama kayak Admin ga boleh masuk halaman Accounts).
+// (sama kayak BM ga boleh masuk halaman Accounts).
 export async function getLinkedAccount(
   studentId: string
 ): Promise<
@@ -89,7 +89,7 @@ export async function createAccountForStudent(
 // Dipanggil dari AddStudentButton buat ngisi dropdown pilihan kode murid.
 // Isinya: semua nomor M0001..dst yang BELUM dipakai -- baik "lubang" dari
 // kode lama (misal M0002 kosong karena murid itu dulu pernah dihapus) maupun
-// nomor baru sesudah kode terbesar yang ada sekarang. Jadi Owner/Admin bisa
+// nomor baru sesudah kode terbesar yang ada sekarang. Jadi BM bisa
 // milih sendiri mau pakai kode yang mana, bukan cuma nomor lanjutan otomatis.
 export async function getAvailableStudentCodes(): Promise<string[]> {
   const authError = await requireStaff();
@@ -127,7 +127,7 @@ export async function addStudent(formData: {
   classId?: string;
   status?: string;
   code?: string;
-  // Opsional: kalau Owner mau sekalian bikinin akun login pas nambah
+  // Opsional: kalau BM mau sekalian bikinin akun login pas nambah
   // murid baru (bukan lewat halaman Accounts terpisah).
   createAccount?: boolean;
   email?: string;
@@ -200,9 +200,9 @@ export async function addStudent(formData: {
     if (!error && inserted) {
       revalidatePath("/students");
 
-      // Kalau Owner centang "buatkan akun login sekaligus" dan isi email
+      // Kalau BM centang "buatkan akun login sekaligus" dan isi email
       // -- langsung bikinin akunnya juga, kesambung ke murid yang baru
-      // dibuat ini. Kalau gagal (misal bukan Owner yang nambah, atau
+      // dibuat ini. Kalau gagal (misal bukan BM yang nambah, atau
       // emailnya udah dipakai), data muridnya TETAP kesimpen -- cuma
       // akunnya yang ga jadi, dikasih tau lewat accountWarning.
       let account: { email: string; password: string } | undefined;
@@ -239,7 +239,7 @@ export async function addStudent(formData: {
       return { success: false, message: error?.message || "Gagal menambahkan murid." };
     }
     // Kode yang dipilih di dropdown ternyata udah kepake duluan (misal
-    // admin lain baru aja pakai kode yang sama) -- kasih tau biar user
+    // BM lain baru aja pakai kode yang sama) -- kasih tau biar user
     // pilih ulang, bukan diem-diem ganti kode sendiri.
     if (formData.code) {
       return {

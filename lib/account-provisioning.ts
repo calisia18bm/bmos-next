@@ -15,12 +15,12 @@ export function generatePassword() {
 
 // Bikin akun login (Supabase Auth + user_profiles) buat orang yang BARU
 // AJA ditambahin ke Master Data (murid/laoshi) -- dipanggil dari
-// students/actions.ts & teachers/actions.ts kalau Owner centang "buatkan
+// students/actions.ts & teachers/actions.ts kalau BM centang "buatkan
 // akun login sekaligus" pas nambah murid/laoshi baru.
 //
-// Sengaja dibatasin cuma Owner yang boleh (sama kayak halaman Accounts) --
-// kalau yang manggil bukan Owner (misal Admin lagi nambah murid), akunnya
-// GA dibuat tapi data murid/laoshi-nya tetap kesimpen seperti biasa. Owner
+// Sengaja dibatasin cuma BM yang boleh (sama kayak halaman Accounts) --
+// kalau yang manggil bukan BM (misal BM lagi nambah murid), akunnya
+// GA dibuat tapi data murid/laoshi-nya tetap kesimpen seperti biasa. BM
 // bisa buatin akunnya belakangan lewat halaman Accounts.
 export async function provisionLinkedAccount(input: {
   name: string;
@@ -50,7 +50,7 @@ export async function provisionLinkedAccount(input: {
     return {
       created: false,
       reason:
-        "Cuma Owner yang bisa langsung buat akun login. Datanya tetap tersimpan -- akunnya bisa dibuatin nanti lewat halaman Accounts.",
+        "Cuma BM yang bisa langsung buat akun login. Datanya tetap tersimpan -- akunnya bisa dibuatin nanti lewat halaman Accounts.",
     };
   }
 

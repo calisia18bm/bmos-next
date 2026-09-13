@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { createAccount } from "./actions";
 
 const ROLE_OPTIONS = [
-  { key: "OWNER", label: "Owner" },
-  { key: "ADMIN", label: "Admin" },
+  { key: "OWNER", label: "BM" },
+  { key: "ADMIN", label: "BM" },
   { key: "TEACHER", label: "Laoshi (Teacher)" },
   { key: "STUDENT", label: "Murid (Student)" },
 ];
@@ -36,7 +36,7 @@ export default function AddAccountButton({
   );
 
   // Cari langsung berdasarkan KODE yang diketik (misal "L001"/"M0001"),
-  // bukan pilih dari dropdown -- lebih cepat kalau Owner udah hafal
+  // bukan pilih dari dropdown -- lebih cepat kalau BM udah hafal
   // kodenya dari Master Data.
   const matchedTeacher = useMemo(() => {
     const code = teacherCode.trim().toUpperCase();

@@ -13,9 +13,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Murid tertentu di
+// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Murid tertentu di
 // sini -- ini data personal (riwayat pembayaran) milik Murid, sengaja ga
-// dikasih ke Admin. Murid asli tetap cuma bisa liat pembayaran dirinya
+// dikasih ke BM. Murid asli tetap cuma bisa liat pembayaran dirinya
 // sendiri.
 export default async function MyPaymentsPage({
   searchParams,
@@ -68,7 +68,7 @@ export default async function MyPaymentsPage({
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         )}
       </div>

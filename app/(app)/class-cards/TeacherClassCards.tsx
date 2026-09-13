@@ -623,7 +623,7 @@ export default function TeacherClassCards({
                   ))}
                   {goalTags.length === 0 && (
                     <p className="text-xs text-bmos-text-light">
-                      Owner belum atur daftar tujuan belajar.
+                      BM belum atur daftar tujuan belajar.
                     </p>
                   )}
                 </div>
@@ -648,7 +648,7 @@ export default function TeacherClassCards({
                   disabled={loading}
                   className="bg-bmos-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
                 >
-                  {loading ? "Mengirim..." : "Submit ke Owner"}
+                  {loading ? "Mengirim..." : "Submit ke BM"}
                 </button>
               </div>
             </form>

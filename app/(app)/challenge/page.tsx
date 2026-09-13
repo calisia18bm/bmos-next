@@ -5,7 +5,7 @@ import ChallengeStudent from "./ChallengeStudent";
 
 export const dynamic = "force-dynamic";
 
-// Pola sama kayak halaman PR/Materi -- Owner/Admin yang buka menu ini
+// Pola sama kayak halaman PR/Materi -- BM yang buka menu ini
 // (tapi akunnya sendiri ga punya role Murid) otomatis dikasih tampilan
 // PREVIEW (interaksi dimatiin), bukan di-redirect/kosong.
 export default async function ChallengePage({

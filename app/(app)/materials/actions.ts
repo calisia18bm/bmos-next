@@ -20,11 +20,11 @@ async function getCallerContext() {
   };
 }
 
-// Cuma Owner/Admin yang boleh upload materi langsung ke kelas -- Laoshi
+// Cuma BM yang boleh upload materi langsung ke kelas -- Laoshi
 // SUDAH GA BISA upload materi sendiri lagi (baik langsung ke kelas,
-// maupun submit draft ke Admin, lihat submitTeacherResourceDraft di
-// bawah). Alur baru: Admin/Owner upload bahan ajar berbayar/gratis ke
-// teacher_resources, Laoshi beli (kalau berbayar), abis itu Admin/Owner
+// maupun submit draft ke BM, lihat submitTeacherResourceDraft di
+// bawah). Alur baru: BM upload bahan ajar berbayar/gratis ke
+// teacher_resources, Laoshi beli (kalau berbayar), abis itu BM
 // yang "Kirim ke Murid" -- itu yang bikin baris baru di tabel materials
 // ini (lihat sendResourceToClasses di bawah).
 export async function createMaterial(input: {
@@ -44,7 +44,7 @@ export async function createMaterial(input: {
     return {
       success: false,
       message:
-        "Laoshi sudah ga bisa upload materi sendiri lagi -- materi sekarang dikirim otomatis sama Admin/Owner setelah beli bahan ajar.",
+        "Laoshi sudah ga bisa upload materi sendiri lagi -- materi sekarang dikirim otomatis sama BM setelah beli bahan ajar.",
     };
   }
 
@@ -111,7 +111,7 @@ export async function deleteMaterial(id: string) {
 }
 
 // ============================================================
-// Bahan Ajar dari Admin/Owner ke Laoshi -- cuma Owner/Admin yang boleh
+// Bahan Ajar dari BM ke Laoshi -- cuma BM yang boleh
 // upload/hapus. Laoshi CUMA dikasih pdf_file_url lewat query di halaman
 // (bukan dibatesin di sini), lihat app/(app)/materials/page.tsx.
 // ============================================================
@@ -131,7 +131,7 @@ export async function createTeacherResource(input: {
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   if (!isStaff) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa upload bahan ajar." };
+    return { success: false, message: "Cuma BM yang bisa upload bahan ajar." };
   }
 
   const title = input.title.trim();
@@ -159,14 +159,14 @@ export async function createTeacherResource(input: {
 }
 
 // ============================================================
-// [DIHENTIKAN] Dulu Laoshi bisa submit draft materi buat direview Admin.
-// Sekarang semua bahan ajar HARUS diupload langsung sama Admin/Owner
+// [DIHENTIKAN] Dulu Laoshi bisa submit draft materi buat direview BM.
+// Sekarang semua bahan ajar HARUS diupload langsung sama BM
 // (createTeacherResource di atas) -- Laoshi cuma bisa beli & pake, ga
 // bisa upload/submit apa-apa lagi. Fungsi ini sengaja dibiarin ada
 // (bukan dihapus) supaya kalau ada kode lama yang masih manggil ini
 // (cache client lama dll) dapet pesan yang jelas, bukan error nyasar.
 // Submission LAMA yang statusnya masih PENDING tetap bisa direview
-// Admin/Owner seperti biasa lewat approveTeacherResourceSubmission /
+// BM seperti biasa lewat approveTeacherResourceSubmission /
 // rejectTeacherResourceSubmission di bawah.
 // ============================================================
 export async function submitTeacherResourceDraft(_input: {
@@ -179,11 +179,11 @@ export async function submitTeacherResourceDraft(_input: {
   return {
     success: false,
     message:
-      "Fitur submit materi oleh Laoshi sudah ga ada lagi -- bahan ajar sekarang diupload langsung sama Admin/Owner.",
+      "Fitur submit materi oleh Laoshi sudah ga ada lagi -- bahan ajar sekarang diupload langsung sama BM.",
   };
 }
 
-// Owner/Admin approve submission LAMA (peninggalan sebelum fitur submit
+// BM approve submission LAMA (peninggalan sebelum fitur submit
 // Laoshi dihentikan) -- WAJIB upload versi PDF final, yang otomatis
 // dipublish ke teacher_resources (jadi bisa dipakai semua Laoshi).
 export async function approveTeacherResourceSubmission(
@@ -203,7 +203,7 @@ export async function approveTeacherResourceSubmission(
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   if (!isStaff) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa approve materi." };
+    return { success: false, message: "Cuma BM yang bisa approve materi." };
   }
   if (!input.pdfFileUrl) {
     return { success: false, message: "File PDF final wajib diupload dulu buat approve." };
@@ -265,7 +265,7 @@ export async function rejectTeacherResourceSubmission(submissionId: string, note
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   if (!isStaff) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa tolak submission." };
+    return { success: false, message: "Cuma BM yang bisa tolak submission." };
   }
 
   const cleanedNote = note.trim();
@@ -295,7 +295,7 @@ export async function deleteTeacherResource(id: string) {
 
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   if (!isStaff) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa hapus bahan ajar." };
+    return { success: false, message: "Cuma BM yang bisa hapus bahan ajar." };
   }
 
   const supabase = await createClient();
@@ -322,10 +322,10 @@ export async function deleteTeacherResource(id: string) {
 }
 
 // ============================================================
-// Beli Bahan Ajar Berbayar -- Owner/Admin bisa kasih harga (atau Rp 0 /
+// Beli Bahan Ajar Berbayar -- BM bisa kasih harga (atau Rp 0 /
 // Gratis) pas upload bahan ajar. Kalau harganya > 0, Laoshi WAJIB upload
 // bukti transfer dulu (mirip alur Join Kelas Murid), request-nya
-// di-review manual Owner/Admin (AI cuma bantu baca bukti, BUKAN yang
+// di-review manual BM (AI cuma bantu baca bukti, BUKAN yang
 // mutusin approve/reject).
 // ============================================================
 
@@ -363,7 +363,7 @@ export async function getMyResourcePurchases(): Promise<MyResourcePurchase[]> {
 }
 
 // Laoshi submit request beli bahan ajar berbayar -- WAJIB upload bukti
-// transfer. Ga langsung bisa download, nunggu di-approve Owner/Admin.
+// transfer. Ga langsung bisa download, nunggu di-approve BM.
 export async function requestPurchaseResource(
   resourceId: string,
   proof: { fileUrl: string; fileName: string; filePath: string }
@@ -402,7 +402,7 @@ export async function requestPurchaseResource(
   if (existingPending) {
     return {
       success: false,
-      message: "Kamu udah punya request beli buat bahan ajar ini, tunggu di-review Admin ya.",
+      message: "Kamu udah punya request beli buat bahan ajar ini, tunggu di-review BM ya.",
     };
   }
 
@@ -427,7 +427,7 @@ export async function requestPurchaseResource(
   revalidatePath("/materials", "layout");
   return {
     success: true,
-    message: `Request beli "${resource.title}" terkirim, tunggu di-review Admin ya.`,
+    message: `Request beli "${resource.title}" terkirim, tunggu di-review BM ya.`,
   };
 }
 
@@ -443,7 +443,7 @@ export type PendingResourcePurchase = {
   requestedAt: string;
 };
 
-// Daftar request beli bahan ajar yang lagi PENDING -- dipakai Owner/Admin
+// Daftar request beli bahan ajar yang lagi PENDING -- dipakai BM
 // buat approve/reject di halaman Materi.
 export async function getPendingResourcePurchases(): Promise<PendingResourcePurchase[]> {
   const ctx = await getCallerContext();
@@ -476,7 +476,7 @@ export async function approveResourcePurchase(purchaseId: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa approve request beli." };
+    return { success: false, message: "Cuma BM yang bisa approve request beli." };
   }
 
   const supabase = await createClient();
@@ -509,7 +509,7 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa tolak request beli." };
+    return { success: false, message: "Cuma BM yang bisa tolak request beli." };
   }
 
   const cleanedNote = note.trim();
@@ -544,12 +544,12 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
 }
 
 // ============================================================
-// Kirim Bahan Ajar (yang udah dibeli Laoshi) ke Murid -- Admin/Owner
+// Kirim Bahan Ajar (yang udah dibeli Laoshi) ke Murid -- BM
 // pilih kelas Laoshi yang mana aja (bisa lebih dari 1, Laoshi yang sama
 // bisa dipake di beberapa kelas dia), materinya otomatis nongol di
 // halaman Materi murid-murid kelas itu (nulis ke tabel `materials`,
 // tabel yang sama yang dipakai murid buat lihat materi kelas). Ga ada
-// status "kelas selesai" atau apapun -- Admin bisa kirim kapan aja.
+// status "kelas selesai" atau apapun -- BM bisa kirim kapan aja.
 // ============================================================
 
 export type ResourceDeliveryClass = {
@@ -571,8 +571,8 @@ export type ResourceDelivery = {
 };
 
 // Daftar bahan ajar yang udah APPROVED dibeli Laoshi, lengkap sama daftar
-// kelas Laoshi itu (buat Admin milih mau dikirim ke kelas mana) dan
-// status "udah pernah dikirim" per kelas (biar Admin ga dobel-kirim
+// kelas Laoshi itu (buat BM milih mau dikirim ke kelas mana) dan
+// status "udah pernah dikirim" per kelas (biar BM ga dobel-kirim
 // tanpa sadar, tapi tetap bisa kalau emang mau).
 export async function getResourceDeliveries(): Promise<ResourceDelivery[]> {
   const ctx = await getCallerContext();
@@ -644,7 +644,7 @@ export async function getResourceDeliveries(): Promise<ResourceDelivery[]> {
     });
 }
 
-// Admin/Owner kirim 1 bahan ajar (yang udah dibeli & APPROVED) ke murid
+// BM kirim 1 bahan ajar (yang udah dibeli & APPROVED) ke murid
 // di kelas-kelas yang dipilih. Kelas WAJIB kelas Laoshi yang bersangkutan
 // (dicek server-side, bukan cuma dari UI) -- kelas yang udah pernah
 // dikirimin bahan ajar yang sama dilewatin otomatis, ga bikin dobel.
@@ -652,7 +652,7 @@ export async function sendResourceToClasses(purchaseId: string, classIds: string
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
-    return { success: false, message: "Cuma Owner/Admin yang bisa kirim materi ke murid." };
+    return { success: false, message: "Cuma BM yang bisa kirim materi ke murid." };
   }
 
   const cleanedClassIds = Array.from(new Set(classIds.filter(Boolean)));

@@ -28,11 +28,11 @@ type NextClass = { class_name: string; session_date: string; start_time: string 
 type TeacherStats = { studentCount: number; finishedThisWeek: number; totalThisWeek: number };
 type StudentStats = { sessionsUsed: number; sessionsTotal: number; paymentStatus: string };
 
-// Home yang disederhanakan buat Laoshi, Murid, & Admin -- fokus ke info/
+// Home yang disederhanakan buat Laoshi, Murid, & BM -- fokus ke info/
 // pengumuman + ringkasan singkat aja. Jadwal lengkap, daftar murid, dan
 // riwayat pembayaran masing-masing punya halaman sendiri di sidebar
 // ("Jadwal Saya", "My Students", "My Payments"), ga ditumpuk semua di
-// Home kayak dashboard Owner. Buat Admin, isinya masih placeholder --
+// Home kayak dashboard BM. Buat BM, isinya masih placeholder --
 // widget-nya masih dipikirin, sementara cukup banner + pengumuman dulu.
 export default async function SimpleHome({
   profile,
@@ -47,16 +47,16 @@ export default async function SimpleHome({
   const today = new Date().toISOString().slice(0, 10);
   const isTeacher = profile.roles.includes("TEACHER");
   const isStudentSimple = profile.roles.includes("STUDENT");
-  // Bukan Laoshi & bukan Murid -- berarti Admin (atau role lain yang
+  // Bukan Laoshi & bukan Murid -- berarti BM (atau role lain yang
   // belum ada halaman Home khususnya). Belum ada audience "ADMIN" di
-  // tabel announcements, jadi Admin cuma liat yang audience-nya "ALL".
+  // tabel announcements, jadi BM cuma liat yang audience-nya "ALL".
   const isAdmin = !isTeacher && !isStudentSimple;
 
   const announcements = await getAnnouncements(
     5,
     isTeacher ? ["ALL", "TEACHER"] : isStudentSimple ? ["ALL", "STUDENT"] : ["ALL"]
   );
-  // Laoshi/Murid/Admin baru buka Home & lihat widget Pengumuman ini --
+  // Laoshi/Murid/BM baru buka Home & lihat widget Pengumuman ini --
   // tandain "udah dibaca sampai sekarang" biar badge notif angka di
   // sidebar (menu Home) ilang.
   //
@@ -77,7 +77,7 @@ export default async function SimpleHome({
   let studentStats: StudentStats | null = null;
 
   if (isAdmin) {
-    // Belum ada widget khusus Admin -- sementara skip semua fetch
+    // Belum ada widget khusus BM -- sementara skip semua fetch
     // jadwal/statistik, cukup banner + pengumuman aja dulu.
   } else if (isTeacher) {
     if (!profile.teacher_id) {
@@ -188,16 +188,16 @@ export default async function SimpleHome({
 
       {!isAdmin && !linked && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 text-sm text-yellow-800">
-          Akun belum selesai diverifikasi, hubungi admin.
+          Akun belum selesai diverifikasi, hubungi BM.
         </div>
       )}
 
       {isAdmin ? (
-        // Widget dashboard Admin masih dipikirin -- sementara placeholder
+        // Widget dashboard BM masih dipikirin -- sementara placeholder
         // dulu, quick link di bawah ini udah nyambung ke halaman aslinya.
         <div className="bg-white border border-bmos-border rounded-2xl p-6 mb-6 text-center">
           <p className="text-sm text-bmos-text-light">
-            Dashboard Admin masih disiapkan. Sementara pakai quick link di
+            Dashboard BM masih disiapkan. Sementara pakai quick link di
             bawah atau menu sidebar buat akses Students, Payments, dll.
           </p>
         </div>
@@ -286,7 +286,7 @@ export default async function SimpleHome({
           <h2 className="font-bold text-bmos-primary text-lg">Pengumuman</h2>
         </div>
         <p className="text-xs text-bmos-text-light mb-4">
-          Info terbaru dari Owner/Admin
+          Info terbaru dari BM
         </p>
         {announcements.length === 0 ? (
           <p className="text-sm text-bmos-text-light text-center py-8">

@@ -1,7 +1,7 @@
 // Perhitungan potongan komisi BM dari harga kelas yang Laoshi tentukan
-// sendiri. Tier-nya diatur Owner (disimpan di app_settings.commission_tiers),
+// sendiri. Tier-nya diatur BM (disimpan di app_settings.commission_tiers),
 // makin murah harga per paket, biasanya makin gede persen potongannya bisa
-// diatur -- default di bawah ini cuma fallback kalau Owner belum pernah atur.
+// diatur -- default di bawah ini cuma fallback kalau BM belum pernah atur.
 
 export type CommissionTier = { maxPrice: number | null; pct: number };
 

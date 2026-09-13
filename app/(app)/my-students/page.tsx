@@ -5,8 +5,8 @@ import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
 
 export const dynamic = "force-dynamic";
 
-// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
-// sini -- Admin sengaja ga dikasih, karena ini nampilin data personal
+// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Laoshi tertentu di
+// sini -- BM sengaja ga dikasih, karena ini nampilin data personal
 // (daftar murid) milik Laoshi. Laoshi asli tetap cuma bisa liat murid
 // dirinya sendiri, ga kepengaruh apapun di halaman ini.
 export default async function MyStudentsPage({
@@ -60,7 +60,7 @@ export default async function MyStudentsPage({
           </>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         )}
       </div>

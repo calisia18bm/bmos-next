@@ -40,12 +40,12 @@ function formatRupiah(n: number | null | undefined): string {
   return `Rp ${n.toLocaleString("id-ID")}`;
 }
 
-// Panel review 1 submission -- Admin/Owner download draft-nya, cek/edit
+// Panel review 1 submission -- BM download draft-nya, cek/edit
 // sendiri di luar, terus upload versi PDF final buat approve (otomatis
 // dipublish ke teacher_resources, bisa dipakai SEMUA Laoshi). Bisa juga
 // reject dengan catatan biar Laoshi tau harus perbaiki apa.
 //
-// Owner/Admin juga bisa langsung kasih harga di sini pas approve -- kalau
+// BM juga bisa langsung kasih harga di sini pas approve -- kalau
 // dikosongin/0 berarti Gratis buat semua Laoshi.
 function SubmissionReviewRow({ s }: { s: Submission }) {
   const router = useRouter();
@@ -179,7 +179,7 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-bmos-text mb-1">
-              File Asli Hasil Edit (opsional, arsip Owner/Admin)
+              File Asli Hasil Edit (opsional, arsip BM)
             </label>
             <input
               type="file"
@@ -258,11 +258,11 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
   );
 }
 
-// Owner/Admin upload bahan ajar buat Laoshi -- WAJIB upload versi PDF
+// BM upload bahan ajar buat Laoshi -- WAJIB upload versi PDF
 // (yang bakal dilihat Laoshi), file asli (PPT/dll) OPSIONAL, cuma buat
-// arsip Owner/Admin sendiri, Laoshi ga pernah dikasih akses ke file asli.
-// Owner/Admin juga bisa kasih harga di sini (kosong/0 = Gratis) -- kalau
-// berbayar, Laoshi harus upload bukti transfer & nunggu approve Admin
+// arsip BM sendiri, Laoshi ga pernah dikasih akses ke file asli.
+// BM juga bisa kasih harga di sini (kosong/0 = Gratis) -- kalau
+// berbayar, Laoshi harus upload bukti transfer & nunggu approve BM
 // dulu sebelum bisa download (lihat TeacherResourceList.tsx +
 // ResourcePurchaseQueue.tsx).
 // Panel ini juga nampilin submission materi dari Laoshi yang lagi
@@ -379,7 +379,7 @@ export default function TeacherResourceManage({
         </h2>
         <p className="text-xs text-bmos-text-light mb-4">
           Laoshi CUMA bisa lihat & download versi PDF -- file asli (PPT/dll)
-          cuma kesimpen buat arsip Owner/Admin, ga bisa diakses Laoshi.
+          cuma kesimpen buat arsip BM, ga bisa diakses Laoshi.
           Kalau filenya PPT, save as PDF dulu sebelum upload di sini.
         </p>
 
@@ -425,7 +425,7 @@ export default function TeacherResourceManage({
 
           <div>
             <label className="block text-sm font-medium text-bmos-text mb-1">
-              File Asli (opsional, PPT/dll -- cuma buat arsip Owner/Admin)
+              File Asli (opsional, PPT/dll -- cuma buat arsip BM)
             </label>
             <label
               htmlFor="resource-original-input"

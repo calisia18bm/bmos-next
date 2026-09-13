@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// Cuma Owner/Admin yang boleh kelola content calendar.
+// Cuma BM yang boleh kelola content calendar.
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();
 

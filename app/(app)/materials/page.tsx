@@ -26,15 +26,15 @@ type SubmissionRow = {
   created_at: string;
 };
 
-// Owner/Admin liat SEMUA bagian sidebar (Murid/Laoshi/Admin) sekaligus di
+// BM liat SEMUA bagian sidebar (Murid/Laoshi/BM) sekaligus di
 // akun mereka sendiri, biar gampang ngecek kalau ada yang error -- tapi
 // sebelumnya link "Materi" di bagian MURID & LAOSHI itu nunjuk ke URL yang
-// SAMA, jadi buat Owner selalu kebuka tampilan Admin (bisa upload),
+// SAMA, jadi buat BM selalu kebuka tampilan BM (bisa upload),
 // walaupun yang diklik link "Materi" di bagian Murid. Makanya keliatan
-// kayak "murid bisa upload" padahal itu Owner liat versi Admin-nya.
+// kayak "murid bisa upload" padahal itu BM liat versi BM-nya.
 //
 // Fix: link Materi di MURID & LAOSHI sekarang bawa ?as=student / ?as=teacher,
-// dan di sini Owner/Admin dipaksa liat PERSIS tampilan Murid/Laoshi asli
+// dan di sini BM dipaksa liat PERSIS tampilan Murid/Laoshi asli
 // (read-only buat Murid, ga ada form upload) -- murni buat preview/QA.
 // Ini SAMA SEKALI ga ngubah akses akun Murid/Laoshi asli, karena mereka
 // login dengan role sendiri, bukan lewat query param ini. Server action
@@ -42,9 +42,9 @@ type SubmissionRow = {
 // preview ini ga bisa disalahgunakan buat beneran upload sebagai Murid.
 //
 // Catatan penting: Laoshi SUDAH GA BISA upload/submit materi sendiri lagi
-// (baik langsung ke kelas, maupun submit draft ke Admin) -- semua bahan
-// ajar diupload Admin/Owner (lihat TeacherResourceManage), Laoshi cuma
-// beli & pake (TeacherResourceList), abis itu Admin/Owner yang "kirim ke
+// (baik langsung ke kelas, maupun submit draft ke BM) -- semua bahan
+// ajar diupload BM (lihat TeacherResourceManage), Laoshi cuma
+// beli & pake (TeacherResourceList), abis itu BM yang "kirim ke
 // murid" (ResourceDeliveryQueue) yang bikin materinya nongol di halaman
 // Materi murid. Jadi tampilan Laoshi di sini murni read-only.
 export default async function MaterialsPage({
@@ -61,23 +61,23 @@ export default async function MaterialsPage({
   const isTeacher = profile.roles.includes("TEACHER");
   const isStudent = profile.roles.includes("STUDENT");
 
-  // Cuma OWNER (BUKAN Admin) yang boleh preview tampilan Murid/Laoshi di
-  // sini -- Admin yang buka /materials biasa (tanpa ?as=...) tetap dapet
-  // tampilan Admin standar seperti biasa.
+  // Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview tampilan Murid/Laoshi di
+  // sini -- BM yang buka /materials biasa (tanpa ?as=...) tetap dapet
+  // tampilan BM standar seperti biasa.
   const previewAsStudent = isOwner && as === "student";
   const previewAsTeacher = isOwner && as === "teacher" && !previewAsStudent;
 
   const supabase = await createClient();
 
   // ===== MURID: read-only, cuma materi di kelas dia =====
-  // (atau Owner/Admin lagi preview tampilan Murid)
+  // (atau BM lagi preview tampilan Murid)
   if ((isStudent && !isStaff && !isTeacher) || previewAsStudent) {
     if (!previewAsStudent && !profile.student_id) {
       return (
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Materi</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         </div>
       );
@@ -95,7 +95,7 @@ export default async function MaterialsPage({
     let className: string | null = null;
 
     if (previewAsStudent) {
-      // Owner/Admin preview -- ga ada murid spesifik, jadi tampilin
+      // BM preview -- ga ada murid spesifik, jadi tampilin
       // gabungan materi dari semua kelas biar kebayang isinya.
       const { data } = await supabase
         .from("materials")
@@ -175,16 +175,16 @@ export default async function MaterialsPage({
     );
   }
 
-  // ===== LAOSHI: read-only -- lihat materi yang udah dikirim Admin ke
+  // ===== LAOSHI: read-only -- lihat materi yang udah dikirim BM ke
   // kelas dia, & bahan ajar yang bisa dibeli. GA BISA upload/submit materi
-  // sendiri lagi (atau Owner/Admin lagi preview tampilan Laoshi) =====
+  // sendiri lagi (atau BM lagi preview tampilan Laoshi) =====
   if ((isTeacher && !isStaff) || previewAsTeacher) {
     if (!previewAsTeacher && !profile.teacher_id) {
       return (
         <div>
           <h1 className="text-3xl font-extrabold text-bmos-text mb-4">Materi</h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800">
-            Akun belum selesai diverifikasi, hubungi admin.
+            Akun belum selesai diverifikasi, hubungi BM.
           </div>
         </div>
       );
@@ -201,7 +201,7 @@ export default async function MaterialsPage({
     const { data: classes } = await classesQuery;
     const classIds = (classes ?? []).map((c) => c.id);
 
-    // Query bahan ajar dari Admin/Owner buat Laoshi SENGAJA cuma select
+    // Query bahan ajar dari BM buat Laoshi SENGAJA cuma select
     // kolom pdf_file_* + price -- kolom original_file_* (file asli PPT/dll)
     // ga pernah ikut ke-fetch buat role Laoshi, jadi ga ada cara halaman
     // ini ngasih akses ke file aslinya walau nge-inspect response sekalipun.
@@ -234,7 +234,7 @@ export default async function MaterialsPage({
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
             👁️ Preview tampilan Laoshi -- ini yang beneran dilihat akun
             Laoshi (ga ada tombol upload, Laoshi cuma beli & pake bahan
-            ajar dari Admin/Owner).
+            ajar dari BM).
           </div>
         )}
         <div className="space-y-6">
@@ -286,7 +286,7 @@ export default async function MaterialsPage({
     return (
       <div>
         <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-          Admin
+          BM
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">Materi</h1>
         <div className="space-y-8">
