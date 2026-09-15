@@ -267,6 +267,9 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
 // ResourcePurchaseQueue.tsx).
 // Panel ini juga nampilin submission materi dari Laoshi yang lagi
 // nunggu direview (lihat SubmissionReviewRow di atas).
+//
+// "Bahan Ajar Terupload" (list di bawah) ditampilin per-kotak (card)
+// biar konsisten sama tampilan "Bahan Ajar dari BM" di halaman Laoshi.
 export default function TeacherResourceManage({
   resources,
   submissions = [],
@@ -489,59 +492,70 @@ export default function TeacherResourceManage({
           </p>
         ) : (
           <div className="space-y-3">
-            {resources.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-start justify-between border-b border-bmos-border last:border-0 pb-3 last:pb-0"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-bmos-text flex items-center gap-1.5 flex-wrap">
-                    {r.title}
-                    {!!r.price && r.price > 0 && (
-                      <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                        💰 {formatRupiah(r.price)}
-                      </span>
-                    )}
-                  </p>
-                  {r.uploaded_by_name && (
-                    <p className="text-xs text-bmos-text-light">
-                      diupload {r.uploaded_by_name}
+            {resources.map((r) => {
+              const isPaid = !!r.price && r.price > 0;
+              return (
+                <div
+                  key={r.id}
+                  className={`flex items-start justify-between gap-3 border rounded-xl p-4 ${
+                    isPaid
+                      ? "border-amber-200 bg-amber-50/60"
+                      : "border-bmos-border bg-white"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-bmos-text flex items-center gap-1.5 flex-wrap">
+                      {r.title}
+                      {isPaid ? (
+                        <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                          💰 {formatRupiah(r.price)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          🆓 Gratis
+                        </span>
+                      )}
                     </p>
-                  )}
-                  {r.description && (
-                    <p className="text-sm text-bmos-text-light mt-1">{r.description}</p>
-                  )}
-                  <div className="flex gap-3 mt-1">
-                    <a
-                      href={r.pdf_file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-semibold text-bmos-primary hover:underline"
-                    >
-                      📄 {r.pdf_file_name || "PDF"}
-                    </a>
-                    {r.original_file_url && (
+                    {r.uploaded_by_name && (
+                      <p className="text-xs text-bmos-text-light">
+                        diupload {r.uploaded_by_name}
+                      </p>
+                    )}
+                    {r.description && (
+                      <p className="text-sm text-bmos-text-light mt-1">{r.description}</p>
+                    )}
+                    <div className="flex gap-2 mt-2 flex-wrap">
                       <a
-                        href={r.original_file_url}
+                        href={r.pdf_file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-semibold text-bmos-text-light hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-bmos-primary rounded-lg px-3 py-1.5 hover:bg-bmos-primary-light transition"
                       >
-                        📎 File asli
+                        📄 {r.pdf_file_name || "PDF"}
                       </a>
-                    )}
+                      {r.original_file_url && (
+                        <a
+                          href={r.original_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-bmos-text-light bg-gray-100 rounded-lg px-3 py-1.5 hover:bg-gray-200 transition"
+                        >
+                          📎 File asli
+                        </a>
+                      )}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(r.id)}
+                    disabled={deletingId === r.id}
+                    className="text-xs text-red-600 hover:underline shrink-0 ml-3"
+                  >
+                    {deletingId === r.id ? "..." : "Hapus"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(r.id)}
-                  disabled={deletingId === r.id}
-                  className="text-xs text-red-600 hover:underline shrink-0 ml-3"
-                >
-                  {deletingId === r.id ? "..." : "Hapus"}
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
