@@ -79,8 +79,41 @@ export async function createMaterial(input: {
 
   if (error) return { success: false, message: error.message };
 
+  await notifyClassStudentsNewMaterial(cls.id, cls.name);
+
   revalidatePath("/materials", "layout");
   return { success: true, message: "Materi berhasil diupload." };
+}
+
+// Kabarin semua Murid di 1 kelas lewat WhatsApp begitu ada materi baru
+// masuk ke kelas mereka (dari upload langsung Admin/Owner MAUPUN dari
+// bahan ajar Laoshi yang dikirim ke Murid, lihat sendResourceToClasses
+// di bawah). Best effort -- gagal kirim ke 1 Murid ga bikin proses
+// simpen materinya gagal, cuma dicatet ke recordNotificationFailure.
+async function notifyClassStudentsNewMaterial(classId: string, className: string) {
+  const supabase = await createClient();
+  const { data: students } = await supabase
+    .from("students")
+    .select("name, phone")
+    .eq("class_id", classId);
+
+  const msg = `📚 Ada materi baru masuk di kelas "${className}" kamu! Cek di halaman Materi ya.`;
+
+  for (const s of students ?? []) {
+    if (!s.phone) continue;
+    try {
+      const result = await sendWhatsApp(normalizePhone(s.phone), msg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "materi baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${className}". Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "materi baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${className}". Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  }
 }
 
 export async function deleteMaterial(id: string) {
@@ -536,7 +569,7 @@ export async function approveResourcePurchase(purchaseId: string) {
   const supabase = await createClient();
   const { data: purchase } = await supabase
     .from("teacher_resource_purchases")
-    .select("id, request_status")
+    .select("id, request_status, teacher_id, resource_id")
     .eq("id", purchaseId)
     .maybeSingle();
   if (!purchase) return { success: false, message: "Request tidak ditemukan." };
@@ -554,6 +587,32 @@ export async function approveResourcePurchase(purchaseId: string) {
     })
     .eq("id", purchaseId);
   if (error) return { success: false, message: error.message };
+
+  // Kabarin Laoshi lewat WhatsApp begitu request beli-nya di-approve BM.
+  const [{ data: approvedResource }, { data: approvedTeacher }] = await Promise.all([
+    supabase.from("teacher_resources").select("title").eq("id", purchase.resource_id).maybeSingle(),
+    supabase.from("teachers").select("name, phone").eq("id", purchase.teacher_id).maybeSingle(),
+  ]);
+
+  if (approvedTeacher?.phone) {
+    const teacherMsg = `✅ Request beli "${approvedResource?.title || "-"}" kamu sudah disetujui BM! Sekarang sudah bisa didownload.`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(approvedTeacher.phone), teacherMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "request beli disetujui" ke Laoshi ${approvedTeacher.name || "-"} (${approvedTeacher.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "request beli disetujui" ke Laoshi ${approvedTeacher.name || "-"} (${approvedTeacher.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Laoshi ${approvedTeacher?.name || "-"} belum punya nomor HP di data Teachers, jadi notif "request beli disetujui" buat "${approvedResource?.title || "-"}" enggak bisa dikirim WA ke dia.`
+    );
+  }
 
   revalidatePath("/materials", "layout");
   return { success: true, message: "Request beli disetujui." };
@@ -574,7 +633,7 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
   const supabase = await createClient();
   const { data: purchase } = await supabase
     .from("teacher_resource_purchases")
-    .select("id, request_status")
+    .select("id, request_status, teacher_id, resource_id")
     .eq("id", purchaseId)
     .maybeSingle();
   if (!purchase) return { success: false, message: "Request tidak ditemukan." };
@@ -592,6 +651,33 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
     })
     .eq("id", purchaseId);
   if (error) return { success: false, message: error.message };
+
+  // Kabarin Laoshi lewat WhatsApp begitu request beli-nya ditolak BM,
+  // sekalian alasannya biar Laoshi tau harus benerin apa.
+  const [{ data: rejectedResource }, { data: rejectedTeacher }] = await Promise.all([
+    supabase.from("teacher_resources").select("title").eq("id", purchase.resource_id).maybeSingle(),
+    supabase.from("teachers").select("name, phone").eq("id", purchase.teacher_id).maybeSingle(),
+  ]);
+
+  if (rejectedTeacher?.phone) {
+    const teacherMsg = `❌ Request beli "${rejectedResource?.title || "-"}" kamu ditolak BM. Alasan: ${cleanedNote}`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(rejectedTeacher.phone), teacherMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "request beli ditolak" ke Laoshi ${rejectedTeacher.name || "-"} (${rejectedTeacher.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "request beli ditolak" ke Laoshi ${rejectedTeacher.name || "-"} (${rejectedTeacher.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Laoshi ${rejectedTeacher?.name || "-"} belum punya nomor HP di data Teachers, jadi notif "request beli ditolak" buat "${rejectedResource?.title || "-"}" enggak bisa dikirim WA ke dia.`
+    );
+  }
 
   revalidatePath("/materials", "layout");
   return { success: true, message: "Request beli ditolak." };
@@ -781,6 +867,10 @@ export async function sendResourceToClasses(purchaseId: string, classIds: string
 
   const { error } = await supabase.from("materials").insert(rowsToInsert);
   if (error) return { success: false, message: error.message };
+
+  for (const c of classesToSend) {
+    await notifyClassStudentsNewMaterial(c.id, c.name);
+  }
 
   revalidatePath("/materials", "layout");
   return {

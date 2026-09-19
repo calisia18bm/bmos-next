@@ -3,6 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
+import { recordNotificationFailure } from "@/lib/notifyFailure";
+import { SITE_URL } from "@/lib/site";
 
 // PENTING: dulu tiap fungsi di file ini nembak auth.getUser() + query
 // user_profiles-nya SENDIRI-SENDIRI, padahal getCurrentProfile() (yang
@@ -107,8 +110,63 @@ export async function createAnnouncement(input: {
 
   if (error) return { success: false, message: error.message };
 
+  // Kabarin Laoshi/Murid yang jadi target lewat WhatsApp begitu ada
+  // pengumuman baru diposting -- CUMA info singkat "ada pengumuman
+  // baru, cek di web", isi pengumumannya SENGAJA GA ditulis di WA (biar
+  // orangnya buka web buat baca lengkapnya, dan biar pesan WA-nya tetap
+  // pendek walau isi pengumumannya panjang).
+  await notifyAnnouncementTargets(input.audience);
+
   revalidatePath("/", "layout");
   return { success: true, message: "Pengumuman berhasil diposting." };
+}
+
+// Kirim WA "ada pengumuman baru" ke semua Laoshi dan/atau Murid yang
+// jadi target (sesuai audience yang dipilih BM pas posting), yang udah
+// punya nomor HP di data Teachers/Students. Best effort -- gagal kirim
+// ke satu orang ga bikin posting pengumumannya gagal, cuma dicatet ke
+// recordNotificationFailure.
+async function notifyAnnouncementTargets(audience: "ALL" | "TEACHER" | "STUDENT") {
+  const supabase = await createClient();
+  const notifyMsg = `📢 Ada pengumuman baru dari BM! Cek di ${SITE_URL} ya.`;
+
+  if (audience === "ALL" || audience === "TEACHER") {
+    const { data: teachers } = await supabase.from("teachers").select("name, phone");
+    for (const t of teachers ?? []) {
+      if (!t.phone) continue;
+      try {
+        const result = await sendWhatsApp(normalizePhone(t.phone), notifyMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "pengumuman baru" ke Laoshi ${t.name || "-"} (${t.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "pengumuman baru" ke Laoshi ${t.name || "-"} (${t.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        );
+      }
+    }
+  }
+
+  if (audience === "ALL" || audience === "STUDENT") {
+    const { data: students } = await supabase.from("students").select("name, phone");
+    for (const s of students ?? []) {
+      if (!s.phone) continue;
+      try {
+        const result = await sendWhatsApp(normalizePhone(s.phone), notifyMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "pengumuman baru" ke Murid ${s.name || "-"} (${s.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "pengumuman baru" ke Murid ${s.name || "-"} (${s.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        );
+      }
+    }
+  }
 }
 
 export async function deleteAnnouncement(id: string) {

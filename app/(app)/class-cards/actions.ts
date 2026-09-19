@@ -1026,6 +1026,33 @@ export async function approveJoinRequest(enrollmentId: string) {
       .eq("id", enrollment.student_id);
   }
 
+  // Kabarin Murid lewat WhatsApp begitu request join-nya di-approve BM.
+  const { data: approvedStudent } = await supabase
+    .from("students")
+    .select("name, phone")
+    .eq("id", enrollment.student_id)
+    .maybeSingle();
+
+  if (approvedStudent?.phone) {
+    const studentMsg = `✅ Request join "${cls.name}" kamu sudah disetujui BM! Sampai ketemu di kelasnya ya.`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(approvedStudent.phone), studentMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${approvedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join disetujui" buat kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
+    );
+  }
+
   revalidatePath("/class-cards", "layout");
   revalidatePath("/", "layout");
   return { success: true, message: `Request join ${cls.name} disetujui.` };
@@ -1046,7 +1073,7 @@ export async function rejectJoinRequest(enrollmentId: string, note: string) {
   const supabase = await createClient();
   const { data: enrollment } = await supabase
     .from("enrollments")
-    .select("id, request_status")
+    .select("id, request_status, class_id, student_id")
     .eq("id", enrollmentId)
     .maybeSingle();
   if (!enrollment) return { success: false, message: "Request tidak ditemukan." };
@@ -1064,6 +1091,33 @@ export async function rejectJoinRequest(enrollmentId: string, note: string) {
     })
     .eq("id", enrollmentId);
   if (error) return { success: false, message: error.message };
+
+  // Kabarin Murid lewat WhatsApp begitu request join-nya ditolak BM,
+  // sekalian alasannya biar Murid tau harus benerin apa.
+  const [{ data: rejectedClass }, { data: rejectedStudent }] = await Promise.all([
+    supabase.from("classes").select("name").eq("id", enrollment.class_id).maybeSingle(),
+    supabase.from("students").select("name, phone").eq("id", enrollment.student_id).maybeSingle(),
+  ]);
+
+  if (rejectedStudent?.phone) {
+    const studentMsg = `❌ Request join "${rejectedClass?.name || "-"}" kamu ditolak BM. Alasan: ${cleanedNote}`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(rejectedStudent.phone), studentMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${rejectedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join ditolak" buat kelas "${rejectedClass?.name || "-"}" enggak bisa dikirim WA ke dia.`
+    );
+  }
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Request join ditolak." };
