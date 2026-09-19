@@ -212,8 +212,8 @@ export default function MaterialsManage({
         </h2>
         {readOnly && (
           <p className="text-xs text-bmos-text-light mb-4">
-            Ini materi yang udah dikirim Admin/Owner ke kelas kamu (dari
-            bahan ajar yang kamu beli) -- murid di kelas ini udah bisa
+            Ini materi yang sudah dikirim Admin/Owner ke kelas kamu (dari
+            bahan ajar yang kamu beli) -- murid di kelas ini sudah bisa
             lihat & download.
           </p>
         )}

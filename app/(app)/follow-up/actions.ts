@@ -12,7 +12,7 @@ async function requireStaff(): Promise<string | null> {
 
   const myRoles = profile.roles;
   if (!myRoles.includes("OWNER") && !myRoles.includes("ADMIN")) {
-    return "Kamu ga punya akses buat kelola follow-up.";
+    return "Kamu enggak punya akses buat kelola follow-up.";
   }
   return null;
 }

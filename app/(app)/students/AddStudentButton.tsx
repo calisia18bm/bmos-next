@@ -354,7 +354,7 @@ export default function AddStudentButton({
                     <p className="text-[11px] text-bmos-text-light mt-1">
                       Kode paling atas itu kode lanjutan yang disaranin --
                       tapi boleh dipilih kode lain kalau ada yang kosong
-                      (misal bekas murid lama yang udah dihapus).
+                      (misal bekas murid lama yang sudah dihapus).
                     </p>
                   </div>
 
@@ -442,7 +442,7 @@ export default function AddStudentButton({
                       Buatkan akun login sekaligus?
                     </label>
                     <p className="text-[11px] text-bmos-text-light mt-1">
-                      Biar muridnya langsung bisa login ke portal, ga usah
+                      Biar muridnya langsung bisa login ke portal, enggak usah
                       dibuatin belakangan lewat halaman Accounts. (Cuma bisa
                       kalau yang lagi kelola ini Owner.)
                     </p>

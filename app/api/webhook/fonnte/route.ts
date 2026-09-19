@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     : "Pengirim belum terdaftar sebagai murid (kemungkinan calon murid).";
 
   const systemPrompt = knowledgeBase
-    ? `${DEFAULT_SYSTEM_PROMPT}\n\nBerikut info resmi sekolah yang HARUS kamu pakai buat jawab (harga paket, jadwal, kebijakan, FAQ, dll). Kalau pertanyaan ga kejawab dari info ini, bilang terus terang akan diteruskan ke admin manusia -- jangan ngarang:\n\n${knowledgeBase}`
+    ? `${DEFAULT_SYSTEM_PROMPT}\n\nBerikut info resmi sekolah yang HARUS kamu pakai buat jawab (harga paket, jadwal, kebijakan, FAQ, dll). Kalau pertanyaan enggak kejawab dari info ini, bilang terus terang akan diteruskan ke admin manusia -- jangan ngarang:\n\n${knowledgeBase}`
     : DEFAULT_SYSTEM_PROMPT;
 
   try {
@@ -190,7 +190,7 @@ async function handleWeeklyChoiceVote(
     .maybeSingle();
 
   if (!student) {
-    return { success: true, message: "Vote dari nomor yang ga kekenalan, diabaikan" };
+    return { success: true, message: "Vote dari nomor yang enggak kekenalan, diabaikan" };
   }
 
   const { data: sameNameClasses } = await supabase
@@ -204,7 +204,7 @@ async function handleWeeklyChoiceVote(
   );
 
   if (!matched) {
-    return { success: true, message: "Pilihan poll ga ke-match ke kelas manapun, diabaikan" };
+    return { success: true, message: "Pilihan poll enggak ke-match ke kelas manapun, diabaikan" };
   }
 
   await supabase.from("weekly_choices").upsert(

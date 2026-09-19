@@ -35,7 +35,7 @@ export default async function AIAssistantPage() {
           Tes Chat (simulasi jawaban AI)
         </p>
         <p className="text-xs text-bmos-text-light">
-          Coba tanya kayak calon murid buat cek jawaban AI-nya udah bener
+          Coba tanya seperti calon murid buat cek jawaban AI-nya sudah bener
           apa belum, sebelum beneran dipakai auto-reply di WhatsApp.
         </p>
       </div>

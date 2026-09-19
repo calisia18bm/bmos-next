@@ -103,7 +103,7 @@ async function notifyTeacherClassCardStatus(params: {
   const statusLabel = params.approved ? "APPROVE" : "REJECT";
 
   if (!teacher?.phone) {
-    const msg = `Laoshi ${teacher?.name || "-"} belum punya nomor HP di data Teachers, jadi notif ${statusLabel} Class Card "${params.className}" ga bisa dikirim WA. Tolong kabarin manual & lengkapin nomornya di halaman Teachers.`;
+    const msg = `Laoshi ${teacher?.name || "-"} belum punya nomor HP di data Teachers, jadi notif ${statusLabel} Class Card "${params.className}" enggak bisa dikirim WA. Tolong kabarin manual & lengkapin nomornya di halaman Teachers.`;
     console.error("[notifyTeacherClassCardStatus]", msg);
     await recordNotificationFailure(msg);
     return;
@@ -111,7 +111,7 @@ async function notifyTeacherClassCardStatus(params: {
 
   const teacherClassCardLink = `${SITE_URL}/class-cards`;
   const message = params.approved
-    ? `✅ Kabar baik! Class Card "${params.className}" kamu udah di-APPROVE BM & sekarang udah tayang buat Murid.\n\nCek: ${teacherClassCardLink}`
+    ? `✅ Kabar baik! Class Card "${params.className}" kamu sudah di-APPROVE BM & sekarang sudah tayang buat Murid.\n\nCek: ${teacherClassCardLink}`
     : `❌ Class Card "${params.className}" kamu di-TOLAK BM.\n\nAlasan: ${
         params.rejectionNote || "-"
       }\n\nCek & edit lagi di sini: ${teacherClassCardLink}`;
@@ -155,7 +155,7 @@ async function notifyOwnerNewClassCard(params: {
 }) {
   const ownerPhone = process.env.OWNER_WHATSAPP_NUMBER;
   if (!ownerPhone) {
-    const msg = `OWNER_WHATSAPP_NUMBER belum di-set di Vercel, jadi notif Class Card baru ("${params.className}" dari Laoshi ${params.teacherName || "-"}) ga bisa dikirim WA ke Owner. Cek & submit kartu kelas ini manual di halaman Class Card.`;
+    const msg = `OWNER_WHATSAPP_NUMBER belum di-set di Vercel, jadi notif Class Card baru ("${params.className}" dari Laoshi ${params.teacherName || "-"}) enggak bisa dikirim WA ke Owner. Cek & submit kartu kelas ini manual di halaman Class Card.`;
     console.error("[notifyOwnerNewClassCard]", msg);
     await recordNotificationFailure(msg);
     return;
@@ -243,7 +243,7 @@ function validateInput(input: ClassCardInput): string | null {
     input.registrationEnd &&
     input.registrationStart > input.registrationEnd
   ) {
-    return "Tanggal mulai pendaftaran ga boleh lebih besar dari tanggal tutup.";
+    return "Tanggal mulai pendaftaran enggak boleh lebih besar dari tanggal tutup.";
   }
   return null;
 }
@@ -297,7 +297,7 @@ function buildAiNote(
     notes.push("Belum ada deskripsi kelas.");
   }
 
-  if (notes.length === 0) return "Kartu kelas lengkap, ga ada catatan khusus.";
+  if (notes.length === 0) return "Kartu kelas lengkap, enggak ada catatan khusus.";
   return notes.map((n) => `• ${n}`).join("\n");
 }
 
@@ -330,7 +330,7 @@ export async function submitClassCard(input: ClassCardInput) {
   if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) {
     return {
       success: false,
-      message: "Cuma akun Laoshi yang terhubung ke data Laoshi yang bisa bikin kelas.",
+      message: "Cuma akun Laoshi yang terhubung ke data Laoshi yang bisa buat kelas.",
     };
   }
 
@@ -419,7 +419,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) {
-    return { success: false, message: "Kamu ga punya akses." };
+    return { success: false, message: "Kamu enggak punya akses." };
   }
 
   const err = validateInput(input);
@@ -440,7 +440,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
   if (existing.approval_status === "APPROVED") {
     return {
       success: false,
-      message: "Kelas yang udah di-approve ga bisa diedit dari sini lagi.",
+      message: "Kelas yang sudah di-approve enggak bisa diedit dari sini lagi.",
     };
   }
 
@@ -508,7 +508,7 @@ export async function deleteClassCard(id: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("TEACHER") || !ctx.teacherId) {
-    return { success: false, message: "Kamu ga punya akses." };
+    return { success: false, message: "Kamu enggak punya akses." };
   }
 
   const supabase = await createClient();
@@ -526,7 +526,7 @@ export async function deleteClassCard(id: string) {
     return {
       success: false,
       message:
-        "Kelas yang udah di-approve ga bisa dihapus dari sini -- hubungi BM.",
+        "Kelas yang sudah di-approve enggak bisa dihapus dari sini -- hubungi BM.",
     };
   }
 
@@ -759,7 +759,7 @@ export async function requestJoinClassCard(
 
   if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
   if (cls.approval_status !== "APPROVED" || !cls.active) {
-    return { success: false, message: "Kelas ini belum/ga bisa dijoin." };
+    return { success: false, message: "Kelas ini belum/enggak bisa dijoin." };
   }
   if (cls.is_private) {
     return {
@@ -773,7 +773,7 @@ export async function requestJoinClassCard(
     return { success: false, message: "Pendaftaran kelas ini belum dibuka." };
   }
   if (cls.registration_end && today > cls.registration_end) {
-    return { success: false, message: "Pendaftaran kelas ini udah ditutup." };
+    return { success: false, message: "Pendaftaran kelas ini sudah ditutup." };
   }
 
   // Udah ada request PENDING buat kelas yang SAMA -- ga usah dobel.
@@ -787,7 +787,7 @@ export async function requestJoinClassCard(
   if (existingPending) {
     return {
       success: false,
-      message: "Kamu udah punya request join buat kelas ini, tunggu di-review BM ya.",
+      message: "Kamu sudah punya request join buat kelas ini, tunggu di-review BM ya.",
     };
   }
 
@@ -810,7 +810,7 @@ export async function requestJoinClassCard(
       return {
         success: false,
         message:
-          "Kamu udah punya kelas Reguler aktif/lagi diproses. Hubungi BM kalau mau pindah kelas.",
+          "Kamu sudah punya kelas Reguler aktif/lagi diproses. Hubungi BM kalau mau pindah kelas.",
       };
     }
   }
@@ -837,7 +837,7 @@ export async function requestJoinClassCard(
     .eq("status", "ACTIVE");
 
   if ((count ?? 0) >= cls.capacity_max) {
-    return { success: false, message: "Kelas ini udah penuh." };
+    return { success: false, message: "Kelas ini sudah penuh." };
   }
 
   const enrollmentCode = await getNextEnrollmentCode(supabase);
@@ -873,15 +873,7 @@ export async function requestJoinClassCard(
     .maybeSingle();
 
   if (studentRow?.phone) {
-    const studentMsg =
-      `📝 Request join "${cls.name}" kamu udah kekirim, lagi ditunggu review BM.
-
-` +
-      `🤖 Hasil baca AI dari bukti transfer kamu:
-${aiNote}
-
-` +
-      `Kalau ada yang janggal (misal nominal beda), BM bakal tanya/koreksi manual sebelum approve. Ditunggu ya!`;
+    const studentMsg = `📝 Request join "${cls.name}" kamu sudah kekirim, lagi ditunggu review BM ya!`;
     try {
       const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
       if (!result.success) {
@@ -896,7 +888,7 @@ ${aiNote}
     }
   } else {
     await recordNotificationFailure(
-      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif hasil baca AI request join "${cls.name}" ga bisa dikirim WA ke dia.`
+      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif hasil baca AI request join "${cls.name}" enggak bisa dikirim WA ke dia.`
     );
   }
 
@@ -911,8 +903,7 @@ ${aiNote}
       `Biaya: ${cls.price ? `Rp ${cls.price.toLocaleString("id-ID")}` : "Gratis"}
 
 ` +
-      `🤖 Hasil baca AI bukti transfer:
-${aiNote}
+      `${aiNote}
 
 ` +
       `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
@@ -993,7 +984,7 @@ export async function approveJoinRequest(enrollmentId: string) {
 
   if (!enrollment) return { success: false, message: "Request tidak ditemukan." };
   if (enrollment.request_status !== "PENDING") {
-    return { success: false, message: "Request ini udah diproses sebelumnya." };
+    return { success: false, message: "Request ini sudah diproses sebelumnya." };
   }
 
   const { data: cls } = await supabase
@@ -1010,7 +1001,7 @@ export async function approveJoinRequest(enrollmentId: string) {
     .eq("request_status", "APPROVED")
     .eq("status", "ACTIVE");
   if ((count ?? 0) >= cls.capacity_max) {
-    return { success: false, message: "Kelas ini udah penuh, ga bisa approve lagi." };
+    return { success: false, message: "Kelas ini sudah penuh, enggak bisa approve lagi." };
   }
 
   const { error } = await supabase
@@ -1060,7 +1051,7 @@ export async function rejectJoinRequest(enrollmentId: string, note: string) {
     .maybeSingle();
   if (!enrollment) return { success: false, message: "Request tidak ditemukan." };
   if (enrollment.request_status !== "PENDING") {
-    return { success: false, message: "Request ini udah diproses sebelumnya." };
+    return { success: false, message: "Request ini sudah diproses sebelumnya." };
   }
 
   const { error } = await supabase

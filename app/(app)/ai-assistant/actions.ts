@@ -69,7 +69,7 @@ export async function askAssistant(question: string) {
   const knowledgeBase = (await getKnowledgeBase()).trim();
 
   const systemPrompt = knowledgeBase
-    ? `${SYSTEM_PROMPT_BASE}\n\nBerikut info resmi sekolah yang HARUS kamu pakai buat jawab (harga paket, jadwal, kebijakan, FAQ, dll). Kalau pertanyaan ga kejawab dari info ini, bilang terus terang akan diteruskan ke admin manusia -- jangan ngarang:\n\n${knowledgeBase}`
+    ? `${SYSTEM_PROMPT_BASE}\n\nBerikut info resmi sekolah yang HARUS kamu pakai buat jawab (harga paket, jadwal, kebijakan, FAQ, dll). Kalau pertanyaan enggak kejawab dari info ini, bilang terus terang akan diteruskan ke admin manusia -- jangan ngarang:\n\n${knowledgeBase}`
     : SYSTEM_PROMPT_BASE;
 
   try {

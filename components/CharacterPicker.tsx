@@ -48,7 +48,7 @@ export default function CharacterPicker({
             </h2>
             <p className="text-xs text-bmos-text-light mb-4">
               Karakter ini cuma muncul sebagai avatarmu sendiri (di sidebar
-              akunmu) -- ga ngubah avatar orang lain.
+              akunmu) -- enggak ngubah avatar orang lain.
             </p>
             <div className="grid grid-cols-4 gap-3">
               {CHARACTERS.map((c) => (

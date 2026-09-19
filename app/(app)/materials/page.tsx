@@ -135,7 +135,7 @@ export default async function MaterialsPage({
         {previewAsStudent && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
             👁️ Preview tampilan Murid -- ini yang beneran dilihat akun Murid
-            (ga ada tombol upload).
+            (enggak ada tombol upload).
           </div>
         )}
 
@@ -233,7 +233,7 @@ export default async function MaterialsPage({
         {previewAsTeacher && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
             👁️ Preview tampilan Laoshi -- ini yang beneran dilihat akun
-            Laoshi (ga ada tombol upload, Laoshi cuma beli & pake bahan
+            Laoshi (enggak ada tombol upload, Laoshi cuma beli & pake bahan
             ajar dari Admin/Owner).
           </div>
         )}

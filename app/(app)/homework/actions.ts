@@ -34,7 +34,7 @@ export async function createHomework(input: {
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   const isTeacher = ctx.roles.includes("TEACHER");
   if (!isStaff && !isTeacher) {
-    return { success: false, message: "Kamu ga punya akses bikin PR." };
+    return { success: false, message: "Kamu enggak punya akses buat PR." };
   }
 
   const title = input.title.trim();
@@ -49,7 +49,7 @@ export async function createHomework(input: {
 
   if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
   if (!isStaff && cls.teacher_id !== ctx.teacherId) {
-    return { success: false, message: "Kamu cuma bisa bikin PR buat kelas yang kamu ajar." };
+    return { success: false, message: "Kamu cuma bisa buat PR untuk kelas yang kamu ajar." };
   }
 
   const { error } = await supabase.from("homework").insert({
@@ -84,7 +84,7 @@ export async function deleteHomework(id: string) {
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
   const isOwnHomework = ctx.roles.includes("TEACHER") && hw.teacher_id === ctx.teacherId;
   if (!isStaff && !isOwnHomework) {
-    return { success: false, message: "Kamu ga punya akses hapus PR ini." };
+    return { success: false, message: "Kamu enggak punya akses hapus PR ini." };
   }
 
   // Submission & filenya dibiarin (riwayat), cuma PR-nya yang dihapus.

@@ -32,7 +32,7 @@ export default function ChatBox() {
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 && (
           <p className="text-sm text-bmos-text-light text-center mt-10">
-            Coba tanya kayak calon murid, misal &quot;harga paketnya berapa?&quot;
+            Coba tanya seperti calon murid, misal &quot;harga paketnya berapa?&quot;
             atau &quot;ada trial class gratis nggak?&quot; -- jawabannya
             berdasarkan buku panduan yang kamu isi di atas.
           </p>

@@ -104,7 +104,7 @@ export default async function ClassCardsPage({
         )}
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">Class Card</h1>
         <p className="text-bmos-text-light text-sm mb-6">
-          Bikin kartu kelas sendiri (jadwal, harga, kuota, tujuan belajar),
+          Buat kartu kelas sendiri (jadwal, harga, kuota, tujuan belajar),
           submit buat di-approve BM sebelum tayang buat Murid.
         </p>
         {previewAsTeacher && (

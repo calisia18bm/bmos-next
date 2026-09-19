@@ -17,7 +17,7 @@ async function requireStaffOrTeacher(): Promise<string | null> {
     !myRoles.includes("ADMIN") &&
     !myRoles.includes("TEACHER")
   ) {
-    return "Kamu ga punya akses buat catat absensi.";
+    return "Kamu enggak punya akses buat catat absensi.";
   }
   return null;
 }

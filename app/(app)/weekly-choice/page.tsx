@@ -129,7 +129,7 @@ export default async function WeeklyChoicePage() {
       ) : (
         <>
           {/* Preview persis apa yang bakal dikirim ke WA -- cek dulu di
-              sini sebelum klik "Kirim Vote Sekarang" di atas, biar ga
+              sini sebelum klik "Kirim Vote Sekarang" di atas, biar enggak
               kekirim salah kelas/laoshi/jam ke grup WA beneran. */}
           <div className="mb-6">
             <h2 className="font-bold text-bmos-text text-lg mb-1">
@@ -137,7 +137,7 @@ export default async function WeeklyChoicePage() {
             </h2>
             <p className="text-xs text-bmos-text-light mb-4">
               Cek dulu isinya bener sebelum kirim -- pilihan di bawah ini
-              PERSIS sama kayak yang bakal muncul di poll WhatsApp.
+              PERSIS sama seperti yang bakal muncul di poll WhatsApp.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {flexibleGroups.map(([className, group]) => {
@@ -162,7 +162,7 @@ export default async function WeeklyChoicePage() {
                     {waGroupIds.length === 0 ? (
                       <p className="text-xs text-red-600 mb-3">
                         ⚠️ Belum ada ID Grup WA di-set buat kelas ini -- poll
-                        GA BAKAL kekirim. Set dulu di halaman Classes.
+                        ENGGAK BAKAL kekirim. Set dulu di halaman Classes.
                       </p>
                     ) : (
                       <p className="text-xs text-bmos-text-light mb-3">

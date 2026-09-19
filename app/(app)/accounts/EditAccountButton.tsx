@@ -139,7 +139,7 @@ export default function EditAccountButton({
   async function handleDelete() {
     if (
       !window.confirm(
-        `Yakin mau hapus akun ${account.full_name || account.email}? Login-nya bakal ga bisa dipakai lagi. Data Murid/Laoshi di Master Data TIDAK ikut kehapus, cuma akses login-nya.`
+        `Yakin mau hapus akun ${account.full_name || account.email}? Login-nya bakal enggak bisa dipakai lagi. Data Murid/Laoshi di Master Data TIDAK ikut kehapus, cuma akses login-nya.`
       )
     ) {
       return;
@@ -269,7 +269,7 @@ export default function EditAccountButton({
                 <p className="text-xs text-red-600 mt-1">{emailError}</p>
               )}
               <p className="text-[11px] text-bmos-text-light mt-1">
-                Ini email buat login orangnya, kabarin manual kalau udah diganti.
+                Ini email buat login orangnya, kabarin manual kalau sudah diganti.
               </p>
             </div>
 
@@ -480,7 +480,7 @@ export default function EditAccountButton({
             <div className="mt-5 pt-4 border-t border-red-200">
               <p className="text-sm font-semibold text-red-600 mb-1">Hapus Akun</p>
               <p className="text-[11px] text-bmos-text-light mb-2">
-                Akses login orangnya bakal langsung ga bisa dipakai. Data Murid/Laoshi
+                Akses login orangnya bakal langsung enggak bisa dipakai. Data Murid/Laoshi
                 di Master Data tidak ikut kehapus.
               </p>
               {deleteError && (

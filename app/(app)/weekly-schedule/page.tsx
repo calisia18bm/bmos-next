@@ -101,7 +101,7 @@ export default async function WeeklySchedulePage({
       {totalSessions === 0 ? (
         <div className="bg-white border border-bmos-border rounded-2xl p-10 text-center text-bmos-text-light">
           Belum ada sesi di minggu ini. Klik &quot;Generate Sessions&quot; di
-          atas buat bikin jadwal dari pola kelas berulang.
+          atas buat buat jadwal dari pola kelas berulang.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">

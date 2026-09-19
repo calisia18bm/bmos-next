@@ -60,8 +60,8 @@ export default function ResourceDeliveryQueue({
         📤 Kirim Bahan Ajar ke Murid
       </h2>
       <p className="text-bmos-text-light text-sm mb-4">
-        Bahan ajar yang udah dibeli Laoshi bisa kamu kirim ke murid-murid
-        di kelas manapun yang Laoshi itu ajar -- ga perlu nunggu kelas
+        Bahan ajar yang sudah dibeli Laoshi bisa kamu kirim ke murid-murid
+        di kelas manapun yang Laoshi itu ajar -- enggak perlu nunggu kelas
         selesai, bisa kapan aja, dan bisa ke beberapa kelas sekaligus.
       </p>
       <div className="space-y-3">

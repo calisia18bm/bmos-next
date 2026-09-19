@@ -207,7 +207,7 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
               )}
               {rateType === "PACKAGE" && (
                 <p className="text-[11px] text-bmos-text-light -mt-2">
-                  Payroll dihitung: tiap kelipatan {payout || "?"} sesi yang udah
+                  Payroll dihitung: tiap kelipatan {payout || "?"} sesi yang sudah
                   diajar dalam periode = 1 paket, dibayar flat segitu. Sisa
                   sesi yang belum genap 1 paket otomatis ikut dihitung di
                   payroll periode berikutnya.

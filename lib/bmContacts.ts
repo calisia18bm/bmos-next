@@ -32,7 +32,7 @@ export async function broadcastToBm(message: string, context: string) {
 
   if (contacts.length === 0) {
     await recordNotificationFailure(
-      `Belum ada akun BM (Owner/Admin) yang diisi nomor HP-nya di halaman Accounts, jadi notif WA (${context}) ga bisa dikirim ke siapa-siapa. Tolong isi nomor HP minimal 1 akun BM di Accounts.`
+      `Belum ada akun BM (Owner/Admin) yang diisi nomor HP-nya di halaman Accounts, jadi notif WA (${context}) enggak bisa dikirim ke siapa-siapa. Tolong isi nomor HP minimal 1 akun BM di Accounts.`
     );
     return;
   }

@@ -275,7 +275,7 @@ export async function deleteAccount(id: string) {
   ) {
     return {
       success: false,
-      message: "Ga bisa hapus -- ini satu-satunya akun Owner yang tersisa.",
+      message: "Enggak bisa hapus -- ini satu-satunya akun Owner yang tersisa.",
     };
   }
 

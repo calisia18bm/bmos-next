@@ -303,7 +303,7 @@ export default function AddTeacherButton() {
                   {rateType === "PACKAGE" && (
                     <p className="text-[11px] text-bmos-text-light -mt-2">
                       Payroll nanti dihitung: tiap kelipatan {sessionsPerPackage || "?"}{" "}
-                      sesi yang udah diajar dalam periode = 1 paket, dibayar flat
+                      sesi yang sudah diajar dalam periode = 1 paket, dibayar flat
                       segitu. Sisa sesi yang belum genap 1 paket otomatis ikut
                       dihitung di payroll periode berikutnya.
                     </p>
@@ -320,7 +320,7 @@ export default function AddTeacherButton() {
                       Buatkan akun login sekaligus?
                     </label>
                     <p className="text-[11px] text-bmos-text-light mt-1">
-                      Biar laoshinya langsung bisa login ke portal, ga usah
+                      Biar laoshinya langsung bisa login ke portal, enggak usah
                       dibuatin belakangan lewat halaman Accounts. (Cuma bisa
                       kalau yang lagi kelola ini Owner.)
                     </p>

@@ -342,7 +342,7 @@ export default function OwnerApprovalQueue({
           </h2>
           <p className="text-xs text-bmos-text-light mb-3">
             Daftar badge tujuan belajar (HSK, China Buddy, dll) yang bisa
-            dipilih Laoshi pas bikin kartu kelas.
+            dipilih Laoshi pas buat kartu kelas.
           </p>
           <div className="flex flex-wrap gap-2 mb-3">
             {localGoalTags.map((tag) => (

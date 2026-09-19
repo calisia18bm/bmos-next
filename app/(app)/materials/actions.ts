@@ -48,7 +48,7 @@ export async function createMaterial(input: {
     return {
       success: false,
       message:
-        "Laoshi sudah ga bisa upload materi sendiri lagi -- materi sekarang dikirim otomatis sama BM setelah beli bahan ajar.",
+        "Laoshi sudah enggak bisa upload materi sendiri lagi -- materi sekarang dikirim otomatis sama BM setelah beli bahan ajar.",
     };
   }
 
@@ -100,7 +100,7 @@ export async function deleteMaterial(id: string) {
   const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
 
   if (!isStaff) {
-    return { success: false, message: "Kamu ga punya akses hapus materi ini." };
+    return { success: false, message: "Kamu enggak punya akses hapus materi ini." };
   }
 
   if (material.file_path) {
@@ -183,7 +183,7 @@ export async function submitTeacherResourceDraft(_input: {
   return {
     success: false,
     message:
-      "Fitur submit materi oleh Laoshi sudah ga ada lagi -- bahan ajar sekarang diupload langsung sama BM.",
+      "Fitur submit materi oleh Laoshi sudah enggak ada lagi -- bahan ajar sekarang diupload langsung sama BM.",
   };
 }
 
@@ -222,7 +222,7 @@ export async function approveTeacherResourceSubmission(
 
   if (!submission) return { success: false, message: "Submission tidak ditemukan." };
   if (submission.status === "APPROVED") {
-    return { success: false, message: "Submission ini udah di-approve sebelumnya." };
+    return { success: false, message: "Submission ini sudah di-approve sebelumnya." };
   }
 
   const { data: published, error: insertError } = await supabase
@@ -393,7 +393,7 @@ export async function requestPurchaseResource(
     .maybeSingle();
   if (!resource) return { success: false, message: "Bahan ajar tidak ditemukan." };
   if (!resource.price || resource.price <= 0) {
-    return { success: false, message: "Bahan ajar ini gratis, ga perlu beli." };
+    return { success: false, message: "Bahan ajar ini gratis, enggak perlu beli." };
   }
 
   const { data: existingPending } = await supabase
@@ -406,7 +406,7 @@ export async function requestPurchaseResource(
   if (existingPending) {
     return {
       success: false,
-      message: "Kamu udah punya request beli buat bahan ajar ini, tunggu di-review BM ya.",
+      message: "Kamu sudah punya request beli buat bahan ajar ini, tunggu di-review BM ya.",
     };
   }
 
@@ -441,15 +441,7 @@ export async function requestPurchaseResource(
     .maybeSingle();
 
   if (teacherRow?.phone) {
-    const teacherMsg =
-      `📝 Request beli "${resource.title}" kamu udah kekirim, lagi ditunggu review BM.
-
-` +
-      `🤖 Hasil baca AI dari bukti transfer kamu:
-${aiNote}
-
-` +
-      `Kalau ada yang janggal (misal nominal beda), BM bakal tanya/koreksi manual sebelum approve. Ditunggu ya!`;
+    const teacherMsg = `📝 Request beli "${resource.title}" kamu sudah kekirim, lagi ditunggu review BM ya!`;
     try {
       const result = await sendWhatsApp(normalizePhone(teacherRow.phone), teacherMsg);
       if (!result.success) {
@@ -464,7 +456,7 @@ ${aiNote}
     }
   } else {
     await recordNotificationFailure(
-      `Laoshi ${teacherRow?.name || "-"} belum punya nomor HP di data Teachers, jadi notif hasil baca AI request beli "${resource.title}" ga bisa dikirim WA ke dia.`
+      `Laoshi ${teacherRow?.name || "-"} belum punya nomor HP di data Teachers, jadi notif hasil baca AI request beli "${resource.title}" enggak bisa dikirim WA ke dia.`
     );
   }
 
@@ -479,8 +471,7 @@ ${aiNote}
       `Harga: Rp ${resource.price.toLocaleString("id-ID")}
 
 ` +
-      `🤖 Hasil baca AI bukti transfer:
-${aiNote}
+      `${aiNote}
 
 ` +
       `Cek & approve/tolak di sini: ${SITE_URL}/materials`,
@@ -550,7 +541,7 @@ export async function approveResourcePurchase(purchaseId: string) {
     .maybeSingle();
   if (!purchase) return { success: false, message: "Request tidak ditemukan." };
   if (purchase.request_status !== "PENDING") {
-    return { success: false, message: "Request ini udah diproses sebelumnya." };
+    return { success: false, message: "Request ini sudah diproses sebelumnya." };
   }
 
   const { error } = await supabase
@@ -588,7 +579,7 @@ export async function rejectResourcePurchase(purchaseId: string, note: string) {
     .maybeSingle();
   if (!purchase) return { success: false, message: "Request tidak ditemukan." };
   if (purchase.request_status !== "PENDING") {
-    return { success: false, message: "Request ini udah diproses sebelumnya." };
+    return { success: false, message: "Request ini sudah diproses sebelumnya." };
   }
 
   const { error } = await supabase
@@ -773,7 +764,7 @@ export async function sendResourceToClasses(purchaseId: string, classIds: string
   if (classesToSend.length === 0) {
     return {
       success: false,
-      message: "Semua kelas yang dipilih udah pernah dikirimin bahan ajar ini.",
+      message: "Semua kelas yang dipilih sudah pernah dikirimin bahan ajar ini.",
     };
   }
 

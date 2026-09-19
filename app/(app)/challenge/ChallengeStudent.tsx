@@ -340,7 +340,7 @@ export default function ChallengeStudent({
         <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
           <p className="text-2xl mb-1">🎉</p>
           <p className="font-semibold text-green-700">
-            Cap Hari {progress.current_day} udah didapat hari ini. Sampai ketemu besok!
+            Cap Hari {progress.current_day} sudah didapat hari ini. Sampai ketemu besok!
           </p>
         </div>
       ) : (

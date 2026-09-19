@@ -82,7 +82,7 @@ export default function TeacherHomework({
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Hapus PR ini? Jawaban murid yang udah masuk tetep kesimpen.")) return;
+    if (!window.confirm("Hapus PR ini? Jawaban murid yang sudah masuk tetep kesimpen.")) return;
     setDeletingId(id);
     await deleteHomework(id);
     setDeletingId(null);

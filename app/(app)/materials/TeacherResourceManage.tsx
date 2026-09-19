@@ -382,7 +382,7 @@ export default function TeacherResourceManage({
         </h2>
         <p className="text-xs text-bmos-text-light mb-4">
           Laoshi CUMA bisa lihat & download versi PDF -- file asli (PPT/dll)
-          cuma kesimpen buat arsip Owner/Admin, ga bisa diakses Laoshi.
+          cuma kesimpen buat arsip Owner/Admin, enggak bisa diakses Laoshi.
           Kalau filenya PPT, save as PDF dulu sebelum upload di sini.
         </p>
 

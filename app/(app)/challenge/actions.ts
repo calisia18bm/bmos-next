@@ -211,7 +211,7 @@ async function fetchWordsForDay(level: string, dayNumber: number) {
 export async function getPreviewChallenge(level: "DASAR" | "MENENGAH") {
   const ctx = await getCallerContext();
   if (!ctx || !isStaffRoles(ctx.roles)) {
-    return { success: false, message: "Ga punya akses." };
+    return { success: false, message: "Enggak punya akses." };
   }
 
   const words = await fetchWordsForDay(level, 1);
@@ -305,7 +305,7 @@ export async function submitDayTest(input: {
     return {
       success: false,
       passed: false,
-      message: `Belum sempurna (${input.score}/${input.totalQuestions}). Coba lagi ya, ga ada batas percobaan.`,
+      message: `Belum sempurna (${input.score}/${input.totalQuestions}). Coba lagi ya, enggak ada batas percobaan.`,
     };
   }
 
@@ -318,7 +318,7 @@ export async function submitDayTest(input: {
   if (!isCatchUpFrozenDay && !isTodayDay) {
     return {
       success: false,
-      message: "Data hari challenge udah berubah, refresh halaman dulu ya.",
+      message: "Data hari challenge sudah berubah, refresh halaman dulu ya.",
     };
   }
 
@@ -329,7 +329,7 @@ export async function submitDayTest(input: {
     .eq("day_number", input.dayNumber)
     .maybeSingle();
   if (existing) {
-    return { success: false, message: "Hari ini udah pernah dapet cap." };
+    return { success: false, message: "Hari ini sudah pernah dapet cap." };
   }
 
   const { error: logError } = await supabase.from("vocab_day_logs").insert({
@@ -376,7 +376,7 @@ export async function submitDayTest(input: {
 // ------------------------------------------------------------
 export async function listVocabWords(level: "DASAR" | "MENENGAH") {
   const ctx = await getCallerContext();
-  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Ga punya akses." };
+  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Enggak punya akses." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -397,7 +397,7 @@ export async function addVocabWord(input: {
   orderIndex: number;
 }) {
   const ctx = await getCallerContext();
-  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Ga punya akses." };
+  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Enggak punya akses." };
   if (!input.hanzi.trim() || !input.pinyin.trim() || !input.arti.trim()) {
     return { success: false, message: "Hanzi, pinyin, dan arti wajib diisi." };
   }
@@ -429,7 +429,7 @@ export async function updateVocabWord(
   }>
 ) {
   const ctx = await getCallerContext();
-  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Ga punya akses." };
+  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Enggak punya akses." };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -451,7 +451,7 @@ export async function updateVocabWord(
 
 export async function deleteVocabWord(id: string) {
   const ctx = await getCallerContext();
-  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Ga punya akses." };
+  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Enggak punya akses." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("vocab_words").delete().eq("id", id);
@@ -467,7 +467,7 @@ export async function deleteVocabWord(id: string) {
 // ------------------------------------------------------------
 export async function getChallengeLaggards() {
   const ctx = await getCallerContext();
-  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Ga punya akses." };
+  if (!ctx || !isStaffRoles(ctx.roles)) return { success: false, message: "Enggak punya akses." };
 
   const supabase = await createClient();
   const { data: progressRows } = await supabase
@@ -531,7 +531,7 @@ function buildReminderMessage(
     return `${name}, kejar cap Hari ${frozenDay} HARI INI juga, kalau nggak progress bakal reset ke Hari 1!`;
   }
   if (status === "PAKE_FREEZE") {
-    return `${name}, kamu kelewat Hari ${frozenDay} kemarin (udah kepake freeze). Masih bisa dikejar sampai hari ini!`;
+    return `${name}, kamu kelewat Hari ${frozenDay} kemarin (sudah kepake freeze). Masih bisa dikejar sampai hari ini!`;
   }
   return `${name}, jangan lupa kerjain Challenge Hari ${currentDay} hari ini ya!`;
 }

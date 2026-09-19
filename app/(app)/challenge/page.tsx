@@ -44,7 +44,7 @@ export default async function ChallengePage({
       {!isRealStudent && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
           👁️ Preview tampilan Murid (level {previewLevel === "MENENGAH" ? "Menengah" : "Dasar"}) --
-          akun kamu bukan akun Murid, jadi progress/cap di sini ga beneran
+          akun kamu bukan akun Murid, jadi progress/cap di sini enggak beneran
           kesimpen. Ganti{" "}
           <span className="font-mono text-xs bg-white/60 px-1.5 py-0.5 rounded">?level=MENENGAH</span>{" "}
           di URL buat liat level satunya.

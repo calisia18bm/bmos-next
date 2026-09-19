@@ -36,7 +36,7 @@ export default function KnowledgeBaseEditor({
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={14}
-        placeholder={`Contoh:\n\nHarga Paket:\n- 4 sesi: Rp800.000\n- 8 sesi: Rp1.500.000\n\nJadwal:\n- Kelas Pemula: Senin & Kamis 16:00-17:30\n\nKebijakan:\n- Reschedule maksimal H-1\n- Trial class gratis 1x sebelum daftar\n\nFAQ:\nQ: Metodenya gimana?\nA: ...`}
+        placeholder={`Contoh:\n\nHarga Paket:\n- 4 sesi: Rp800.000\n- 8 sesi: Rp1.500.000\n\nJadwal:\n- Kelas Pemula: Senin & Kamis 16:00-17:30\n\nKebijakan:\n- Reschedule maksimal H-1\n- Trial class gratis 1x sebelum daftar\n\nFAQ:\nQ: Metodenya bagaimana?\nA: ...`}
         className="w-full border border-bmos-border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
       />
       <div className="flex items-center justify-between mt-3">

@@ -161,7 +161,7 @@ export default function TeacherClassCards({
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Yakin mau hapus kartu kelas ini? Ga bisa dibalikin lagi.")) {
+    if (!window.confirm("Yakin mau hapus kartu kelas ini? Enggak bisa dibalikin lagi.")) {
       return;
     }
     setDeletingId(id);
@@ -510,8 +510,8 @@ export default function TeacherClassCards({
                 </select>
                 <p className="text-xs text-bmos-text-light mt-1">
                   Reguler: Murid cuma bisa aktif di 1 kelas Reguler dalam
-                  satu waktu (kayak sebelumnya). Seminar: Murid boleh join
-                  beberapa Seminar sekaligus, asal jadwalnya ga bentrok
+                  satu waktu (seperti sebelumnya). Seminar: Murid boleh join
+                  beberapa Seminar sekaligus, asal jadwalnya enggak bentrok
                   jam sama kelas aktif Murid yang lain.
                 </p>
               </div>

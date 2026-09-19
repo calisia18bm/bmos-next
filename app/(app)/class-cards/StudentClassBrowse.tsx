@@ -61,7 +61,7 @@ export default function StudentClassBrowse({
 
   function conflictReason(c: ClassCard): string | null {
     if (c.class_type === "REGULAR" && hasRegularActiveOrPending) {
-      return "Kamu udah punya kelas Reguler aktif/lagi diproses.";
+      return "Kamu sudah punya kelas Reguler aktif/lagi diproses.";
     }
     const clash = activeOrPending.find(
       (e) =>
@@ -74,7 +74,7 @@ export default function StudentClassBrowse({
       return `Jadwal bentrok sama "${clash.className}".`;
     }
     if (activeOrPending.some((e) => e.classId === c.id)) {
-      return "Kamu udah request/aktif di kelas ini.";
+      return "Kamu sudah request/aktif di kelas ini.";
     }
     return null;
   }
@@ -305,7 +305,7 @@ export default function StudentClassBrowse({
                 </p>
               )}
               {closed && !notOpenYet && (
-                <p className="text-xs text-red-600">Pendaftaran udah ditutup</p>
+                <p className="text-xs text-red-600">Pendaftaran sudah ditutup</p>
               )}
               {conflict && !isFull && !notOpenYet && !closed && (
                 <p className="text-xs text-yellow-700">{conflict}</p>

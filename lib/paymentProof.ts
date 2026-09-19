@@ -49,7 +49,7 @@ export async function readPaymentProofWithAI(
       model: "claude-sonnet-4-6",
       max_tokens: 300,
       system:
-        'Kamu bantu Admin sekolah les Mandarin BACA bukti transfer/pembayaran. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan Admin manusia. Jawab singkat 2-3 kalimat Bahasa Indonesia.',
+        'Kamu bantu Admin sekolah les Mandarin BACA bukti transfer/pembayaran. Sebutkan singkat: nominal yang keliatan di gambar, tanggal transaksi kalau ada, dan pengirim/metode kalau keliatan. Kalau gambarnya BUKAN bukti transfer sama sekali, bilang itu jelas. Kalau nominalnya enggak sesuai sama harga item, sebutkan selisihnya secara alami dalam kalimat itu juga. PENTING: kamu CUMA bantu baca, jangan pernah bilang "disetujui"/"approved"/"ditolak" -- keputusan approve/reject request ini 100% di tangan Admin manusia. WAJIB: jawab dalam 2-3 kalimat mengalir Bahasa Indonesia BIASA SAJA, TANPA markdown, TANPA bullet point/list, TANPA tanda bintang (*), TANPA heading/judul seperti "Hasil Baca:" atau "Catatan:" -- pesan ini bakal dikirim langsung lewat WhatsApp jadi harus berupa teks polos yang enak dibaca, bukan format dokumen.',
       messages: [
         {
           role: "user",
@@ -70,9 +70,22 @@ export async function readPaymentProofWithAI(
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    return textBlock && "text" in textBlock
-      ? textBlock.text
-      : "AI ga bisa baca gambar ini -- tolong dicek manual.";
+    const rawText =
+      textBlock && "text" in textBlock
+        ? textBlock.text
+        : "AI enggak bisa baca gambar ini -- tolong dicek manual.";
+
+    // Jaga-jaga kalau model TETAP ngasih markdown walau udah dilarang di
+    // system prompt (kadang masih kejadian) -- bersihin tanda bintang &
+    // bullet/heading-style sebelum dipakai, soalnya teks ini dikirim
+    // mentah-mentah lewat WhatsApp (Fonnte ga render markdown), jadi
+    // tanda bintangnya bakal keliatan literal kalau ga dibersihin dulu.
+    return rawText
+      .replace(/\*\*/g, "")
+      .replace(/^#+\s*/gm, "")
+      .replace(/^[-•*]\s+/gm, "")
+      .replace(/\*/g, "")
+      .trim();
   } catch (error) {
     return `AI gagal baca bukti bayar (${
       error instanceof Error ? error.message : "error"

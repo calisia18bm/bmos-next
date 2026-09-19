@@ -108,11 +108,11 @@ export default async function HomeworkPage({
         )}
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">PR</h1>
         <p className="text-bmos-text-light text-sm mb-6">
-          Bikin PR buat kelas kamu, lihat jawaban Murid (teks/suara/video/file).
+          Buat PR untuk kelas kamu, lihat jawaban Murid (teks/suara/video/file).
         </p>
         {previewAsTeacher && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
-            👁️ Preview tampilan Laoshi -- bikin/hapus PR di sini tetap
+            👁️ Preview tampilan Laoshi -- buat/hapus PR di sini tetap
             beneran kesimpen (login-nya tetap sebagai kamu), cuma buat
             liat tampilannya aja.
           </div>
@@ -201,7 +201,7 @@ export default async function HomeworkPage({
         {previewAsStudent && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-4 text-sm text-blue-800">
             👁️ Preview tampilan Murid -- ini yang beneran dilihat akun
-            Murid (submit di sini dimatiin biar ga ke-submit beneran).
+            Murid (submit di sini dimatiin biar enggak ke-submit beneran).
           </div>
         )}
         <StudentHomework
