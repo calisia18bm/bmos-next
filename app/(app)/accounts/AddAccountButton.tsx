@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
   { key: "STUDENT", label: "Murid (Student)" },
 ];
 
-type Person = { id: string; name: string; teacher_code?: string; student_code?: string };
+type Person = { id: string; name: string; teacher_code?: string; student_code?: string; phone?: string | null };
 
 export default function AddAccountButton({
   teachers,
@@ -62,6 +62,11 @@ export default function AddAccountButton({
     } else if (!matched && nameAutoFilled) {
       setName("");
       setNameAutoFilled(false);
+    }
+    // No. HP juga ikut ke-auto-fill dari data Laoshi/Murid yang
+    // kehubung -- biar BM ga usah ketik ulang nomor yang udah ada.
+    if (matched?.phone && phone === "") {
+      setPhone(matched.phone);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchedTeacher, matchedStudent]);
@@ -293,8 +298,9 @@ export default function AddAccountButton({
                     <label className="block text-sm font-medium text-bmos-text mb-1">
                       No. HP{" "}
                       <span className="text-bmos-text-light font-normal">
-                        (opsional -- khusus akun Owner/Admin, dipakai buat
-                        kirim notif WhatsApp otomatis)
+                        (buat Owner/Admin dipakai kirim notif WhatsApp
+                        otomatis; buat Laoshi/Murid otomatis sinkron sama
+                        No. HP di data Teachers/Students)
                       </span>
                     </label>
                     <input

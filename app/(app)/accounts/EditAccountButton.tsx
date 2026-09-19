@@ -372,8 +372,9 @@ export default function EditAccountButton({
                 <label className="block text-sm font-medium text-bmos-text mb-1">
                   No. HP{" "}
                   <span className="text-bmos-text-light font-normal">
-                    (opsional -- khusus akun Owner/Admin, dipakai buat kirim
-                    notif WhatsApp otomatis)
+                    (buat Owner/Admin dipakai kirim notif WhatsApp otomatis;
+                    buat Laoshi/Murid otomatis sinkron sama No. HP di data
+                    Teachers/Students)
                   </span>
                 </label>
                 <input

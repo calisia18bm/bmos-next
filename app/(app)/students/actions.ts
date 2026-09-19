@@ -124,6 +124,7 @@ export async function getAvailableStudentCodes(): Promise<string[]> {
 export async function addStudent(formData: {
   name: string;
   phone: string;
+  contactEmail?: string;
   classId?: string;
   status?: string;
   code?: string;
@@ -189,6 +190,7 @@ export async function addStudent(formData: {
         student_code: studentCode,
         name: formData.name,
         phone: formData.phone,
+        email: formData.contactEmail?.trim() || null,
         class_id: formData.classId || null,
         class_name: className,
         teacher_name: teacherName,
@@ -479,6 +481,7 @@ export async function updateStudent(
   formData: {
     name: string;
     phone: string;
+    contactEmail?: string;
     classId: string;
     className: string;
     teacherName: string;
@@ -498,6 +501,7 @@ export async function updateStudent(
     .update({
       name: formData.name,
       phone: formData.phone || null,
+      email: formData.contactEmail?.trim() || null,
       class_id: formData.classId || null,
       class_name: formData.className || null,
       teacher_name: formData.teacherName || null,

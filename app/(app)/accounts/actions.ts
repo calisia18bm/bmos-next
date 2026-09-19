@@ -34,6 +34,28 @@ async function requireOwner(): Promise<
   return { error: null, userId: profile.id, roles: myRoles };
 }
 
+// Tulis No. HP ke data Teacher/Student yang kesambung ke akun ini
+// (kalau ADA link-nya & nomornya diisi) -- ini yang bikin No. HP di
+// Accounts SELALU sinkron sama No. HP di halaman Teachers/Students,
+// karena keduanya ujung-ujungnya baca/tulis kolom yang sama persis.
+// Kalau nomornya dikosongin di form Accounts, KOLOM DI Teacher/Student
+// GA DIUBAH jadi kosong (biar ga ke-hapus ga sengaja) -- cuma nomor
+// yang keisi aja yang ditulis.
+async function syncPhoneToLinkedPerson(
+  admin: ReturnType<typeof createAdminClient>,
+  params: { phone?: string; teacherId: string | null; studentId: string | null }
+) {
+  const phone = params.phone?.trim();
+  if (!phone) return;
+
+  if (params.teacherId) {
+    await admin.from("teachers").update({ phone }).eq("id", params.teacherId);
+  }
+  if (params.studentId) {
+    await admin.from("students").update({ phone }).eq("id", params.studentId);
+  }
+}
+
 // Bikin akun BMOS baru (owner/admin/laoshi/murid) lengkap dengan login
 // Supabase Auth-nya. Cuma boleh dipanggil sama OWNER yang lagi login --
 // dicek ulang di server biar ga bisa dilewatin dari luar.
@@ -86,15 +108,31 @@ export async function createAccount(input: {
     };
   }
 
+  const linkedTeacherId = input.roles.includes("TEACHER") ? input.teacherId || null : null;
+  const linkedStudentId = input.roles.includes("STUDENT") ? input.studentId || null : null;
+
+  // No. HP buat akun Laoshi/Murid SEKARANG disimpen di data Teachers/
+  // Students (bukan di user_profiles.phone) -- soalnya nomor itu udah
+  // ada di sana, jadi ga perlu diketik ulang & otomatis selalu sinkron
+  // kalau diubah dari Accounts ATAUPUN dari halaman Teachers/Students
+  // (dua-duanya baca/tulis ke kolom yang SAMA). Cuma akun Owner/Admin
+  // murni (ga kehubung ke Teacher/Student) yang nomornya disimpen di
+  // user_profiles.phone sendiri.
+  await syncPhoneToLinkedPerson(admin, {
+    phone: input.phone,
+    teacherId: linkedTeacherId,
+    studentId: linkedStudentId,
+  });
+
   const { error: profileErr } = await admin.from("user_profiles").insert({
     id: created.user.id,
     email,
     full_name: name,
-    phone: input.phone?.trim() || null,
+    phone: linkedTeacherId || linkedStudentId ? null : input.phone?.trim() || null,
     roles: input.roles,
     active_role: input.roles[0],
-    teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
-    student_id: input.roles.includes("STUDENT") ? input.studentId || null : null,
+    teacher_id: linkedTeacherId,
+    student_id: linkedStudentId,
   });
 
   if (profileErr) {
@@ -144,21 +182,33 @@ export async function updateAccount(
   }
 
   const admin = createAdminClient();
+
+  const linkedTeacherId = input.roles.includes("TEACHER") ? input.teacherId || null : null;
+  const linkedStudentId = input.roles.includes("STUDENT") ? input.studentId || null : null;
+
+  await syncPhoneToLinkedPerson(admin, {
+    phone: input.phone,
+    teacherId: linkedTeacherId,
+    studentId: linkedStudentId,
+  });
+
   const { error } = await admin
     .from("user_profiles")
     .update({
       full_name: name,
-      phone: input.phone?.trim() || null,
+      phone: linkedTeacherId || linkedStudentId ? null : input.phone?.trim() || null,
       roles: input.roles,
       active_role: input.roles[0],
-      teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
-      student_id: input.roles.includes("STUDENT") ? input.studentId || null : null,
+      teacher_id: linkedTeacherId,
+      student_id: linkedStudentId,
     })
     .eq("id", id);
 
   if (error) return { success: false, message: error.message };
 
   revalidatePath("/accounts");
+  revalidatePath("/teachers");
+  revalidatePath("/students");
   return { success: true, message: "Akun berhasil diperbarui." };
 }
 

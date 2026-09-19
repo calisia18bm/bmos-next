@@ -25,6 +25,7 @@ export async function updateTeacher(
   formData: {
     name: string;
     phone: string;
+    contactEmail?: string;
     // "SESSION" = dibayar per sesi diajar (rate_per_session x jumlah sesi).
     // "PACKAGE" = dibayar flat per PAKET (sekian sesi selesai = flat
     // rate_per_package), dipakai buat laoshi yang gajinya bukan hitungan
@@ -46,6 +47,7 @@ export async function updateTeacher(
     .update({
       name: formData.name,
       phone: formData.phone || null,
+      email: formData.contactEmail?.trim() || null,
       rate_type: formData.rateType,
       rate_per_session: Number(formData.ratePerSession) || 0,
       rate_per_package: Number(formData.ratePerPackage) || 0,
@@ -63,6 +65,7 @@ export async function updateTeacher(
 export async function addTeacher(formData: {
   name: string;
   phone: string;
+  contactEmail?: string;
   rateType: "SESSION" | "PACKAGE";
   ratePerSession: string;
   ratePerPackage: string;
@@ -108,6 +111,7 @@ export async function addTeacher(formData: {
         teacher_code: teacherCode,
         name: formData.name,
         phone: formData.phone,
+        email: formData.contactEmail?.trim() || null,
         rate_type: formData.rateType,
         rate_per_session: Number(formData.ratePerSession) || 0,
         rate_per_package: Number(formData.ratePerPackage) || 0,

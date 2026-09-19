@@ -9,6 +9,7 @@ export default function AddTeacherButton() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [rate, setRate] = useState("");
 
   // Rate laoshi bisa dihitung per SESI (tiap sesi diajar dikali rate) atau
@@ -69,6 +70,7 @@ export default function AddTeacherButton() {
     const result = await addTeacher({
       name,
       phone,
+      contactEmail,
       rateType,
       ratePerSession: rate,
       ratePerPackage,
@@ -198,6 +200,21 @@ export default function AddTeacherButton() {
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Email Laoshi{" "}
+                      <span className="text-bmos-text-light font-normal">
+                        (opsional -- kontak, beda sama email login akun)
+                      </span>
+                    </label>
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
                       className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                     />
                   </div>

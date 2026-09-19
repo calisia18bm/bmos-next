@@ -41,15 +41,27 @@ export default async function AccountsPage() {
         .order("created_at", { ascending: false }),
       admin
         .from("teachers")
-        .select("id, name, teacher_code")
+        .select("id, name, teacher_code, phone")
         .eq("active", true)
         .order("name"),
       admin
         .from("students")
-        .select("id, name, student_code")
+        .select("id, name, student_code, phone")
         .eq("status", "ACTIVE")
         .order("name"),
     ]);
+
+  // No. HP buat akun Laoshi/Murid diambil dari data Teachers/Students
+  // (bukan dari user_profiles.phone) -- biar selalu sinkron sama data
+  // aslinya, ga perlu diketik ulang terpisah di Accounts. Cuma akun
+  // Owner/Admin murni yang nomornya diambil dari user_profiles.phone.
+  const teacherPhoneById = new Map((teachers ?? []).map((t) => [t.id, t.phone]));
+  const studentPhoneById = new Map((students ?? []).map((s) => [s.id, s.phone]));
+  function resolvePhone(a: { phone: string | null; teacher_id: string | null; student_id: string | null }) {
+    if (a.teacher_id) return teacherPhoneById.get(a.teacher_id) || null;
+    if (a.student_id) return studentPhoneById.get(a.student_id) || null;
+    return a.phone;
+  }
 
   return (
     <div>
@@ -94,7 +106,7 @@ export default async function AccountsPage() {
                 </td>
                 <td className="px-5 py-3 text-bmos-text">{a.email}</td>
                 <td className="px-5 py-3 text-bmos-text-light">
-                  {a.phone || (
+                  {resolvePhone(a) || (
                     <span className="text-amber-600">Belum diisi</span>
                   )}
                 </td>
@@ -121,7 +133,7 @@ export default async function AccountsPage() {
                       id: a.id,
                       email: a.email,
                       full_name: a.full_name,
-                      phone: a.phone,
+                      phone: resolvePhone(a),
                       roles: a.roles || [],
                       teacher_id: a.teacher_id,
                       student_id: a.student_id,

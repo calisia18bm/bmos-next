@@ -8,6 +8,7 @@ type TeacherData = {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
   rate_type: string | null;
   rate_per_session: number | null;
   rate_per_package: number | null;
@@ -20,6 +21,7 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(teacher.name);
   const [phone, setPhone] = useState(teacher.phone || "");
+  const [contactEmail, setContactEmail] = useState(teacher.email || "");
   const [rateType, setRateType] = useState<"SESSION" | "PACKAGE">(
     teacher.rate_type === "PACKAGE" ? "PACKAGE" : "SESSION"
   );
@@ -38,6 +40,7 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
     const result = await updateTeacher(teacher.id, {
       name,
       phone,
+      contactEmail,
       rateType,
       ratePerSession: rate,
       ratePerPackage,
@@ -92,6 +95,21 @@ export default function EditTeacherButton({ teacher }: { teacher: TeacherData })
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Email Laoshi{" "}
+                  <span className="text-bmos-text-light font-normal">
+                    (opsional -- kontak, beda sama email login akun)
+                  </span>
+                </label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 />
               </div>
