@@ -24,7 +24,7 @@ export default function AddTeacherButton() {
 
   // Opsional: sekalian bikinin akun login pas nambah laoshi, biar ga usah
   // ke halaman Accounts terpisah lagi. Cuma bisa jalan kalau yang lagi
-  // login itu BM -- dicek ulang di server.
+  // login itu Owner -- dicek ulang di server.
   const [createAccount, setCreateAccount] = useState(false);
   const [email, setEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
@@ -36,7 +36,7 @@ export default function AddTeacherButton() {
     password: string;
   } | null>(null);
   // Kalau laoshi berhasil disimpan tapi akunnya GAGAL dibuat (misal yang
-  // nambah bukan BM), kasih tau di sini -- data laoshinya tetap kesimpen.
+  // nambah bukan Owner), kasih tau di sini -- data laoshinya tetap kesimpen.
   const [accountWarning, setAccountWarning] = useState("");
 
   // Password minimal 6 karakter (aturan Supabase Auth) -- dicek di sini
@@ -305,7 +305,7 @@ export default function AddTeacherButton() {
                     <p className="text-[11px] text-bmos-text-light mt-1">
                       Biar laoshinya langsung bisa login ke portal, ga usah
                       dibuatin belakangan lewat halaman Accounts. (Cuma bisa
-                      kalau yang lagi kelola ini BM.)
+                      kalau yang lagi kelola ini Owner.)
                     </p>
 
                     {createAccount && (

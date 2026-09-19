@@ -5,7 +5,7 @@ import VocabManage from "./VocabManage";
 
 export const dynamic = "force-dynamic";
 
-// BM doang -- kelola bank kosakata Challenge 30 Hari & pantau
+// Owner/Admin doang -- kelola bank kosakata Challenge 30 Hari & pantau
 // murid mana yang lagi kepepet/butuh reminder.
 export default async function VocabManagePage() {
   const profile = await getCurrentProfile();
@@ -25,7 +25,7 @@ export default async function VocabManagePage() {
   return (
     <div>
       <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-        BM
+        Admin
       </p>
       <h1 className="text-3xl font-extrabold text-bmos-text mb-1">
         Challenge 30 Hari & Kosakata

@@ -18,7 +18,7 @@ type SubmissionRow = {
   submitted_at: string;
 };
 
-// Pola sama kayak halaman Materi & Class Card -- BM liat SEMUA
+// Pola sama kayak halaman Materi & Class Card -- Owner/Admin liat SEMUA
 // sudut pandang lewat ?as=..., Murid/Laoshi asli langsung dapet
 // tampilan role mereka sendiri.
 export default async function HomeworkPage({
@@ -249,7 +249,7 @@ export default async function HomeworkPage({
     return (
       <div>
         <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-          BM
+          Admin
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-6">PR</h1>
         <TeacherHomework

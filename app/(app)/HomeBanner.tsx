@@ -27,9 +27,9 @@ export default function HomeBanner({
   );
 
   const [editMode, setEditMode] = useState(false);
-  // Kalau BM belum pernah nyimpen posisi custom buat karakter (belum
+  // Kalau Owner belum pernah nyimpen posisi custom buat karakter (belum
   // ada x/y), tampilannya BUKAN pakai absolute positioning full-layar --
-  // cukup baris kecil rapi nempel pojok kiri-bawah layar. Begitu BM
+  // cukup baris kecil rapi nempel pojok kiri-bawah layar. Begitu Owner
   // udah pernah nyimpen posisi (misal digeser ke kanan-atas), posisi itu
   // yang dipertahankan terus.
   const hasSavedLayout = draggableItems.some((it) => typeof it.x === "number");
@@ -52,9 +52,9 @@ export default function HomeBanner({
   // lebih sempit & mulai lebih ke kanan. Kalau posisi lama udah ga muat di
   // area baru ini, JANGAN cuma di-clamp satu-satu (itu bikin numpuk saling
   // tindih kalau kepentok batas yang sama) -- susun ULANG semua jadi baris
-  // rapi nempel pojok KANAN-atas area baru (BM sebelumnya emang naruh
+  // rapi nempel pojok KANAN-atas area baru (Owner sebelumnya emang naruh
   // karakternya di kanan-atas), biar tampilannya balik mirip kayak yang
-  // udah diatur, bukan ngumpul di kiri. BM tinggal "Atur posisi
+  // udah diatur, bukan ngumpul di kiri. Owner tinggal "Atur posisi
   // karakter" lagi kalau mau ngatur ulang posisi pastinya.
   useEffect(() => {
     if (!hasSavedLayout) return;
@@ -87,7 +87,7 @@ export default function HomeBanner({
       if (prev.some((it) => typeof it.x === "number")) return prev;
       // Belum ada posisi tersimpan -- hitung posisi awal berjejer nempel
       // pojok kiri-bawah (samain kayak tampilan default), baru dari situ
-      // BM bisa mulai geser-geser manual.
+      // Owner bisa mulai geser-geser manual.
       const gap = 6;
       let x = 16;
       const rowHeight = Math.max(...prev.map((it) => it.heightPx), 40);

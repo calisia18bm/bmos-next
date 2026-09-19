@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// BM/Laoshi boleh catat & koreksi absensi (Laoshi buat kelas
+// Owner/Admin/Laoshi boleh catat & koreksi absensi (Laoshi buat kelas
 // yang dia ajar sendiri).
 async function requireStaffOrTeacher(): Promise<string | null> {
   const profile = await getCurrentProfile();

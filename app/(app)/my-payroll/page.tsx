@@ -21,10 +21,10 @@ const STATUS_STYLE: Record<string, string> = {
 
 // Versi Payroll khusus Laoshi -- read-only, cuma liat gaji dia sendiri.
 // Bikin/setujui/tandai-lunas payroll tetap cuma lewat halaman Payroll
-// punya BM.
+// punya Owner/Admin.
 //
-// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Laoshi tertentu di
-// sini -- ini data gaji personal, sengaja ga dikasih ke BM.
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Laoshi tertentu di
+// sini -- ini data gaji personal, sengaja ga dikasih ke Admin.
 export default async function MyPayrollPage({
   searchParams,
 }: {

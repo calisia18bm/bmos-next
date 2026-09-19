@@ -1,6 +1,6 @@
 // Katalog & tipe buat fitur "Kelas by Card" -- Laoshi bikin kartu kelas
 // sendiri (nama, jadwal, harga, kuota, tujuan belajar), submit buat
-// di-approve BM, baru Murid bisa lihat & join dari kartunya.
+// di-approve Owner, baru Murid bisa lihat & join dari kartunya.
 
 export const CLASS_DAYS = [
   "Senin",
@@ -17,7 +17,7 @@ export const CLASS_DAYS = [
 // (HSK, latihan ngobrol bareng orang China, dll). Daftarnya sekarang
 // diatur OWNER sendiri (disimpan di app_settings.goal_tags, lihat
 // getGoalTags/saveGoalTags di app/(app)/class-cards/actions.ts) -- ini
-// cuma fallback awal kalau BM belum pernah atur.
+// cuma fallback awal kalau Owner belum pernah atur.
 export const DEFAULT_GOAL_TAGS = [
   "HSK 1",
   "HSK 2",

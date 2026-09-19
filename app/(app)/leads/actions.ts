@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// Cuma BM yang boleh kelola leads.
+// Cuma Owner/Admin yang boleh kelola leads.
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();
 

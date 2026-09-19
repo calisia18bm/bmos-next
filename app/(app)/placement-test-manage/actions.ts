@@ -11,7 +11,7 @@ async function requireOwnerOrAdmin() {
 
   const roles = (profile.roles) as string[];
   if (!roles.includes("OWNER") && !roles.includes("ADMIN")) {
-    return { ok: false as const, message: "Cuma BM yang bisa atur soal placement test." };
+    return { ok: false as const, message: "Cuma Owner/Admin yang bisa atur soal placement test." };
   }
   return { ok: true as const };
 }

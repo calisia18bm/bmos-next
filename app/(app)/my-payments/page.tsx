@@ -13,9 +13,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Murid tertentu di
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Murid tertentu di
 // sini -- ini data personal (riwayat pembayaran) milik Murid, sengaja ga
-// dikasih ke BM. Murid asli tetap cuma bisa liat pembayaran dirinya
+// dikasih ke Admin. Murid asli tetap cuma bisa liat pembayaran dirinya
 // sendiri.
 export default async function MyPaymentsPage({
   searchParams,

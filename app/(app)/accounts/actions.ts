@@ -28,7 +28,7 @@ async function requireOwner(): Promise<
 
   const myRoles = profile.roles;
   if (!myRoles.includes("OWNER")) {
-    return { error: "Cuma BM yang bisa kelola akun." };
+    return { error: "Cuma Owner yang bisa kelola akun." };
   }
 
   return { error: null, userId: profile.id, roles: myRoles };
@@ -46,6 +46,7 @@ export async function createAccount(input: {
   email: string;
   roles: string[];
   password?: string;
+  phone?: string;
   teacherId?: string | null;
   studentId?: string | null;
 }) {
@@ -89,6 +90,7 @@ export async function createAccount(input: {
     id: created.user.id,
     email,
     full_name: name,
+    phone: input.phone?.trim() || null,
     roles: input.roles,
     active_role: input.roles[0],
     teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
@@ -116,6 +118,7 @@ export async function updateAccount(
   input: {
     name: string;
     roles: string[];
+    phone?: string;
     teacherId?: string | null;
     studentId?: string | null;
   }
@@ -129,14 +132,14 @@ export async function updateAccount(
     return { success: false, message: "Pilih minimal satu role." };
   }
 
-  // Jaga-jaga biar ga ada yang ga sengaja hapus role BM dari akun
+  // Jaga-jaga biar ga ada yang ga sengaja hapus role Owner dari akun
   // sendiri (jadi ke-lock out ga bisa akses Accounts lagi). Kalau mau
-  // lepas BM dari diri sendiri, minta BM lain yang ubah.
+  // lepas Owner dari diri sendiri, minta Owner lain yang ubah.
   if (id === auth.userId && !input.roles.includes("OWNER")) {
     return {
       success: false,
       message:
-        "Kamu tidak bisa menghapus role BM dari akun sendiri. Minta BM lain untuk mengubahnya.",
+        "Kamu tidak bisa menghapus role Owner dari akun sendiri. Minta Owner lain untuk mengubahnya.",
     };
   }
 
@@ -145,6 +148,7 @@ export async function updateAccount(
     .from("user_profiles")
     .update({
       full_name: name,
+      phone: input.phone?.trim() || null,
       roles: input.roles,
       active_role: input.roles[0],
       teacher_id: input.roles.includes("TEACHER") ? input.teacherId || null : null,
@@ -221,7 +225,7 @@ export async function deleteAccount(id: string) {
   ) {
     return {
       success: false,
-      message: "Ga bisa hapus -- ini satu-satunya akun BM yang tersisa.",
+      message: "Ga bisa hapus -- ini satu-satunya akun Owner yang tersisa.",
     };
   }
 
@@ -232,9 +236,9 @@ export async function deleteAccount(id: string) {
   return { success: true, message: "Akun berhasil dihapus." };
 }
 
-// Reset password akun siapapun -- dipakai BM buat bantu orang yang
+// Reset password akun siapapun -- dipakai Owner buat bantu orang yang
 // lupa password. Generate password baru (bukan kirim email reset),
-// langsung ditampilkan sekali ke BM yang mereset, buat dikasih tau
+// langsung ditampilkan sekali ke Owner yang mereset, buat dikasih tau
 // manual ke orangnya.
 export async function resetAccountPassword(id: string) {
   const auth = await requireOwner();
@@ -250,8 +254,8 @@ export async function resetAccountPassword(id: string) {
   return { success: true, message: "Password berhasil direset.", password };
 }
 
-// Ganti password akun siapapun ke password PILIHAN BM sendiri (bukan
-// yang di-generate random) -- dipakai kalau BM mau kasih password yang
+// Ganti password akun siapapun ke password PILIHAN Owner sendiri (bukan
+// yang di-generate random) -- dipakai kalau Owner mau kasih password yang
 // gampang diinget/diketik ke orangnya, bukan string acak.
 export async function setAccountPassword(id: string, newPassword: string) {
   const auth = await requireOwner();

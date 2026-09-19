@@ -16,13 +16,13 @@ async function requireOwnerOrAdmin(): Promise<string | null> {
   if (!profile) return "Belum login.";
 
   if (!profile.roles.includes("OWNER") && !profile.roles.includes("ADMIN")) {
-    return "Cuma BM yang bisa posting pengumuman.";
+    return "Cuma Owner/Admin yang bisa posting pengumuman.";
   }
   return null;
 }
 
 // audienceFilter dipakai buat Home murid/laoshi -- cuma ambil pengumuman
-// yang emang buat mereka ('ALL' + role mereka sendiri). BM (di
+// yang emang buat mereka ('ALL' + role mereka sendiri). Owner/Admin (di
 // widget kelola) manggil tanpa filter biar liat SEMUA pengumuman.
 export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
   const supabase = await createClient();
@@ -41,8 +41,8 @@ export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
 }
 
 // Berapa banyak pengumuman yang belum pernah dibuka user yang lagi login
-// -- dipakai buat badge notif angka di sidebar (menu "Home"). BM ga
-// dihitung (dashboard BM sendiri ga nampilin widget Pengumuman, jadi
+// -- dipakai buat badge notif angka di sidebar (menu "Home"). Owner ga
+// dihitung (dashboard Owner sendiri ga nampilin widget Pengumuman, jadi
 // ga relevan buat dia).
 export async function getUnreadAnnouncementCount(): Promise<number> {
   const profile = await getCurrentProfile();
@@ -67,7 +67,7 @@ export async function getUnreadAnnouncementCount(): Promise<number> {
   return count ?? 0;
 }
 
-// Dipanggil dari Home (SimpleHome) tiap kali user (Laoshi/Murid/BM)
+// Dipanggil dari Home (SimpleHome) tiap kali user (Laoshi/Murid/Admin)
 // buka halaman itu & lihat widget Pengumuman -- nandain "udah dibaca
 // sampai sekarang", biar badge notif di sidebar ilang.
 export async function markAnnouncementsRead() {

@@ -29,11 +29,11 @@ function formatDateID(date: Date) {
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-// Cuma OWNER (role OWNER, BUKAN ADMIN) yang boleh preview & pilih Murid tertentu di
+// Cuma OWNER (BUKAN Admin) yang boleh preview & pilih Murid tertentu di
 // sini -- ini data personal (jadwal) milik Murid, sengaja ga dikasih ke
-// BM. Murid asli tetap cuma bisa liat jadwal dirinya sendiri.
+// Admin. Murid asli tetap cuma bisa liat jadwal dirinya sendiri.
 //
-// Tampilannya dibikin sama kayak Weekly Schedule punya BM (grid 7
+// Tampilannya dibikin sama kayak Weekly Schedule punya Owner (grid 7
 // hari per minggu, bisa geser minggu), bukan tabel list lagi.
 export default async function MyClassStudentPage({
   searchParams,

@@ -18,9 +18,9 @@ import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
 
-// Sama kayak halaman Materi -- BM liat SEMUA sudut pandang
-// (Murid/Laoshi/BM) di akun mereka sendiri lewat query ?as=..., biar
-// gampang QA tanpa perlu akun terpisah. Murid/Laoshi asli (bukan BM)
+// Sama kayak halaman Materi -- Owner/Admin liat SEMUA sudut pandang
+// (Murid/Laoshi/Admin) di akun mereka sendiri lewat query ?as=..., biar
+// gampang QA tanpa perlu akun terpisah. Murid/Laoshi asli (bukan Owner)
 // yang buka /class-cards langsung dapet tampilan role mereka sendiri.
 export default async function ClassCardsPage({
   searchParams,
@@ -75,7 +75,7 @@ export default async function ClassCardsPage({
       getGoalTags(),
     ]);
 
-    // Laoshi asli (bukan preview BM) yang buka halaman ini -- tandain
+    // Laoshi asli (bukan preview Owner) yang buka halaman ini -- tandain
     // semua kartu kelas dia sebagai "udah dilihat" statusnya yang
     // sekarang, biar kunjungan BERIKUTNYA baru ilang highlight/badge-nya.
     //
@@ -215,7 +215,7 @@ export default async function ClassCardsPage({
     return (
       <div>
         <p className="text-xs font-bold tracking-wide text-bmos-primary uppercase mb-1">
-          BM
+          Admin
         </p>
         <h1 className="text-3xl font-extrabold text-bmos-text mb-1">
           Approval Kelas

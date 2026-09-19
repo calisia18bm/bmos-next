@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendResourceToClasses, ResourceDelivery } from "./actions";
 
-// Widget buat BM di halaman Materi -- daftar bahan ajar yang
+// Widget buat Owner/Admin di halaman Materi -- daftar bahan ajar yang
 // udah dibeli (APPROVED) sama Laoshi, lengkap sama daftar kelas Laoshi
-// itu. BM pilih kelas mana aja (bisa lebih dari 1, Laoshi yang sama
+// itu. Admin pilih kelas mana aja (bisa lebih dari 1, Laoshi yang sama
 // bisa dipake di beberapa kelas) terus klik "Kirim ke Murid" -- materi
 // otomatis nongol di halaman Materi murid-murid kelas itu. Kelas yang
 // udah pernah dikirimin ditandai centang hijau & ga bisa dipilih lagi

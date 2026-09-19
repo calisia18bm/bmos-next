@@ -18,7 +18,7 @@ async function requireOwner(): Promise<string | null> {
 
   const myRoles = profile.roles;
   if (!myRoles.includes("OWNER")) {
-    return "Cuma BM yang bisa ubah buku panduan AI.";
+    return "Cuma Owner yang bisa ubah buku panduan AI.";
   }
   return null;
 }
@@ -50,7 +50,7 @@ export async function saveKnowledgeBase(text: string) {
 
 // Chat test di halaman ini -- pakai system prompt & knowledge base yang
 // PERSIS SAMA kayak yang dipakai buat auto-reply WhatsApp beneran
-// (app/api/webhook/fonnte/route.ts), jadi apa yang BM liat di sini itu
+// (app/api/webhook/fonnte/route.ts), jadi apa yang Owner liat di sini itu
 // yang bakal beneran dijawab AI ke calon murid/murid di WA.
 export async function askAssistant(question: string) {
   const authError = await requireOwner();

@@ -6,7 +6,7 @@
 // jadi ga ada cara buat Laoshi dapetin file aslinya dari halaman ini.
 //
 // Dijadiin client component biar bisa nampilin modal "Beli PPT" (upload
-// bukti transfer) buat bahan ajar yang dikasih harga sama BM --
+// bukti transfer) buat bahan ajar yang dikasih harga sama Owner/Admin --
 // SENGAJA dibikin beda visual (badge kuning/amber "Berbayar", bukan ungu
 // kayak badge Seminar di Class Card) biar Laoshi ga ketuker sama fitur
 // Join Kelas.
@@ -14,7 +14,7 @@
 // Tiap bahan ajar ditampilin sebagai kotak/card sendiri-sendiri (bukan
 // cuma list bergaris) biar jelas kelihatan mana yang GRATIS (langsung
 // bisa diklik & download) vs BERBAYAR (kotak kuning, ada tombol "Beli
-// PPT Ini" -- baru bisa download setelah BM approve bukti transfernya).
+// PPT Ini" -- baru bisa download setelah Owner/Admin approve bukti transfernya).
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";

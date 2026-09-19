@@ -12,10 +12,10 @@ function formatRupiah(n: number | null | undefined): string {
   return `Rp ${n.toLocaleString("id-ID")}`;
 }
 
-// Widget buat BM di halaman Materi -- daftar request beli bahan
+// Widget buat Owner/Admin di halaman Materi -- daftar request beli bahan
 // ajar berbayar (dari Laoshi) yang lagi PENDING, lengkap sama bukti
 // transfer & catatan AI (yang CUMA bantu baca, bukan yang mutusin).
-// Approve/Reject-nya tetap manual diklik BM sendiri. Sengaja
+// Approve/Reject-nya tetap manual diklik Admin/Owner sendiri. Sengaja
 // dibikin beda visual (amber, bukan biru/ungu kayak JoinRequestsQueue di
 // Class Card) biar keliatan ini fitur beli materi, bukan join kelas.
 export default function ResourcePurchaseQueue({

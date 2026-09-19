@@ -6,29 +6,29 @@ import { createClient } from "@/lib/supabase/client";
 import CharacterPicker from "./CharacterPicker";
 import ChangePasswordButton from "./ChangePasswordButton";
 
-// Sidebar dikelompokin per "sudut pandang" role (Murid / Laoshi / BM),
-// bukan cuma per fitur -- soalnya BM sengaja dikasih akses ke SEMUA
-// menu (lihat lib/permissions.ts), jadi kalau BM login, dia bakal
+// Sidebar dikelompokin per "sudut pandang" role (Murid / Laoshi / Admin),
+// bukan cuma per fitur -- soalnya Owner sengaja dikasih akses ke SEMUA
+// menu (lihat lib/permissions.ts), jadi kalau Owner login, dia bakal
 // liat KE-3 bagian ini lengkap sekaligus di sidebar-nya sendiri. Ini
-// biar BM gampang ngecek tampilan tiap role tanpa harus punya akun
+// biar Owner gampang ngecek tampilan tiap role tanpa harus punya akun
 // terpisah -- kalau ada yang error/aneh langsung keliatan dari sini.
 //
-// Buat Murid/Laoshi/ADMIN beneran (bukan role OWNER), menu yang muncul tetap
+// Buat Murid/Laoshi/Admin beneran (bukan Owner), menu yang muncul tetap
 // dibatasin sesuai ROLE_MENU_ACCESS masing-masing di lib/permissions.ts
 // -- jadi taro "Accounts" di bagian ADMIN di bawah ini AMAN, karena
-// BM asli tetep ga akan liat menu itu (menu key-nya cuma ada di
+// Admin asli tetep ga akan liat menu itu (menu key-nya cuma ada di
 // daftar OWNER).
 // Beberapa menu key (class-cards, materials, homework, attendance) sengaja
 // DIPAKAI ULANG di lebih dari satu grup -- misalnya "class-cards" dipakai
 // baik di menu Murid ("Class Card") maupun Laoshi ("Class Card") maupun
-// BM ("Approval Kelas"), karena ketiganya ngizinin akses ke halaman yang
+// Admin ("Approval Kelas"), karena ketiganya ngizinin akses ke halaman yang
 // sama tapi tampilannya beda (?as=student / ?as=teacher / polos). Kalau
 // filter sidebar cuma ngecek "apa menu ini termasuk yang diizinin buat
 // role user", Murid yang menu key-nya kebetulan overlap (class-cards,
 // materials, homework) bakal ikut keliatan juga di grup LAOSHI/ADMIN --
-// padahal dia bukan Laoshi/BM. requiredRoles di sini nutup celah itu:
+// padahal dia bukan Laoshi/Admin. requiredRoles di sini nutup celah itu:
 // grupnya sendiri harus cocok sama role asli user dulu, baru item di
-// dalamnya dicek lagi ke menu. BM sengaja dimasukkin ke semua grup biar
+// dalamnya dicek lagi ke menu. Owner sengaja dimasukkin ke semua grup biar
 // tetap bisa liat & cek tampilan tiap role dari sidebar-nya sendiri.
 const NAV_GROUPS = [
   {
@@ -123,7 +123,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "BM",
+    label: "ADMIN",
     requiredRoles: ["ADMIN", "OWNER"],
     items: [
       { href: "/students", menu: "students", label: "Students", icon: "🧑‍🎓" },
@@ -289,7 +289,7 @@ export default function Sidebar({
                   // ulang di lebih dari satu grup, jadi dicek dari
                   // kombinasi label+href biar ga ketuker:
                   // - "Approval Kelas" (grup ADMIN): Class Card yang
-                  //   nunggu di-approve BM.
+                  //   nunggu di-approve Owner/Admin.
                   // - "Class Card" yang href-nya "?as=teacher" (grup
                   //   LAOSHI): kartu kelas Laoshi sendiri yang baru
                   //   di-approve/di-reject tapi belum dia buka.

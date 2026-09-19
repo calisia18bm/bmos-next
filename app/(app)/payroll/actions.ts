@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// Cuma BM yang boleh kelola payroll laoshi (gaji/rate sensitif).
+// Cuma Owner/Admin yang boleh kelola payroll laoshi (gaji/rate sensitif).
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();
 

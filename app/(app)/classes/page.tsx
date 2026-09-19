@@ -17,7 +17,7 @@ export default async function ClassesPage() {
 
   const [{ data: classes }, { data: teachers }] = await Promise.all([
     // Kelas yang disubmit Laoshi lewat "Buat Kelas" cuma keliatan di sini
-    // SETELAH di-approve BM (approval_status APPROVED) -- yang masih
+    // SETELAH di-approve Owner (approval_status APPROVED) -- yang masih
     // Menunggu/Ditolak ada di menu "Approval Kelas". Kelas yang dibikin
     // langsung dari sini (tombol "+ Tambah Kelas") otomatis APPROVED.
     supabase

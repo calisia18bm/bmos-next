@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 // password LAMA dulu buat verifikasi (di-cek dengan coba login ulang),
 // baru boleh set password baru -- biar ga sembarang orang yang kebetulan
 // lagi pegang HP/laptop yang masih login bisa asal ganti password orang.
-// Kalau BM mau ganti password ORANG LAIN yang lupa passwordnya,
+// Kalau Owner/Admin mau ganti password ORANG LAIN yang lupa passwordnya,
 // itu lewat halaman Accounts (Reset Password), bukan tombol ini.
 export default function ChangePasswordButton({ email }: { email: string }) {
   const [open, setOpen] = useState(false);

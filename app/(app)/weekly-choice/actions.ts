@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sendWeeklyChoicePolls } from "@/lib/weeklyChoicePoll";
 
-// Cuma BM yang boleh kelola weekly choice (kirim poll & konfirmasi
+// Cuma Owner/Admin yang boleh kelola weekly choice (kirim poll & konfirmasi
 // pilihan kelas fleksibel).
 async function requireStaff(): Promise<string | null> {
   const profile = await getCurrentProfile();

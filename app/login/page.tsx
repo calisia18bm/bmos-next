@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  // Logo di halaman Login ngikutin karakter yang dipilih BM di sidebar
+  // Logo di halaman Login ngikutin karakter yang dipilih Owner di sidebar
   // (app_settings.global_character_key). Query LANGSUNG ke Supabase pakai
   // client biasa (bukan lewat API route) -- butuh RLS "anon select" di
   // app_settings (lihat database/allow_anon_read_character.sql) karena

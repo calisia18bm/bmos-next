@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { createAccount } from "./actions";
 
 const ROLE_OPTIONS = [
-  { key: "OWNER", label: "BM" },
-  { key: "ADMIN", label: "BM" },
+  { key: "OWNER", label: "Owner" },
+  { key: "ADMIN", label: "Admin" },
   { key: "TEACHER", label: "Laoshi (Teacher)" },
   { key: "STUDENT", label: "Murid (Student)" },
 ];
@@ -25,6 +25,7 @@ export default function AddAccountButton({
   const [name, setName] = useState("");
   const [nameAutoFilled, setNameAutoFilled] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
   const [teacherCode, setTeacherCode] = useState("");
@@ -36,7 +37,7 @@ export default function AddAccountButton({
   );
 
   // Cari langsung berdasarkan KODE yang diketik (misal "L001"/"M0001"),
-  // bukan pilih dari dropdown -- lebih cepat kalau BM udah hafal
+  // bukan pilih dari dropdown -- lebih cepat kalau Owner udah hafal
   // kodenya dari Master Data.
   const matchedTeacher = useMemo(() => {
     const code = teacherCode.trim().toUpperCase();
@@ -75,6 +76,7 @@ export default function AddAccountButton({
     setName("");
     setNameAutoFilled(false);
     setEmail("");
+    setPhone("");
     setPassword("");
     setRoles([]);
     setTeacherCode("");
@@ -102,6 +104,7 @@ export default function AddAccountButton({
       email,
       roles,
       password,
+      phone,
       teacherId: matchedTeacher?.id || null,
       studentId: matchedStudent?.id || null,
     });
@@ -282,6 +285,23 @@ export default function AddAccountButton({
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      No. HP{" "}
+                      <span className="text-bmos-text-light font-normal">
+                        (opsional -- khusus akun Owner/Admin, dipakai buat
+                        kirim notif WhatsApp otomatis)
+                      </span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="08123456789"
                       className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                     />
                   </div>

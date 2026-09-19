@@ -20,7 +20,7 @@ async function getCallerContext() {
   };
 }
 
-// Laoshi bikin PR buat kelas yang dia ajar sendiri (BM boleh
+// Laoshi bikin PR buat kelas yang dia ajar sendiri (Owner/Admin boleh
 // buat kelas mana aja, buat bantu/oversight).
 export async function createHomework(input: {
   classId: string;

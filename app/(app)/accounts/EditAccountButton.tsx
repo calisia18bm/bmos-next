@@ -11,8 +11,8 @@ import {
 } from "./actions";
 
 const ROLE_OPTIONS = [
-  { key: "OWNER", label: "BM" },
-  { key: "ADMIN", label: "BM" },
+  { key: "OWNER", label: "Owner" },
+  { key: "ADMIN", label: "Admin" },
   { key: "TEACHER", label: "Laoshi (Teacher)" },
   { key: "STUDENT", label: "Murid (Student)" },
 ];
@@ -28,6 +28,7 @@ export default function EditAccountButton({
     id: string;
     email: string;
     full_name: string | null;
+    phone: string | null;
     roles: string[];
     teacher_id: string | null;
     student_id: string | null;
@@ -38,6 +39,7 @@ export default function EditAccountButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(account.full_name || "");
+  const [phone, setPhone] = useState(account.phone || "");
   const [roles, setRoles] = useState<string[]>(account.roles || []);
 
   const currentTeacher = teachers.find((t) => t.id === account.teacher_id);
@@ -100,6 +102,7 @@ export default function EditAccountButton({
   function closeAndReset() {
     setOpen(false);
     setName(account.full_name || "");
+    setPhone(account.phone || "");
     setRoles(account.roles || []);
     setTeacherCode(currentTeacher?.teacher_code || "");
     setStudentCode(currentStudent?.student_code || "");
@@ -172,6 +175,7 @@ export default function EditAccountButton({
     const res = await updateAccount(account.id, {
       name,
       roles,
+      phone,
       teacherId: matchedTeacher?.id || null,
       studentId: matchedStudent?.id || null,
     });
@@ -360,6 +364,23 @@ export default function EditAccountButton({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  No. HP{" "}
+                  <span className="text-bmos-text-light font-normal">
+                    (opsional -- khusus akun Owner/Admin, dipakai buat kirim
+                    notif WhatsApp otomatis)
+                  </span>
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="08123456789"
                   className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
                 />
               </div>

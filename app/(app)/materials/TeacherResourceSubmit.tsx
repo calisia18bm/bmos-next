@@ -29,10 +29,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Laoshi submit draft materi mereka sendiri (file asli, misal PPT) buat
-// direview BM dulu. Kalau di-approve, BM upload versi
+// direview Admin/Owner dulu. Kalau di-approve, Admin/Owner upload versi
 // PDF final dan materinya otomatis kepublish jadi bahan ajar buat SEMUA
 // Laoshi (bukan cuma yang submit) -- liat di bagian "Bahan Ajar dari
-// BM" di atas. Laoshi ga pernah bisa edit lagi setelah submit,
+// Admin/Owner" di atas. Laoshi ga pernah bisa edit lagi setelah submit,
 // cuma bisa lihat status & catatan penolakan kalau ditolak.
 export default function TeacherResourceSubmit({
   submissions,

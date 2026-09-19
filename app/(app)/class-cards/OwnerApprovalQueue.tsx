@@ -214,7 +214,7 @@ export default function OwnerApprovalQueue({
             {comm && (
               <>
                 <p className="text-bmos-text-light">
-                  Potong {comm.pct}% untuk BM (Rp {comm.cut.toLocaleString("id-ID")})
+                  Potong {comm.pct}% untuk Owner (Rp {comm.cut.toLocaleString("id-ID")})
                 </p>
                 <p className="text-green-700 font-semibold">
                   Laoshi terima: {formatRupiah(comm.net)}
@@ -282,7 +282,7 @@ export default function OwnerApprovalQueue({
           </h2>
           <p className="text-xs text-bmos-text-light mb-3">
             Makin murah harga per paket, tier di bawah ini nentuin berapa %
-            yang dipotong buat BM. Baris dengan &quot;Harga maksimal&quot;
+            yang dipotong buat Owner. Baris dengan &quot;Harga maksimal&quot;
             kosong berarti berlaku buat harga di atas semua tier lain.
           </p>
           <div className="space-y-2">

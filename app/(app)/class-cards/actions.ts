@@ -14,10 +14,11 @@ import { recordNotificationFailure } from "@/lib/notifyFailure";
 import { generateSessionsForClass } from "../weekly-schedule/actions";
 import { SITE_URL } from "@/lib/site";
 import { readPaymentProofWithAI } from "@/lib/paymentProof";
+import { broadcastToBm } from "@/lib/bmContacts";
 
-// Berapa banyak Class Card yang lagi PENDING (nunggu di-approve BM) --
+// Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
-// widget "Need Attention" di Home. Cuma dihitung buat BM (yang
+// widget "Need Attention" di Home. Cuma dihitung buat Owner/Admin (yang
 // emang bisa approve) -- role lain selalu dapet 0.
 export async function getPendingClassCardCount() {
   const ctx = await getCallerContext();
@@ -25,16 +26,22 @@ export async function getPendingClassCardCount() {
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return 0;
 
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("classes")
-    .select("*", { count: "exact", head: true })
-    .eq("approval_status", "PENDING");
+  const [{ count: classCardCount }, { count: joinRequestCount }] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("*", { count: "exact", head: true })
+      .eq("approval_status", "PENDING"),
+    supabase
+      .from("enrollments")
+      .select("*", { count: "exact", head: true })
+      .eq("request_status", "PENDING"),
+  ]);
 
-  return count ?? 0;
+  return (classCardCount ?? 0) + (joinRequestCount ?? 0);
 }
 
 // Berapa banyak Class Card punya Laoshi sendiri yang statusnya baru aja
-// di-approve/di-reject BM TAPI belum sempat dibuka/dilihat Laoshi-nya
+// di-approve/di-reject Owner TAPI belum sempat dibuka/dilihat Laoshi-nya
 // -- dipakai buat badge notif angka di sidebar menu "Class Card" (grup
 // LAOSHI). Cuma dihitung buat Teacher yang udah kehubung ke data Laoshi;
 // role lain selalu dapet 0.
@@ -59,7 +66,7 @@ export async function getUnseenClassCardStatusCount() {
 }
 
 // Dipanggil dari halaman Class Card (sudut pandang Laoshi asli, bukan
-// preview BM) tiap kali Laoshi buka halamannya -- nandain SEMUA kartu
+// preview Owner) tiap kali Laoshi buka halamannya -- nandain SEMUA kartu
 // kelas dia sendiri sebagai "udah dilihat" statusnya yang sekarang, biar
 // badge notif & warna "baru" ilang buat kunjungan berikutnya.
 export async function markClassCardsSeen() {
@@ -75,10 +82,10 @@ export async function markClassCardsSeen() {
 }
 
 // Kabarin Laoshi lewat WhatsApp tiap kali kartu kelas dia di-approve atau
-// di-reject BM -- pakai nomor HP yang ada di data Laoshi-nya sendiri
+// di-reject Owner -- pakai nomor HP yang ada di data Laoshi-nya sendiri
 // (tabel teachers.phone). Kalau nomornya kosong ATAU gagal kekirim,
 // statusnya tetep kesimpen (ga bikin approve/reject gagal) -- tapi
-// BM dikabarin soal kegagalannya lewat recordNotificationFailure,
+// Owner/Admin dikabarin soal kegagalannya lewat recordNotificationFailure,
 // biar ga ada notif yang "ilang diam-diam" tanpa ada yang tau.
 async function notifyTeacherClassCardStatus(params: {
   teacherId: string;
@@ -134,7 +141,7 @@ async function notifyTeacherClassCardStatus(params: {
   }
 }
 
-// Kabarin BM lewat WhatsApp tiap kali ada Class Card baru yang perlu
+// Kabarin Owner lewat WhatsApp tiap kali ada Class Card baru yang perlu
 // di-approve -- pakai nomor yang sama kayak reminder konten
 // (OWNER_WHATSAPP_NUMBER), lewat helper Fonnte yang udah ada. Kalau
 // nomornya belum di-set atau gagal kekirim, ga masalah -- kartu kelasnya
@@ -148,7 +155,7 @@ async function notifyOwnerNewClassCard(params: {
 }) {
   const ownerPhone = process.env.OWNER_WHATSAPP_NUMBER;
   if (!ownerPhone) {
-    const msg = `OWNER_WHATSAPP_NUMBER belum di-set di Vercel, jadi notif Class Card baru ("${params.className}" dari Laoshi ${params.teacherName || "-"}) ga bisa dikirim WA ke BM. Cek & submit kartu kelas ini manual di halaman Class Card.`;
+    const msg = `OWNER_WHATSAPP_NUMBER belum di-set di Vercel, jadi notif Class Card baru ("${params.className}" dari Laoshi ${params.teacherName || "-"}) ga bisa dikirim WA ke Owner. Cek & submit kartu kelas ini manual di halaman Class Card.`;
     console.error("[notifyOwnerNewClassCard]", msg);
     await recordNotificationFailure(msg);
     return;
@@ -171,7 +178,7 @@ async function notifyOwnerNewClassCard(params: {
       await recordNotificationFailure(
         `Gagal kirim notif Class Card baru ("${params.className}" dari Laoshi ${
           params.teacherName || "-"
-        }) ke BM. Alasan: ${result.reason || "tidak diketahui"}.`
+        }) ke Owner. Alasan: ${result.reason || "tidak diketahui"}.`
       );
     }
   } catch (err) {
@@ -181,7 +188,7 @@ async function notifyOwnerNewClassCard(params: {
     await recordNotificationFailure(
       `Gagal kirim notif Class Card baru ("${params.className}" dari Laoshi ${
         params.teacherName || "-"
-      }) ke BM. Error: ${err instanceof Error ? err.message : String(err)}.`
+      }) ke Owner. Error: ${err instanceof Error ? err.message : String(err)}.`
     );
   }
 }
@@ -241,10 +248,10 @@ function validateInput(input: ClassCardInput): string | null {
   return null;
 }
 
-// Catatan/saran otomatis buat BM pas nge-review kartu kelas -- BUKAN
+// Catatan/saran otomatis buat Owner pas nge-review kartu kelas -- BUKAN
 // panggilan ke AI model beneran (biar ga nambah biaya/API key baru),
 // tapi heuristik sederhana yang cek hal-hal yang biasanya perlu
-// diperhatiin BM sebelum approve.
+// diperhatiin Owner sebelum approve.
 function buildAiNote(
   input: ClassCardInput,
   capacity: number,
@@ -315,7 +322,7 @@ async function getMaxClassCodeNumber(
 }
 
 // Laoshi bikin & submit kartu kelas baru -- langsung berstatus PENDING,
-// nunggu di-approve BM sebelum keliatan di Classes (BM) & bisa
+// nunggu di-approve Owner sebelum keliatan di Classes (Admin) & bisa
 // dipilih Murid.
 export async function submitClassCard(input: ClassCardInput) {
   const ctx = await getCallerContext();
@@ -496,7 +503,7 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
 // PENDING (belum di-approve) atau REJECTED (ditolak & ga mau diedit
 // lagi). Yang udah APPROVED sengaja ga boleh dihapus dari sini karena
 // kelasnya udah aktif & mungkin udah ada murid yang join -- itu urusan
-// BM lewat halaman Classes.
+// Owner/Admin lewat halaman Classes.
 export async function deleteClassCard(id: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
@@ -530,14 +537,14 @@ export async function deleteClassCard(id: string) {
   return { success: true, message: "Kartu kelas dihapus." };
 }
 
-// BM approve kartu kelas -- baru dari sini kelasnya AKTIF, muncul di
-// halaman Classes (BM), dan bisa dipilih Murid (kalau ga privat &
+// Owner approve kartu kelas -- baru dari sini kelasnya AKTIF, muncul di
+// halaman Classes (Admin), dan bisa dipilih Murid (kalau ga privat &
 // masih dalam periode pendaftaran).
 export async function approveClassCard(id: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma BM yang bisa approve kelas." };
+    return { success: false, message: "Cuma Owner yang bisa approve kelas." };
   }
 
   const supabase = await createClient();
@@ -570,7 +577,7 @@ export async function approveClassCard(id: string) {
 
   // Begitu di-approve, langsung generate sesi bertanggal buat kelas ini
   // (dari day_of_week + start_date-nya) biar langsung muncul di Weekly
-  // Schedule (Laoshi/BM) tanpa BM harus klik "Generate
+  // Schedule (Laoshi/Owner/Admin) tanpa Owner/Admin harus klik "Generate
   // Sessions" manual lagi. Murid yang nanti join kelas ini otomatis ikut
   // liat sesinya juga karena my-schedule/my-class dia baca dari sesi yang
   // sama (di-filter berdasarkan class_id).
@@ -581,13 +588,13 @@ export async function approveClassCard(id: string) {
   return { success: true, message: "Kelas di-approve & sekarang tayang buat Murid." };
 }
 
-// BM reject kartu kelas -- wajib kasih alasan biar Laoshi tau apa
+// Owner reject kartu kelas -- wajib kasih alasan biar Laoshi tau apa
 // yang perlu diperbaiki sebelum submit ulang.
 export async function rejectClassCard(id: string, note: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma BM yang bisa reject kelas." };
+    return { success: false, message: "Cuma Owner yang bisa reject kelas." };
   }
   if (!note.trim()) {
     return { success: false, message: "Alasan reject wajib diisi." };
@@ -629,7 +636,7 @@ export async function rejectClassCard(id: string, note: string) {
 // Murid join kelas lewat kartu -- first come first served, dibatasin
 // kuota & periode pendaftaran. Buat v1: cuma Murid yang BELUM punya
 // kelas aktif yang bisa self-join (biar ga kesenggol pindah kelas
-// otomatis) -- kalau udah ada kelas, arahin ke BM buat pindah kelas.
+// otomatis) -- kalau udah ada kelas, arahin ke Admin buat pindah kelas.
 // ============================================================
 // Request Join Kelas (payment-gated, dengan bantuan AI baca bukti bayar)
 // ============================================================
@@ -637,9 +644,9 @@ export async function rejectClassCard(id: string, note: string) {
 // Alur baru (ganti yang lama, joinClassCard() yang langsung masukin
 // Murid ke kelas instant): Murid klik "Join Kelas" -> upload bukti
 // transfer -> baris enrollments dibikin dengan request_status=PENDING
-// -> AI (Claude) baca gambar buktinya sekadar buat BANTU BM (nominal/
+// -> AI (Claude) baca gambar buktinya sekadar buat BANTU Admin (nominal/
 // tanggal/pengirim kalau keliatan) -- AI TIDAK PERNAH auto-approve/
-// reject, itu tetap keputusan BM manual lewat
+// reject, itu tetap keputusan Owner/Admin manual lewat
 // approveJoinRequest()/rejectJoinRequest() di bawah.
 //
 // Kelas REGULAR (mingguan) tetap cuma boleh 1 slot aktif/pending per
@@ -723,7 +730,7 @@ export async function getMyClassEnrollments(): Promise<MyClassEnrollment[]> {
 }
 
 // Murid submit request join kelas (bukan langsung masuk) -- WAJIB upload
-// bukti transfer dulu. Ga langsung aktif, nunggu di-approve BM.
+// bukti transfer dulu. Ga langsung aktif, nunggu di-approve Owner/Admin.
 export async function requestJoinClassCard(
   classId: string,
   proof: { fileUrl: string; fileName: string; filePath: string }
@@ -853,6 +860,65 @@ export async function requestJoinClassCard(
 
   if (error) return { success: false, message: error.message };
 
+  // Kabarin Murid & BM lewat WhatsApp begitu bukti transfer kekirim --
+  // Murid dikasih tau hasil baca AI-nya (termasuk kalau ada yang
+  // JANGGAL, misal nominal ga sesuai), BM (SEMUA akun Owner/Admin yang
+  // udah isi nomor HP di Accounts) dikabarin ada request baru + hasil
+  // baca AI yang SAMA biar bisa langsung nilai janggal/ga tanpa buka
+  // app dulu. Approve/reject tetap manual sama BM -- ini cuma notif.
+  const { data: studentRow } = await supabase
+    .from("students")
+    .select("name, phone")
+    .eq("id", ctx.studentId)
+    .maybeSingle();
+
+  if (studentRow?.phone) {
+    const studentMsg =
+      `📝 Request join "${cls.name}" kamu udah kekirim, lagi ditunggu review BM.
+
+` +
+      `🤖 Hasil baca AI dari bukti transfer kamu:
+${aiNote}
+
+` +
+      `Kalau ada yang janggal (misal nominal beda), BM bakal tanya/koreksi manual sebelum approve. Ditunggu ya!`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif hasil baca AI request join "${cls.name}" ga bisa dikirim WA ke dia.`
+    );
+  }
+
+  await broadcastToBm(
+    `📥 Request Join Kelas baru!
+
+` +
+      `Murid: ${studentRow?.name || "-"}
+` +
+      `Kelas: ${cls.name}
+` +
+      `Biaya: ${cls.price ? `Rp ${cls.price.toLocaleString("id-ID")}` : "Gratis"}
+
+` +
+      `🤖 Hasil baca AI bukti transfer:
+${aiNote}
+
+` +
+      `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
+    `Request Join Kelas dari ${studentRow?.name || "-"}`
+  );
+
   revalidatePath("/class-cards", "layout");
   return {
     success: true,
@@ -873,7 +939,7 @@ export type PendingJoinRequest = {
   requestedAt: string;
 };
 
-// Daftar request join yang lagi PENDING -- dipakai BM buat
+// Daftar request join yang lagi PENDING -- dipakai Owner/Admin buat
 // approve/reject di halaman Class Card.
 export async function getPendingJoinRequests(): Promise<PendingJoinRequest[]> {
   const ctx = await getCallerContext();
@@ -903,7 +969,7 @@ export async function getPendingJoinRequests(): Promise<PendingJoinRequest[]> {
   }));
 }
 
-// BM approve request join -- SETELAH ini baru murid beneran
+// Owner/Admin approve request join -- SETELAH ini baru murid beneran
 // kecatat aktif di kelasnya. Kalau kelasnya REGULAR, students.class_id
 // ikut di-update (biar semua fitur lain -- Attendance/PR/Materi/Payroll/
 // Weekly Schedule/dll -- yang masih ngandelin students.class_id tetap
@@ -914,7 +980,7 @@ export async function approveJoinRequest(enrollmentId: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
-    return { success: false, message: "Cuma BM yang bisa approve request join." };
+    return { success: false, message: "Cuma Owner/Admin yang bisa approve request join." };
   }
 
   const supabase = await createClient();
@@ -978,7 +1044,7 @@ export async function rejectJoinRequest(enrollmentId: string, note: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
-    return { success: false, message: "Cuma BM yang bisa tolak request join." };
+    return { success: false, message: "Cuma Owner/Admin yang bisa tolak request join." };
   }
 
   const cleanedNote = note.trim();
@@ -1027,7 +1093,7 @@ export async function saveCommissionTiers(tiers: CommissionTier[]) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma BM yang bisa atur potongan komisi." };
+    return { success: false, message: "Cuma Owner yang bisa atur potongan komisi." };
   }
 
   const cleaned = tiers
@@ -1053,7 +1119,7 @@ export async function saveCommissionTiers(tiers: CommissionTier[]) {
 }
 
 // Katalog badge "Tujuan Belajar" (HSK, China Buddy, dll) yang bisa
-// dipilih Laoshi pas bikin kartu kelas -- diatur BM sendiri.
+// dipilih Laoshi pas bikin kartu kelas -- diatur Owner sendiri.
 export async function getGoalTags(): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -1069,7 +1135,7 @@ export async function saveGoalTags(tags: string[]) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma BM yang bisa atur tujuan belajar." };
+    return { success: false, message: "Cuma Owner yang bisa atur tujuan belajar." };
   }
 
   const cleaned = Array.from(
@@ -1090,7 +1156,7 @@ export async function saveGoalTags(tags: string[]) {
   return { success: true, message: "Daftar tujuan belajar disimpan." };
 }
 
-// Link kuisioner pendaftaran murid baru (Google Form) -- diatur BM,
+// Link kuisioner pendaftaran murid baru (Google Form) -- diatur Owner,
 // ditampilin ke calon murid biar mereka isi dulu sebelum pilih kelas di
 // Class Card, biar keliatan tujuan belajarnya apa & bisa diarahkan ke
 // kelas yang cocok.
@@ -1108,7 +1174,7 @@ export async function saveRegistrationFormUrl(url: string) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
   if (!ctx.roles.includes("OWNER")) {
-    return { success: false, message: "Cuma BM yang bisa atur link kuisioner." };
+    return { success: false, message: "Cuma Owner yang bisa atur link kuisioner." };
   }
 
   const trimmed = url.trim();

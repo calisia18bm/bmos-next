@@ -7,8 +7,8 @@ import EditAccountButton from "./EditAccountButton";
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = {
-  OWNER: "BM",
-  ADMIN: "BM",
+  OWNER: "Owner",
+  ADMIN: "Admin",
   TEACHER: "Laoshi",
   STUDENT: "Murid",
 };
@@ -16,7 +16,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default async function AccountsPage() {
   const profile = await getCurrentProfile();
   // Pengelolaan akun (bikin/edit akun, reset password orang lain) cuma
-  // buat BM -- BM ga boleh lagi masuk ke sini.
+  // buat Owner -- Admin ga boleh lagi masuk ke sini.
   const canView = profile?.roles?.includes("OWNER") ?? false;
 
   if (!canView) {
@@ -36,7 +36,7 @@ export default async function AccountsPage() {
       admin
         .from("user_profiles")
         .select(
-          "id, email, full_name, roles, active_role, teacher_id, student_id, created_at"
+          "id, email, full_name, phone, roles, active_role, teacher_id, student_id, created_at"
         )
         .order("created_at", { ascending: false }),
       admin
@@ -60,7 +60,9 @@ export default async function AccountsPage() {
           </p>
           <h1 className="text-3xl font-extrabold text-bmos-text">Accounts</h1>
           <p className="text-bmos-text-light text-sm mt-1">
-            Kelola akun login BMOS untuk BM, laoshi, dan murid.
+            Kelola akun login BMOS untuk owner, admin, laoshi, dan murid.
+            Isi No. HP akun Owner/Admin biar bisa dikabarin WhatsApp
+            otomatis (misal ada Murid/Laoshi kirim bukti transfer).
           </p>
         </div>
         <AddAccountButton
@@ -75,6 +77,7 @@ export default async function AccountsPage() {
             <tr className="text-left text-bmos-text-light border-b border-bmos-border">
               <th className="px-5 py-3 font-medium">Nama</th>
               <th className="px-5 py-3 font-medium">Email</th>
+              <th className="px-5 py-3 font-medium">No. HP</th>
               <th className="px-5 py-3 font-medium">Role</th>
               <th className="px-5 py-3 font-medium">Terdaftar</th>
               <th className="px-5 py-3 font-medium"></th>
@@ -90,6 +93,11 @@ export default async function AccountsPage() {
                   {a.full_name || "-"}
                 </td>
                 <td className="px-5 py-3 text-bmos-text">{a.email}</td>
+                <td className="px-5 py-3 text-bmos-text-light">
+                  {a.phone || (
+                    <span className="text-amber-600">Belum diisi</span>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   <div className="flex flex-wrap gap-1">
                     {(a.roles || []).map((r: string) => (
@@ -113,6 +121,7 @@ export default async function AccountsPage() {
                       id: a.id,
                       email: a.email,
                       full_name: a.full_name,
+                      phone: a.phone,
                       roles: a.roles || [],
                       teacher_id: a.teacher_id,
                       student_id: a.student_id,
@@ -127,7 +136,7 @@ export default async function AccountsPage() {
             {(!accounts || accounts.length === 0) && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-5 py-10 text-center text-bmos-text-light"
                 >
                   Belum ada akun. Klik &quot;Buat Akun&quot; untuk mulai.

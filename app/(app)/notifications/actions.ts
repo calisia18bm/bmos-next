@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Berapa banyak catatan "notifikasi WA gagal terkirim" yang belum
-// ditandai selesai -- dipakai buat widget "Need Attention" di Home BM
+// ditandai selesai -- dipakai buat widget "Need Attention" di Home Owner
 // (lihat lib/notifyFailure.ts buat penjelasan kenapa dicatet di DB, bukan
 // cuma dikirim WA doang).
 export async function getUnresolvedNotificationFailureCount() {
