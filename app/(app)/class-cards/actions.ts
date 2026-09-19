@@ -499,6 +499,56 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
   return { success: true, message: "Kartu kelas dikirim ulang, nunggu di-approve BM." };
 }
 
+// Perpanjang (atau majuin) tanggal TUTUP pendaftaran kelas yang udah
+// APPROVED -- sengaja dipisah dari resubmitClassCard() di atas, soalnya
+// ubah tanggal pendaftaran doang ga perlu di-approve ulang sama BM kayak
+// ubah field lain (jadwal/harga/dll), beda kondisi sama kartu yang masih
+// PENDING/REJECTED. Boleh dipanggil Laoshi pemilik kartu kelasnya
+// SENDIRI, atau Owner/Admin lewat halaman Class Card juga.
+export async function extendClassCardRegistration(id: string, registrationEnd: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("classes")
+    .select("id, name, created_by_teacher_id, approval_status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!existing) return { success: false, message: "Kartu kelas tidak ditemukan." };
+
+  const isStaff = ctx.roles.includes("OWNER") || ctx.roles.includes("ADMIN");
+  const isOwner = ctx.roles.includes("TEACHER") && existing.created_by_teacher_id === ctx.teacherId;
+  if (!isStaff && !isOwner) {
+    return { success: false, message: "Ini bukan kartu kelas kamu." };
+  }
+  if (existing.approval_status !== "APPROVED") {
+    return {
+      success: false,
+      message: "Kelas ini belum di-approve, ubah tanggal pendaftarannya lewat Edit & submit ulang aja.",
+    };
+  }
+  if (!registrationEnd) {
+    return { success: false, message: "Tanggal tutup pendaftaran wajib diisi." };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (registrationEnd < today) {
+    return { success: false, message: "Tanggal tutup pendaftaran enggak boleh di masa lalu." };
+  }
+
+  const { error } = await supabase
+    .from("classes")
+    .update({ registration_end: registrationEnd })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Tanggal tutup pendaftaran berhasil diperpanjang." };
+}
+
 // Laoshi hapus kartu kelas dia sendiri -- cuma boleh buat yang masih
 // PENDING (belum di-approve) atau REJECTED (ditolak & ga mau diedit
 // lagi). Yang udah APPROVED sengaja ga boleh dihapus dari sini karena

@@ -52,6 +52,12 @@ export default function StudentClassBrowse({
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // Kelas yang pendaftarannya udah ditutup (registration_end udah lewat)
+  // ga usah ditampilin sama sekali di sisi Murid -- daripada nampilin
+  // kartu abu-abu "Pendaftaran sudah ditutup" yang cuma bikin bingung,
+  // mending langsung ilang aja dari daftar kayak kelas itu ga ada.
+  cards = cards.filter((c) => !(c.registration_end && today > c.registration_end));
+
   // Kelas aktif/lagi diproses Murid (PENDING/APPROVED aja -- REJECTED
   // ga dianggap "punya kelas" lagi, dan ga ikut ngeblokir join yang baru).
   const activeOrPending = myEnrollments.filter(

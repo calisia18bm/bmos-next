@@ -26,7 +26,7 @@ function timeAgo(dateStr: string) {
 
 type NextClass = { class_name: string; session_date: string; start_time: string };
 type TeacherStats = { studentCount: number; finishedThisWeek: number; totalThisWeek: number };
-type StudentStats = { sessionsUsed: number; sessionsTotal: number; paymentStatus: string };
+type StudentStats = { sessionsUsed: number; sessionsTotal: number; hasClass: boolean };
 
 // Home yang disederhanakan buat Laoshi, Murid, & Admin -- fokus ke info/
 // pengumuman + ringkasan singkat aja. Jadwal lengkap, daftar murid, dan
@@ -54,7 +54,8 @@ export default async function SimpleHome({
 
   const announcements = await getAnnouncements(
     5,
-    isTeacher ? ["ALL", "TEACHER"] : isStudentSimple ? ["ALL", "STUDENT"] : ["ALL"]
+    isTeacher ? ["ALL", "TEACHER"] : isStudentSimple ? ["ALL", "STUDENT"] : ["ALL"],
+    { activeOnly: true }
   );
   // Laoshi/Murid/Admin baru buka Home & lihat widget Pengumuman ini --
   // tandain "udah dibaca sampai sekarang" biar badge notif angka di
@@ -130,7 +131,7 @@ export default async function SimpleHome({
     } else {
       const { data: student } = await supabase
         .from("students")
-        .select("class_id, sessions_used, sessions_per_package, payment_status")
+        .select("class_id, sessions_used, sessions_per_package")
         .eq("id", profile.student_id)
         .maybeSingle();
 
@@ -138,7 +139,7 @@ export default async function SimpleHome({
         studentStats = {
           sessionsUsed: student.sessions_used ?? 0,
           sessionsTotal: student.sessions_per_package ?? 0,
-          paymentStatus: student.payment_status ?? "-",
+          hasClass: !!student.class_id,
         };
 
         if (student.class_id) {
@@ -257,9 +258,13 @@ export default async function SimpleHome({
                 </p>
               </div>
               <div className="bg-white border border-bmos-border rounded-2xl p-5">
-                <p className="text-xs text-bmos-text-light mb-1">Status Pembayaran</p>
-                <p className="text-lg font-bold text-bmos-text">
-                  {studentStats ? studentStats.paymentStatus : "-"}
+                <p className="text-xs text-bmos-text-light mb-1">Status Murid</p>
+                <p
+                  className={`text-lg font-bold ${
+                    studentStats?.hasClass ? "text-green-700" : "text-bmos-text-light"
+                  }`}
+                >
+                  {studentStats ? (studentStats.hasClass ? "Aktif" : "Tidak Aktif") : "-"}
                 </p>
               </div>
             </>

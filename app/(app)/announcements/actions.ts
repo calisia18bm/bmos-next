@@ -27,16 +27,32 @@ async function requireOwnerOrAdmin(): Promise<string | null> {
 // audienceFilter dipakai buat Home murid/laoshi -- cuma ambil pengumuman
 // yang emang buat mereka ('ALL' + role mereka sendiri). Owner/Admin (di
 // widget kelola) manggil tanpa filter biar liat SEMUA pengumuman.
-export async function getAnnouncements(limit = 5, audienceFilter?: string[]) {
+export async function getAnnouncements(
+  limit = 5,
+  audienceFilter?: string[],
+  opts?: { activeOnly?: boolean }
+) {
   const supabase = await createClient();
   let query = supabase
     .from("announcements")
-    .select("id, title, message, audience, created_by, created_at")
+    .select("id, title, message, audience, created_by, created_at, valid_from, valid_until")
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (audienceFilter) {
     query = query.in("audience", audienceFilter);
+  }
+
+  // Home Murid/Laoshi/Admin CUMA boleh liat pengumuman yang lagi
+  // "berlaku" (udah lewat valid_from-nya, belum lewat valid_until-nya).
+  // Widget kelola punya BM (activeOnly enggak di-set) sengaja TETAP
+  // nampilin SEMUA termasuk yang udah lewat/belum mulai, biar BM masih
+  // bisa liat & hapus riwayatnya.
+  if (opts?.activeOnly) {
+    const today = new Date().toISOString().slice(0, 10);
+    query = query
+      .or(`valid_from.is.null,valid_from.lte.${today}`)
+      .or(`valid_until.is.null,valid_until.gte.${today}`);
   }
 
   const { data } = await query;
@@ -88,6 +104,8 @@ export async function createAnnouncement(input: {
   title: string;
   message: string;
   audience: "ALL" | "TEACHER" | "STUDENT";
+  validFrom?: string;
+  validUntil?: string;
 }) {
   const authError = await requireOwnerOrAdmin();
   if (authError) return { success: false, message: authError };
@@ -100,12 +118,25 @@ export async function createAnnouncement(input: {
     return { success: false, message: "Judul dan isi pengumuman wajib diisi." };
   }
 
+  if (
+    input.validFrom &&
+    input.validUntil &&
+    input.validFrom > input.validUntil
+  ) {
+    return {
+      success: false,
+      message: "Tanggal mulai enggak boleh setelah tanggal berakhir.",
+    };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({
     title,
     message,
     audience: input.audience,
     created_by: profile?.full_name || "BM",
+    valid_from: input.validFrom || null,
+    valid_until: input.validUntil || null,
   });
 
   if (error) return { success: false, message: error.message };

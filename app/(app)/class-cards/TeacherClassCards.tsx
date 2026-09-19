@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitClassCard, resubmitClassCard, deleteClassCard } from "./actions";
+import { submitClassCard, resubmitClassCard, deleteClassCard, extendClassCardRegistration } from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
 import { CLASS_DAYS, ClassCard, formatRupiah } from "@/lib/classCards";
 
@@ -112,6 +112,10 @@ export default function TeacherClassCards({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [extendingId, setExtendingId] = useState<string | null>(null);
+  const [extendDate, setExtendDate] = useState("");
+  const [extendError, setExtendError] = useState("");
+  const [extendLoading, setExtendLoading] = useState(false);
 
   const price = Number(form.price) || 0;
   const commission = price > 0 ? computeCommission(price, tiers) : null;
@@ -169,6 +173,24 @@ export default function TeacherClassCards({
     setDeletingId(null);
   }
 
+  function openExtend(c: ClassCard) {
+    setExtendingId(c.id);
+    setExtendDate(c.registration_end || "");
+    setExtendError("");
+  }
+
+  async function handleExtend(id: string) {
+    setExtendLoading(true);
+    setExtendError("");
+    const result = await extendClassCardRegistration(id, extendDate);
+    setExtendLoading(false);
+    if (!result.success) {
+      setExtendError(result.message);
+      return;
+    }
+    setExtendingId(null);
+  }
+
   function renderCard(c: ClassCard) {
     const cComm = c.price ? computeCommission(c.price, tiers) : null;
     const unseen = isUnseen(c);
@@ -223,6 +245,57 @@ export default function TeacherClassCards({
             })}
           </p>
         )}
+
+        {c.approval_status === "APPROVED" && c.registration_end && (
+          <p className="text-xs text-bmos-text-light">
+            📝 Pendaftaran ditutup{" "}
+            {new Date(c.registration_end).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
+
+        {c.approval_status === "APPROVED" &&
+          (extendingId === c.id ? (
+            <div className="flex flex-col gap-1.5 bg-gray-50 rounded-xl p-2.5">
+              <label className="text-[11px] font-semibold text-bmos-text-light">
+                Tanggal tutup pendaftaran baru
+              </label>
+              <input
+                type="date"
+                value={extendDate}
+                onChange={(e) => setExtendDate(e.target.value)}
+                className="border border-bmos-border rounded-lg px-2 py-1.5 text-xs"
+              />
+              {extendError && (
+                <p className="text-xs text-red-600">{extendError}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExtend(c.id)}
+                  disabled={extendLoading}
+                  className="flex-1 bg-bmos-primary text-white rounded-lg py-1.5 text-xs font-semibold disabled:opacity-50"
+                >
+                  {extendLoading ? "Menyimpan..." : "Simpan"}
+                </button>
+                <button
+                  onClick={() => setExtendingId(null)}
+                  className="px-3 rounded-lg border border-bmos-border text-xs font-semibold text-bmos-text-light"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => openExtend(c)}
+              className="text-xs font-semibold text-bmos-primary hover:underline text-left"
+            >
+              📅 Perpanjang Pendaftaran
+            </button>
+          ))}
 
         {(c.goal_tags?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-1">

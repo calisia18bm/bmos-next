@@ -11,6 +11,8 @@ type Announcement = {
   audience: string;
   created_by: string | null;
   created_at: string;
+  valid_from: string | null;
+  valid_until: string | null;
 };
 
 const AUDIENCE_OPTIONS = [
@@ -36,15 +38,25 @@ export default function AnnouncementsManage({
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audience, setAudience] = useState<"ALL" | "TEACHER" | "STUDENT">("ALL");
+  const [validFrom, setValidFrom] = useState("");
+  const [validUntil, setValidUntil] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const today = new Date().toISOString().slice(0, 10);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await createAnnouncement({ title, message, audience });
+    const res = await createAnnouncement({
+      title,
+      message,
+      audience,
+      validFrom: validFrom || undefined,
+      validUntil: validUntil || undefined,
+    });
     setLoading(false);
     if (!res.success) {
       setError(res.message);
@@ -53,6 +65,8 @@ export default function AnnouncementsManage({
     setTitle("");
     setMessage("");
     setAudience("ALL");
+    setValidFrom("");
+    setValidUntil("");
     router.refresh();
   }
 
@@ -97,6 +111,33 @@ export default function AnnouncementsManage({
             </option>
           ))}
         </select>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[11px] font-semibold text-bmos-text-light">
+              Tampil mulai (opsional)
+            </label>
+            <input
+              type="date"
+              value={validFrom}
+              onChange={(e) => setValidFrom(e.target.value)}
+              className="w-full border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-bmos-text-light">
+              Tampil sampai (opsional)
+            </label>
+            <input
+              type="date"
+              value={validUntil}
+              onChange={(e) => setValidUntil(e.target.value)}
+              className="w-full border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-bmos-text-light">
+          Kosongin kalau mau langsung tampil sekarang & ga pernah auto ilang. Kalau diisi, pengumuman otomatis hilang dari Home Murid/Laoshi setelah tanggal "sampai" lewat.
+        </p>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-end">
           <button
@@ -109,36 +150,68 @@ export default function AnnouncementsManage({
         </div>
       </form>
 
+      <p className="text-xs font-semibold text-bmos-text-light mb-2">
+        Pengumuman yang udah diposting
+      </p>
       {announcements.length === 0 ? (
         <p className="text-sm text-bmos-text-light text-center py-4">
           Belum ada pengumuman.
         </p>
       ) : (
         <div className="space-y-2">
-          {announcements.map((a) => (
-            <div
-              key={a.id}
-              className="flex items-start justify-between border-t border-bmos-border pt-2"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-sm font-semibold text-bmos-text">{a.title}</p>
-                  <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary">
-                    {AUDIENCE_LABEL[a.audience] || a.audience}
-                  </span>
-                </div>
-                <p className="text-xs text-bmos-text-light">{a.message}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(a.id)}
-                disabled={deletingId === a.id}
-                className="text-xs text-red-600 hover:underline shrink-0 ml-3"
+          {announcements.map((a) => {
+            const notOpenYet = !!a.valid_from && today < a.valid_from;
+            const expired = !!a.valid_until && today > a.valid_until;
+            return (
+              <div
+                key={a.id}
+                className="bg-white border border-bmos-border rounded-xl p-4"
               >
-                {deletingId === a.id ? "..." : "Hapus"}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-start justify-between gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-bmos-text">{a.title}</p>
+                    <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bmos-primary-soft text-bmos-primary">
+                      {AUDIENCE_LABEL[a.audience] || a.audience}
+                    </span>
+                    {expired ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">
+                        Udah berakhir
+                      </span>
+                    ) : notOpenYet ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-700">
+                        Belum tampil
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                        Lagi tampil
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(a.id)}
+                    disabled={deletingId === a.id}
+                    className="text-xs text-red-600 hover:underline shrink-0"
+                  >
+                    {deletingId === a.id ? "..." : "Hapus"}
+                  </button>
+                </div>
+                <p className="text-sm text-bmos-text-light whitespace-pre-wrap">
+                  {a.message}
+                </p>
+                {(a.valid_from || a.valid_until) && (
+                  <p className="text-[11px] text-bmos-text-light mt-1">
+                    📅 Tampil {a.valid_from || "sekarang"} s/d {a.valid_until || "seterusnya"}
+                  </p>
+                )}
+                {a.created_by && (
+                  <p className="text-xs text-bmos-text-light mt-1">
+                    — {a.created_by}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
