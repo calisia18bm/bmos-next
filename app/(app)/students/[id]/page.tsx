@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import EditStudentButton from "./EditStudentButton";
+import { paymentStatusLabel } from "@/lib/paymentStatus";
 import TransferClassButton from "./TransferClassButton";
 import AddAdditionalClassButton from "./AddAdditionalClassButton";
 import EndEnrollmentButton from "./EndEnrollmentButton";
@@ -168,7 +169,7 @@ export default async function StudentDetailPage({
           <div>
             <p className="text-xs text-bmos-text-light">Status Pembayaran</p>
             <p className="text-sm font-semibold text-bmos-text mt-0.5">
-              {student.payment_status || "-"}
+              {paymentStatusLabel(student.payment_status)}
             </p>
           </div>
           <div>

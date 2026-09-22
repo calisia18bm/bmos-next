@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
+import { paymentStatusLabel } from "@/lib/paymentStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export default async function MyStudentsPage({
                   </td>
                   <td className="px-5 py-3">
                     <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-bmos-primary-soft text-bmos-primary">
-                      {s.payment_status}
+                      {paymentStatusLabel(s.payment_status)}
                     </span>
                   </td>
                 </tr>

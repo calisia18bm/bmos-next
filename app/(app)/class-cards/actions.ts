@@ -15,6 +15,7 @@ import { generateSessionsForClass } from "../weekly-schedule/actions";
 import { SITE_URL } from "@/lib/site";
 import { readPaymentProofWithAI } from "@/lib/paymentProof";
 import { broadcastToBm } from "@/lib/bmContacts";
+import { computeCycleAmount, computeNextDueDate, formatCycleLabel } from "@/lib/monthlyBilling";
 
 // Berapa banyak Class Card yang lagi PENDING (nunggu di-approve Owner) --
 // dipakai buat badge notif di sidebar (menu "Approval Kelas") & buat
@@ -229,6 +230,9 @@ type ClassCardInput = {
   sessionsCount: string;
   goalTags: string[];
   classType: "REGULAR" | "SEMINAR";
+  billingType: "SESSION" | "MONTHLY";
+  monthlyPrice: string;
+  threeMonthDiscountPct: string;
 };
 
 function validateInput(input: ClassCardInput): string | null {
@@ -244,6 +248,40 @@ function validateInput(input: ClassCardInput): string | null {
     input.registrationStart > input.registrationEnd
   ) {
     return "Tanggal mulai pendaftaran enggak boleh lebih besar dari tanggal tutup.";
+  }
+  if (input.billingType === "MONTHLY" && (Number(input.monthlyPrice) || 0) <= 0) {
+    return "Harga per bulan wajib diisi buat kelas model bayar bulanan.";
+  }
+  return null;
+}
+
+// Cek syarat minimal Laoshi udah beli sekian bulan bahan ajar (PPT)
+// sebelum boleh buka Class Card baru -- angkanya diatur Owner (lihat
+// getMinTeacherResourceMonths di bawah). Dihitung dari jumlah request
+// beli bahan ajar yang udah di-APPROVE (teacher_resource_purchases),
+// 1 bahan ajar dianggap = 1 bulan.
+async function checkTeacherResourceGate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teacherId: string
+): Promise<string | null> {
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("min_teacher_resource_months")
+    .eq("id", 1)
+    .maybeSingle();
+  const minMonths = settings?.min_teacher_resource_months ?? 3;
+  if (minMonths <= 0) return null;
+
+  const { count } = await supabase
+    .from("teacher_resource_purchases")
+    .select("id", { count: "exact", head: true })
+    .eq("teacher_id", teacherId)
+    .eq("request_status", "APPROVED");
+
+  if ((count ?? 0) < minMonths) {
+    return `Kamu wajib beli minimal ${minMonths} bahan ajar dari BM dulu sebelum bisa buka Class Card (sekarang baru ${
+      count ?? 0
+    }). Cek halaman Materi buat beli bahan ajarnya.`;
   }
   return null;
 }
@@ -338,6 +376,10 @@ export async function submitClassCard(input: ClassCardInput) {
   if (err) return { success: false, message: err };
 
   const supabase = await createClient();
+
+  const gateError = await checkTeacherResourceGate(supabase, ctx.teacherId);
+  if (gateError) return { success: false, message: gateError };
+
   const capacity = Number(input.capacityMax) || 1;
   const price = Number(input.price) || 0;
 
@@ -378,6 +420,10 @@ export async function submitClassCard(input: ClassCardInput) {
       sessions_count: Number(input.sessionsCount) || null,
       goal_tags: input.goalTags,
       class_type: input.classType === "SEMINAR" ? "SEMINAR" : "REGULAR",
+      billing_type: input.billingType === "MONTHLY" ? "MONTHLY" : "SESSION",
+      monthly_price: input.billingType === "MONTHLY" ? Number(input.monthlyPrice) || null : null,
+      three_month_discount_pct:
+        input.billingType === "MONTHLY" ? Number(input.threeMonthDiscountPct) || 0 : 0,
       approval_status: "PENDING",
       active: false,
       registration_open: false,
@@ -476,6 +522,10 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
       sessions_count: Number(input.sessionsCount) || null,
       goal_tags: input.goalTags,
       class_type: input.classType === "SEMINAR" ? "SEMINAR" : "REGULAR",
+      billing_type: input.billingType === "MONTHLY" ? "MONTHLY" : "SESSION",
+      monthly_price: input.billingType === "MONTHLY" ? Number(input.monthlyPrice) || null : null,
+      three_month_discount_pct:
+        input.billingType === "MONTHLY" ? Number(input.threeMonthDiscountPct) || 0 : 0,
       approval_status: "PENDING",
       rejection_note: null,
       ai_note: buildAiNote(input, capacity, price, avgPrice),
@@ -743,6 +793,12 @@ export type MyClassEnrollment = {
   requestStatus: "PENDING" | "APPROVED" | "REJECTED";
   rejectionNote: string | null;
   aiPaymentNote: string | null;
+  billingType: "SESSION" | "MONTHLY";
+  monthlyPrice: number | null;
+  threeMonthDiscountPct: number | null;
+  billingCycleMonths: number;
+  nextDueDate: string | null;
+  lastPaidAt: string | null;
 };
 
 // Kelas yang lagi aktif/diproses buat Murid yang login -- dipakai di
@@ -756,7 +812,7 @@ export async function getMyClassEnrollments(): Promise<MyClassEnrollment[]> {
   const { data } = await supabase
     .from("enrollments")
     .select(
-      "id, class_id, request_status, rejection_note, ai_payment_note, requested_at, classes:class_id (name, class_type, day_of_week, start_time, end_time)"
+      "id, class_id, request_status, rejection_note, ai_payment_note, requested_at, billing_cycle_months, next_due_date, last_paid_at, classes:class_id (name, class_type, day_of_week, start_time, end_time, billing_type, monthly_price, three_month_discount_pct)"
     )
     .eq("student_id", ctx.studentId)
     .in("request_status", ["PENDING", "APPROVED", "REJECTED"])
@@ -776,6 +832,12 @@ export async function getMyClassEnrollments(): Promise<MyClassEnrollment[]> {
       requestStatus: row.request_status,
       rejectionNote: row.rejection_note,
       aiPaymentNote: row.ai_payment_note,
+      billingType: row.classes?.billing_type ?? "SESSION",
+      monthlyPrice: row.classes?.monthly_price ?? null,
+      threeMonthDiscountPct: row.classes?.three_month_discount_pct ?? null,
+      billingCycleMonths: row.billing_cycle_months ?? 1,
+      nextDueDate: row.next_due_date,
+      lastPaidAt: row.last_paid_at,
     }));
 }
 
@@ -783,7 +845,8 @@ export async function getMyClassEnrollments(): Promise<MyClassEnrollment[]> {
 // bukti transfer dulu. Ga langsung aktif, nunggu di-approve Owner/Admin.
 export async function requestJoinClassCard(
   classId: string,
-  proof: { fileUrl: string; fileName: string; filePath: string }
+  proof: { fileUrl: string; fileName: string; filePath: string },
+  cycleMonths: 1 | 3 = 1
 ) {
   const ctx = await getCallerContext();
   if (!ctx) return { success: false, message: "Belum login." };
@@ -802,7 +865,7 @@ export async function requestJoinClassCard(
   const { data: cls } = await supabase
     .from("classes")
     .select(
-      "id, class_code, name, teacher_id, teacher_name, capacity_max, approval_status, active, is_private, registration_start, registration_end, class_type, day_of_week, start_time, end_time, price"
+      "id, class_code, name, teacher_id, teacher_name, capacity_max, approval_status, active, is_private, registration_start, registration_end, class_type, day_of_week, start_time, end_time, price, billing_type, monthly_price, three_month_discount_pct"
     )
     .eq("id", classId)
     .maybeSingle();
@@ -890,10 +953,16 @@ export async function requestJoinClassCard(
     return { success: false, message: "Kelas ini sudah penuh." };
   }
 
+  const isMonthly = cls.billing_type === "MONTHLY";
+  const chosenCycle: 1 | 3 = isMonthly && cycleMonths === 3 ? 3 : isMonthly ? cycleMonths || 1 : 1;
+  const cycleAmount = isMonthly
+    ? computeCycleAmount(cls.monthly_price ?? 0, chosenCycle, cls.three_month_discount_pct ?? 0)
+    : cls.price ?? null;
+
   const enrollmentCode = await getNextEnrollmentCode(supabase);
   const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
-    name: cls.name,
-    price: cls.price ?? null,
+    name: isMonthly ? `${cls.name} (${formatCycleLabel(chosenCycle)})` : cls.name,
+    price: cycleAmount,
   });
 
   const { error } = await supabase.from("enrollments").insert({
@@ -906,6 +975,7 @@ export async function requestJoinClassCard(
     payment_proof_path: proof.filePath,
     ai_payment_note: aiNote,
     requested_at: new Date().toISOString(),
+    billing_cycle_months: isMonthly ? chosenCycle : 1,
   });
 
   if (error) return { success: false, message: error.message };
@@ -1028,7 +1098,7 @@ export async function approveJoinRequest(enrollmentId: string) {
 
   const { data: enrollment } = await supabase
     .from("enrollments")
-    .select("id, student_id, class_id, request_status")
+    .select("id, student_id, class_id, request_status, billing_cycle_months")
     .eq("id", enrollmentId)
     .maybeSingle();
 
@@ -1039,7 +1109,7 @@ export async function approveJoinRequest(enrollmentId: string) {
 
   const { data: cls } = await supabase
     .from("classes")
-    .select("id, name, teacher_name, class_type, capacity_max")
+    .select("id, name, teacher_name, class_type, capacity_max, billing_type")
     .eq("id", enrollment.class_id)
     .maybeSingle();
   if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
@@ -1074,6 +1144,26 @@ export async function approveJoinRequest(enrollmentId: string) {
         teacher_name: cls.teacher_name,
       })
       .eq("id", enrollment.student_id);
+  }
+
+  // Kelas billing bulanan: begitu di-approve, anggap pembayaran pertama
+  // udah beres -- set Status Murid ke "Sudah Bayar" (AKTIF) & hitung
+  // tanggal jatuh tempo berikutnya dari hari ini + siklus yang dipilih
+  // Murid pas join (1 atau 3 bulan).
+  if (cls.billing_type === "MONTHLY") {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const cycleMonths = enrollment.billing_cycle_months || 1;
+    await supabase
+      .from("students")
+      .update({ payment_status: "AKTIF" })
+      .eq("id", enrollment.student_id);
+    await supabase
+      .from("enrollments")
+      .update({
+        last_paid_at: todayIso,
+        next_due_date: computeNextDueDate(todayIso, cycleMonths),
+      })
+      .eq("id", enrollmentId);
   }
 
   // Kabarin Murid lewat WhatsApp begitu request join-nya di-approve BM.
@@ -1286,6 +1376,361 @@ export async function saveRegistrationFormUrl(url: string) {
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Link kuisioner disimpan." };
+}
+
+// Minimal berapa bulan bahan ajar (PPT) yang wajib dibeli & disetujui
+// BM dulu sebelum Laoshi bisa buka Class Card baru -- diatur Owner,
+// dicek di checkTeacherResourceGate() pas submitClassCard.
+export async function getMinTeacherResourceMonths(): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("min_teacher_resource_months")
+    .eq("id", 1)
+    .maybeSingle();
+  return data?.min_teacher_resource_months ?? 3;
+}
+
+export async function saveMinTeacherResourceMonths(months: number) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER")) {
+    return { success: false, message: "Cuma Owner yang bisa atur syarat minimal bahan ajar." };
+  }
+  if (!Number.isFinite(months) || months < 0) {
+    return { success: false, message: "Jumlah bulan enggak valid." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ id: 1, min_teacher_resource_months: Math.floor(months) });
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Syarat minimal bahan ajar disimpan." };
+}
+
+// ============================================================
+// Pembayaran BULANAN lanjutan (buat Class Card billing_type='MONTHLY')
+// -- setelah join pertama disetujui, tiap kali mau lanjut bulan
+// berikutnya (atau bayar 3 bulan sekaligus), Murid upload bukti
+// transfer baru lewat submitMonthlyPayment(), direview manual sama BM
+// kayak request join, pakai AI bantu baca nominal juga.
+// ============================================================
+
+export async function submitMonthlyPayment(
+  enrollmentId: string,
+  cycleMonths: 1 | 3,
+  proof: { fileUrl: string; fileName: string; filePath: string }
+) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("STUDENT") || !ctx.studentId) {
+    return {
+      success: false,
+      message: "Cuma akun Murid yang terhubung ke data Murid yang bisa bayar kelas.",
+    };
+  }
+  if (!proof.fileUrl) {
+    return { success: false, message: "Bukti transfer wajib diupload dulu." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: enrollment } = await supabase
+    .from("enrollments")
+    .select("id, student_id, class_id, request_status, status")
+    .eq("id", enrollmentId)
+    .eq("student_id", ctx.studentId)
+    .maybeSingle();
+
+  if (!enrollment) return { success: false, message: "Kelas ini enggak ditemukan di data kamu." };
+  if (enrollment.request_status !== "APPROVED" || enrollment.status !== "ACTIVE") {
+    return { success: false, message: "Kelas ini belum aktif, enggak bisa bayar lanjutan." };
+  }
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("id, name, billing_type, monthly_price, three_month_discount_pct")
+    .eq("id", enrollment.class_id)
+    .maybeSingle();
+  if (!cls) return { success: false, message: "Kelas tidak ditemukan." };
+  if (cls.billing_type !== "MONTHLY") {
+    return { success: false, message: "Kelas ini bukan model bayar bulanan." };
+  }
+
+  const { data: existingPending } = await supabase
+    .from("monthly_payments")
+    .select("id")
+    .eq("enrollment_id", enrollmentId)
+    .eq("request_status", "PENDING")
+    .maybeSingle();
+  if (existingPending) {
+    return {
+      success: false,
+      message: "Kamu sudah punya bukti bayar yang lagi ditunggu review BM buat kelas ini.",
+    };
+  }
+
+  const chosenCycle: 1 | 3 = cycleMonths === 3 ? 3 : 1;
+  const cycleAmount = computeCycleAmount(
+    cls.monthly_price ?? 0,
+    chosenCycle,
+    cls.three_month_discount_pct ?? 0
+  );
+
+  const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
+    name: `${cls.name} (${formatCycleLabel(chosenCycle)})`,
+    price: cycleAmount,
+  });
+
+  const { error } = await supabase.from("monthly_payments").insert({
+    enrollment_id: enrollmentId,
+    student_id: ctx.studentId,
+    class_id: cls.id,
+    cycle_months: chosenCycle,
+    amount: cycleAmount,
+    payment_proof_url: proof.fileUrl,
+    payment_proof_path: proof.filePath,
+    ai_payment_note: aiNote,
+    requested_at: new Date().toISOString(),
+  });
+  if (error) return { success: false, message: error.message };
+
+  const { data: studentRow } = await supabase
+    .from("students")
+    .select("name, phone")
+    .eq("id", ctx.studentId)
+    .maybeSingle();
+
+  if (studentRow?.phone) {
+    const studentMsg = `📝 Bukti bayar bulanan kamu buat kelas "${cls.name}" sudah kekirim, lagi ditunggu review BM ya!`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif bukti bayar bulanan kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
+    );
+  }
+
+  await broadcastToBm(
+    `💰 Bukti bayar bulanan baru!\n\n` +
+      `Murid: ${studentRow?.name || "-"}\n` +
+      `Kelas: ${cls.name}\n` +
+      `Siklus: ${formatCycleLabel(chosenCycle)}\n` +
+      `Nominal: Rp ${cycleAmount.toLocaleString("id-ID")}\n\n` +
+      `${aiNote}\n\n` +
+      `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
+    `Bukti Bayar Bulanan dari ${studentRow?.name || "-"}`
+  );
+
+  revalidatePath("/class-cards", "layout");
+  return {
+    success: true,
+    message: "Bukti bayar terkirim, tunggu di-review BM ya.",
+  };
+}
+
+export type PendingMonthlyPayment = {
+  paymentId: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className: string;
+  cycleMonths: number;
+  amount: number | null;
+  paymentProofUrl: string | null;
+  aiPaymentNote: string | null;
+  requestedAt: string;
+};
+
+// Daftar bukti bayar bulanan yang lagi PENDING -- dipakai Owner/Admin
+// buat approve/reject, sama kayak getPendingJoinRequests().
+export async function getPendingMonthlyPayments(): Promise<PendingMonthlyPayment[]> {
+  const ctx = await getCallerContext();
+  if (!ctx) return [];
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("monthly_payments")
+    .select(
+      "id, student_id, class_id, cycle_months, amount, payment_proof_url, ai_payment_note, requested_at, students:student_id (name), classes:class_id (name)"
+    )
+    .eq("request_status", "PENDING")
+    .order("requested_at", { ascending: true });
+
+  return (data ?? []).map((row: any) => ({
+    paymentId: row.id,
+    studentId: row.student_id,
+    studentName: row.students?.name ?? "-",
+    classId: row.class_id,
+    className: row.classes?.name ?? "-",
+    cycleMonths: row.cycle_months ?? 1,
+    amount: row.amount ?? null,
+    paymentProofUrl: row.payment_proof_url,
+    aiPaymentNote: row.ai_payment_note,
+    requestedAt: row.requested_at,
+  }));
+}
+
+export async function approveMonthlyPayment(paymentId: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa approve pembayaran." };
+  }
+
+  const supabase = await createClient();
+  const { data: payment } = await supabase
+    .from("monthly_payments")
+    .select("id, enrollment_id, student_id, class_id, cycle_months, request_status")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (!payment) return { success: false, message: "Pembayaran tidak ditemukan." };
+  if (payment.request_status !== "PENDING") {
+    return { success: false, message: "Pembayaran ini sudah diproses sebelumnya." };
+  }
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("name")
+    .eq("id", payment.class_id)
+    .maybeSingle();
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const cycleMonths = payment.cycle_months || 1;
+
+  const { error } = await supabase
+    .from("monthly_payments")
+    .update({
+      request_status: "APPROVED",
+      reviewed_by_name: ctx.fullName,
+      reviewed_at: new Date().toISOString(),
+      rejection_note: null,
+    })
+    .eq("id", paymentId);
+  if (error) return { success: false, message: error.message };
+
+  await supabase
+    .from("students")
+    .update({ payment_status: "AKTIF" })
+    .eq("id", payment.student_id);
+
+  await supabase
+    .from("enrollments")
+    .update({
+      last_paid_at: todayIso,
+      next_due_date: computeNextDueDate(todayIso, cycleMonths),
+    })
+    .eq("id", payment.enrollment_id);
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("name, phone")
+    .eq("id", payment.student_id)
+    .maybeSingle();
+
+  if (student?.phone) {
+    const msg = `✅ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" sudah disetujui BM! Makasih ya.`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(student.phone), msg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan disetujui" enggak bisa dikirim WA ke dia.`
+    );
+  }
+
+  revalidatePath("/class-cards", "layout");
+  revalidatePath("/", "layout");
+  return { success: true, message: "Pembayaran bulanan disetujui." };
+}
+
+export async function rejectMonthlyPayment(paymentId: string, note: string) {
+  const ctx = await getCallerContext();
+  if (!ctx) return { success: false, message: "Belum login." };
+  if (!ctx.roles.includes("OWNER") && !ctx.roles.includes("ADMIN")) {
+    return { success: false, message: "Cuma Owner/Admin yang bisa tolak pembayaran." };
+  }
+
+  const cleanedNote = note.trim();
+  if (!cleanedNote) {
+    return { success: false, message: "Kasih catatan alasan penolakan dulu buat Murid." };
+  }
+
+  const supabase = await createClient();
+  const { data: payment } = await supabase
+    .from("monthly_payments")
+    .select("id, student_id, class_id, request_status")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (!payment) return { success: false, message: "Pembayaran tidak ditemukan." };
+  if (payment.request_status !== "PENDING") {
+    return { success: false, message: "Pembayaran ini sudah diproses sebelumnya." };
+  }
+
+  const { error } = await supabase
+    .from("monthly_payments")
+    .update({
+      request_status: "REJECTED",
+      reviewed_by_name: ctx.fullName,
+      reviewed_at: new Date().toISOString(),
+      rejection_note: cleanedNote,
+    })
+    .eq("id", paymentId);
+  if (error) return { success: false, message: error.message };
+
+  const [{ data: cls }, { data: student }] = await Promise.all([
+    supabase.from("classes").select("name").eq("id", payment.class_id).maybeSingle(),
+    supabase.from("students").select("name, phone").eq("id", payment.student_id).maybeSingle(),
+  ]);
+
+  if (student?.phone) {
+    const msg = `❌ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" ditolak BM. Alasan: ${cleanedNote}\n\nSilakan upload ulang bukti transfer yang bener ya.`;
+    try {
+      const result = await sendWhatsApp(normalizePhone(student.phone), msg);
+      if (!result.success) {
+        await recordNotificationFailure(
+          `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+        );
+      }
+    } catch (err) {
+      await recordNotificationFailure(
+        `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
+  } else {
+    await recordNotificationFailure(
+      `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan ditolak" enggak bisa dikirim WA ke dia.`
+    );
+  }
+
+  revalidatePath("/class-cards", "layout");
+  return { success: true, message: "Pembayaran bulanan ditolak." };
 }
 
 export { computeCommission };

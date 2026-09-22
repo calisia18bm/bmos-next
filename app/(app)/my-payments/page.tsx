@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import OwnerPreviewPicker from "@/components/OwnerPreviewPicker";
+import { paymentStatusLabel } from "@/lib/paymentStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,7 @@ export default async function MyPaymentsPage({
           <div className="bg-white border border-bmos-border rounded-2xl p-5">
             <p className="text-xs text-bmos-text-light mb-1">Status</p>
             <p className="text-lg font-bold text-bmos-text">
-              {student.payment_status}
+              {paymentStatusLabel(student.payment_status)}
             </p>
           </div>
           <div className="bg-white border border-bmos-border rounded-2xl p-5">

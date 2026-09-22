@@ -6,6 +6,7 @@ import NameEditor from "./NameEditor";
 import { BannerItem } from "@/lib/characters";
 import { UserProfile } from "@/lib/auth";
 import { getAnnouncements, markAnnouncementsRead } from "./announcements/actions";
+import { paymentStatusLabel } from "@/lib/paymentStatus";
 
 function getMondayOfWeek(): string {
   const d = new Date();
@@ -26,7 +27,12 @@ function timeAgo(dateStr: string) {
 
 type NextClass = { class_name: string; session_date: string; start_time: string };
 type TeacherStats = { studentCount: number; finishedThisWeek: number; totalThisWeek: number };
-type StudentStats = { sessionsUsed: number; sessionsTotal: number; hasClass: boolean };
+type StudentStats = {
+  sessionsUsed: number;
+  sessionsTotal: number;
+  hasClass: boolean;
+  paymentStatus: string;
+};
 
 // Home yang disederhanakan buat Laoshi, Murid, & Admin -- fokus ke info/
 // pengumuman + ringkasan singkat aja. Jadwal lengkap, daftar murid, dan
@@ -131,7 +137,7 @@ export default async function SimpleHome({
     } else {
       const { data: student } = await supabase
         .from("students")
-        .select("class_id, sessions_used, sessions_per_package")
+        .select("class_id, sessions_used, sessions_per_package, payment_status")
         .eq("id", profile.student_id)
         .maybeSingle();
 
@@ -140,6 +146,7 @@ export default async function SimpleHome({
           sessionsUsed: student.sessions_used ?? 0,
           sessionsTotal: student.sessions_per_package ?? 0,
           hasClass: !!student.class_id,
+          paymentStatus: student.payment_status ?? "",
         };
 
         if (student.class_id) {
@@ -265,6 +272,12 @@ export default async function SimpleHome({
                   }`}
                 >
                   {studentStats ? (studentStats.hasClass ? "Aktif" : "Tidak Aktif") : "-"}
+                </p>
+              </div>
+              <div className="bg-white border border-bmos-border rounded-2xl p-5">
+                <p className="text-xs text-bmos-text-light mb-1">Status Pembayaran</p>
+                <p className="text-lg font-bold text-bmos-text">
+                  {studentStats ? paymentStatusLabel(studentStats.paymentStatus) : "-"}
                 </p>
               </div>
             </>

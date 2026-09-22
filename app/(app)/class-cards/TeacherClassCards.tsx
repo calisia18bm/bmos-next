@@ -59,6 +59,9 @@ type FormState = {
   sessionsCount: string;
   goalTags: string[];
   classType: "REGULAR" | "SEMINAR";
+  billingType: "SESSION" | "MONTHLY";
+  monthlyPrice: string;
+  threeMonthDiscountPct: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -76,6 +79,9 @@ const EMPTY_FORM: FormState = {
   sessionsCount: "4",
   goalTags: [],
   classType: "REGULAR",
+  billingType: "SESSION",
+  monthlyPrice: "",
+  threeMonthDiscountPct: "0",
 };
 
 function cardToForm(c: ClassCard): FormState {
@@ -94,6 +100,10 @@ function cardToForm(c: ClassCard): FormState {
     sessionsCount: c.sessions_count ? String(c.sessions_count) : "",
     goalTags: c.goal_tags || [],
     classType: c.class_type || "REGULAR",
+    billingType: c.billing_type === "MONTHLY" ? "MONTHLY" : "SESSION",
+    monthlyPrice: c.monthly_price ? String(c.monthly_price) : "",
+    threeMonthDiscountPct:
+      c.three_month_discount_pct != null ? String(c.three_month_discount_pct) : "0",
   };
 }
 
@@ -117,7 +127,8 @@ export default function TeacherClassCards({
   const [extendError, setExtendError] = useState("");
   const [extendLoading, setExtendLoading] = useState(false);
 
-  const price = Number(form.price) || 0;
+  const price =
+    form.billingType === "MONTHLY" ? Number(form.monthlyPrice) || 0 : Number(form.price) || 0;
   const commission = price > 0 ? computeCommission(price, tiers) : null;
 
   function openNew() {
@@ -193,6 +204,7 @@ export default function TeacherClassCards({
 
   function renderCard(c: ClassCard) {
     const cComm = c.price ? computeCommission(c.price, tiers) : null;
+    const cMonthlyComm = c.monthly_price ? computeCommission(c.monthly_price, tiers) : null;
     const unseen = isUnseen(c);
     const canDelete =
       c.approval_status === "PENDING" || c.approval_status === "REJECTED";
@@ -310,7 +322,48 @@ export default function TeacherClassCards({
           </div>
         )}
 
-        {c.price ? (
+        {c.billing_type === "MONTHLY" ? (
+          c.monthly_price ? (
+            <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-bmos-text-light">Harga / bulan / murid</span>
+                <span className="text-bmos-text font-semibold">
+                  {formatRupiah(c.monthly_price)}
+                </span>
+              </div>
+              {(c.three_month_discount_pct ?? 0) > 0 && (
+                <p className="text-bmos-text-light">
+                  Diskon {c.three_month_discount_pct}% kalau Murid bayar 3 bulan
+                  sekaligus
+                </p>
+              )}
+              {cMonthlyComm && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-bmos-text-light">
+                      Potongan BM ({cMonthlyComm.pct}%) / bulan
+                    </span>
+                    <span className="text-red-600">
+                      - Rp {cMonthlyComm.cut.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-1">
+                    <span className="text-green-700 font-semibold">
+                      Kamu terima / bulan / murid
+                    </span>
+                    <span className="text-green-700 font-bold">
+                      {formatRupiah(cMonthlyComm.net)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-bmos-text-light italic">
+              Harga per bulan belum diisi
+            </p>
+          )
+        ) : c.price ? (
           <div className="text-xs bg-gray-50 rounded-xl p-2.5 mt-1 space-y-1">
             <div className="flex justify-between">
               <span className="text-bmos-text-light">
@@ -613,37 +666,92 @@ export default function TeacherClassCards({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Harga per Paket / Murid (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.price}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, price: e.target.value }))
-                    }
-                    placeholder="200000"
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-bmos-text mb-1">
-                    Jumlah Sesi / Paket
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.sessionsCount}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, sessionsCount: e.target.value }))
-                    }
-                    className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-bmos-text mb-1">
+                  Model Harga
+                </label>
+                <select
+                  value={form.billingType}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      billingType: e.target.value === "MONTHLY" ? "MONTHLY" : "SESSION",
+                    }))
+                  }
+                  className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                >
+                  <option value="SESSION">Per Paket Sesi (bayar di depan, sekian sesi)</option>
+                  <option value="MONTHLY">Per Bulan (langganan, bisa dilanjut tiap bulan)</option>
+                </select>
               </div>
+
+              {form.billingType === "MONTHLY" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Harga per Bulan / Murid (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.monthlyPrice}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, monthlyPrice: e.target.value }))
+                      }
+                      placeholder="500000"
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Diskon Bayar 3 Bulan (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={form.threeMonthDiscountPct}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, threeMonthDiscountPct: e.target.value }))
+                      }
+                      placeholder="0"
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Harga per Paket / Murid (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.price}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, price: e.target.value }))
+                      }
+                      placeholder="200000"
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Jumlah Sesi / Paket
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.sessionsCount}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sessionsCount: e.target.value }))
+                      }
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    />
+                  </div>
+                </div>
+              )}
 
               {commission && (
                 <div className="text-xs bg-bmos-primary-soft rounded-xl p-3 space-y-1.5">

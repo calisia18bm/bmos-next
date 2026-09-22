@@ -7,6 +7,7 @@ import {
   getLinkedAccount,
   createAccountForStudent,
 } from "../actions";
+import { PAYMENT_STATUS_OPTIONS } from "@/lib/paymentStatus";
 import { resetAccountPassword, updateAccountEmail } from "../../accounts/actions";
 
 type ClassOption = { id: string; name: string; teacher_name: string | null };
@@ -20,6 +21,7 @@ type StudentData = {
   sessions_per_package: number | null;
   package_price: number | null;
   status: string;
+  payment_status: string | null;
   notes: string | null;
 };
 
@@ -39,6 +41,7 @@ export default function EditStudentButton({
   const [sessions, setSessions] = useState(String(student.sessions_per_package || 4));
   const [price, setPrice] = useState(String(student.package_price || 0));
   const [status, setStatus] = useState(student.status);
+  const [paymentStatus, setPaymentStatus] = useState(student.payment_status || "NON-AKTIF");
   const [notes, setNotes] = useState(student.notes || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -126,6 +129,7 @@ export default function EditStudentButton({
       sessionsPerPackage: sessions,
       packagePrice: price,
       status,
+      paymentStatus,
       notes,
     });
 
@@ -350,6 +354,23 @@ export default function EditStudentButton({
                     >
                       <option value="ACTIVE">Aktif</option>
                       <option value="INACTIVE">Non-Aktif</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-bmos-text mb-1">
+                      Status Pembayaran
+                    </label>
+                    <select
+                      value={paymentStatus}
+                      onChange={(e) => setPaymentStatus(e.target.value)}
+                      className="w-full border border-bmos-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+                    >
+                      {PAYMENT_STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

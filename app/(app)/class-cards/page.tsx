@@ -10,10 +10,13 @@ import {
   getGoalTags,
   getMyClassEnrollments,
   getPendingJoinRequests,
+  getPendingMonthlyPayments,
+  getMinTeacherResourceMonths,
   getRegistrationFormUrl,
   markClassCardsSeen,
 } from "./actions";
 import JoinRequestsQueue from "./JoinRequestsQueue";
+import MonthlyPaymentsQueue from "./MonthlyPaymentsQueue";
 import { ClassCard } from "@/lib/classCards";
 
 export const dynamic = "force-dynamic";
@@ -199,18 +202,27 @@ export default async function ClassCardsPage({
 
   // ===== OWNER/ADMIN: approval queue + pantau semua kartu kelas =====
   if (isStaff) {
-    const [{ data: cards }, tiers, goalTags, registrationFormUrl, joinRequests] =
-      await Promise.all([
-        supabase
-          .from("classes")
-          .select("*")
-          .not("created_by_teacher_id", "is", null)
-          .order("created_at", { ascending: false }),
-        getCommissionTiers(),
-        getGoalTags(),
-        getRegistrationFormUrl(),
-        getPendingJoinRequests(),
-      ]);
+    const [
+      { data: cards },
+      tiers,
+      goalTags,
+      registrationFormUrl,
+      joinRequests,
+      monthlyPayments,
+      minTeacherResourceMonths,
+    ] = await Promise.all([
+      supabase
+        .from("classes")
+        .select("*")
+        .not("created_by_teacher_id", "is", null)
+        .order("created_at", { ascending: false }),
+      getCommissionTiers(),
+      getGoalTags(),
+      getRegistrationFormUrl(),
+      getPendingJoinRequests(),
+      getPendingMonthlyPayments(),
+      getMinTeacherResourceMonths(),
+    ]);
 
     return (
       <div>
@@ -225,12 +237,14 @@ export default async function ClassCardsPage({
           Classes & bisa dipilih Murid.
         </p>
         <JoinRequestsQueue requests={joinRequests} />
+        <MonthlyPaymentsQueue payments={monthlyPayments} />
         <OwnerApprovalQueue
           cards={(cards ?? []) as ClassCard[]}
           tiers={tiers}
           goalTags={goalTags}
           registrationFormUrl={registrationFormUrl}
           canApprove={isOwner}
+          minTeacherResourceMonths={minTeacherResourceMonths}
         />
       </div>
     );

@@ -63,6 +63,12 @@ export type ClassCard = {
   registration_end: string | null;
   price: number | null;
   sessions_count: number | null;
+  // Model harga: 'SESSION' (default, harga per paket sesi kayak dulu)
+  // atau 'MONTHLY' (langganan per bulan + jatuh tempo, lihat
+  // lib/monthlyBilling.ts). Kelas lama semua 'SESSION'.
+  billing_type: "SESSION" | "MONTHLY";
+  monthly_price: number | null;
+  three_month_discount_pct: number | null;
   goal_tags: string[] | null;
   approval_status: ClassCardStatus;
   rejection_note: string | null;

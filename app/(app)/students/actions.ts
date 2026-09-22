@@ -195,6 +195,10 @@ export async function addStudent(formData: {
         class_name: className,
         teacher_name: teacherName,
         status,
+        // Murid baru default "Belum Bayar" (NON-AKTIF) -- belum pernah
+        // ada pembayaran diterima buat dia sampai BM nandain manual
+        // lewat Edit Murid begitu bukti transfer pertamanya diterima.
+        payment_status: "NON-AKTIF",
       })
       .select("id")
       .single();
@@ -488,6 +492,7 @@ export async function updateStudent(
     sessionsPerPackage: string;
     packagePrice: string;
     status: string;
+    paymentStatus: string;
     notes: string;
   }
 ) {
@@ -508,6 +513,7 @@ export async function updateStudent(
       sessions_per_package: Number(formData.sessionsPerPackage) || 4,
       package_price: Number(formData.packagePrice) || 0,
       status: formData.status,
+      payment_status: formData.paymentStatus,
       notes: formData.notes || null,
     })
     .eq("id", id);

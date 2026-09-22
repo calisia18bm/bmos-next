@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/registration-closing-reminder",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-payment-due",
+      "schedule": "0 2 * * *"
     }
   ]
 }

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { requestJoinClassCard, MyClassEnrollment } from "./actions";
+import { requestJoinClassCard, submitMonthlyPayment, MyClassEnrollment } from "./actions";
 import { ClassCard, formatRupiah } from "@/lib/classCards";
 import { BANK_ACCOUNT } from "@/lib/paymentProof";
+import { computeCycleAmount } from "@/lib/monthlyBilling";
 
 const REQUEST_STATUS_LABEL: Record<string, string> = {
   PENDING: "⏳ Menunggu Review BM",
@@ -46,7 +47,21 @@ export default function StudentClassBrowse({
   const [uploading, setUploading] = useState(false);
   const [modalError, setModalError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [cycleMonths, setCycleMonths] = useState<1 | 3>(1);
   const [message, setMessage] = useState<{ id: string; text: string; ok: boolean } | null>(
+    null
+  );
+
+  // Modal bayar bulanan LANJUTAN (bukan join pertama) -- dipakai dari
+  // section "Kelas Kamu" pas Murid klik "Bayar Sekarang" buat kelas
+  // billing_type MONTHLY yang udah aktif.
+  const [payingEnrollment, setPayingEnrollment] = useState<MyClassEnrollment | null>(null);
+  const [payCycleMonths, setPayCycleMonths] = useState<1 | 3>(1);
+  const [payFile, setPayFile] = useState<File | null>(null);
+  const [payUploading, setPayUploading] = useState(false);
+  const [payError, setPayError] = useState("");
+  const [payCopied, setPayCopied] = useState(false);
+  const [payMessage, setPayMessage] = useState<{ id: string; text: string; ok: boolean } | null>(
     null
   );
 
@@ -91,6 +106,7 @@ export default function StudentClassBrowse({
     setFile(null);
     setModalError("");
     setCopied(false);
+    setCycleMonths(1);
   }
 
   function closeModal() {
@@ -140,11 +156,15 @@ export default function StudentClassBrowse({
         .from("payment-proofs")
         .getPublicUrl(path);
 
-      const result = await requestJoinClassCard(modalCard.id, {
-        fileUrl: publicUrlData.publicUrl,
-        fileName: file.name,
-        filePath: path,
-      });
+      const result = await requestJoinClassCard(
+        modalCard.id,
+        {
+          fileUrl: publicUrlData.publicUrl,
+          fileName: file.name,
+          filePath: path,
+        },
+        modalCard.billing_type === "MONTHLY" ? cycleMonths : 1
+      );
 
       setUploading(false);
       setMessage({ id: modalCard.id, text: result.message, ok: result.success });
@@ -156,6 +176,84 @@ export default function StudentClassBrowse({
     } catch (err) {
       setUploading(false);
       setModalError(err instanceof Error ? err.message : "Gagal mengirim request.");
+    }
+  }
+
+  function openPayModal(e: MyClassEnrollment) {
+    setPayingEnrollment(e);
+    setPayCycleMonths(1);
+    setPayFile(null);
+    setPayError("");
+    setPayCopied(false);
+  }
+
+  function closePayModal() {
+    setPayingEnrollment(null);
+    setPayFile(null);
+    setPayError("");
+    setPayUploading(false);
+  }
+
+  async function handleCopyAccountNumberPay() {
+    try {
+      await navigator.clipboard.writeText(BANK_ACCOUNT.number);
+      setPayCopied(true);
+      setTimeout(() => setPayCopied(false), 1500);
+    } catch {
+      // Sama kayak handleCopyAccountNumber -- ga masalah kalau Clipboard
+      // API-nya gagal, Murid masih bisa select-copy manual.
+    }
+  }
+
+  async function handleSubmitMonthlyPayment() {
+    if (!payingEnrollment) return;
+    if (!payFile) {
+      setPayError("Upload bukti transfer dulu ya.");
+      return;
+    }
+
+    setPayUploading(true);
+    setPayError("");
+
+    try {
+      const supabase = createClient();
+      const safeName = payFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+      const path = `${payingEnrollment.classId}/${Date.now()}_${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("payment-proofs")
+        .upload(path, payFile);
+
+      if (uploadError) {
+        setPayError(`Gagal upload bukti transfer: ${uploadError.message}`);
+        setPayUploading(false);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("payment-proofs")
+        .getPublicUrl(path);
+
+      const result = await submitMonthlyPayment(payingEnrollment.enrollmentId, payCycleMonths, {
+        fileUrl: publicUrlData.publicUrl,
+        fileName: payFile.name,
+        filePath: path,
+      });
+
+      setPayUploading(false);
+      setPayMessage({
+        id: payingEnrollment.enrollmentId,
+        text: result.message,
+        ok: result.success,
+      });
+      if (result.success) {
+        closePayModal();
+      } else {
+        setPayError(result.message);
+      }
+    } catch (err) {
+      setPayUploading(false);
+      setPayError(err instanceof Error ? err.message : "Gagal mengirim bukti bayar.");
     }
   }
 
@@ -197,6 +295,32 @@ export default function StudentClassBrowse({
               )}
               {e.requestStatus === "PENDING" && e.aiPaymentNote && (
                 <p className="text-xs text-bmos-text-light mt-0.5">🤖 {e.aiPaymentNote}</p>
+              )}
+              {e.requestStatus === "APPROVED" && e.billingType === "MONTHLY" && (
+                <>
+                  {e.nextDueDate && (
+                    <p className="text-xs text-bmos-text-light mt-0.5">
+                      📅 Jatuh tempo berikutnya: {e.nextDueDate}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => openPayModal(e)}
+                    className="text-xs font-semibold text-bmos-primary hover:underline mt-0.5"
+                  >
+                    💳 Bayar Sekarang
+                  </button>
+                  {payMessage?.id === e.enrollmentId && (
+                    <p
+                      className={`text-xs rounded-lg px-2 py-1 mt-1 ${
+                        payMessage.ok
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      {payMessage.text}
+                    </p>
+                  )}
+                </>
               )}
             </div>
             <span
@@ -291,13 +415,22 @@ export default function StudentClassBrowse({
                 </div>
               )}
 
-              {c.price && (
-                <p className="text-sm font-semibold text-bmos-text">
-                  {formatRupiah(c.price)}{" "}
-                  <span className="font-normal text-xs text-bmos-text-light">
-                    / {c.sessions_count ?? "-"} sesi
-                  </span>
-                </p>
+              {c.billing_type === "MONTHLY" ? (
+                c.monthly_price && (
+                  <p className="text-sm font-semibold text-bmos-text">
+                    {formatRupiah(c.monthly_price)}{" "}
+                    <span className="font-normal text-xs text-bmos-text-light">/ bulan</span>
+                  </p>
+                )
+              ) : (
+                c.price && (
+                  <p className="text-sm font-semibold text-bmos-text">
+                    {formatRupiah(c.price)}{" "}
+                    <span className="font-normal text-xs text-bmos-text-light">
+                      / {c.sessions_count ?? "-"} sesi
+                    </span>
+                  </p>
+                )
               )}
 
               <p className="text-xs text-bmos-text-light">
@@ -345,13 +478,60 @@ export default function StudentClassBrowse({
             <h3 className="font-bold text-bmos-text text-lg mb-1">
               Join {modalCard.name}
             </h3>
-            <p className="text-sm text-bmos-text-light mb-3">
-              {modalCard.price
-                ? `Biaya: ${formatRupiah(modalCard.price)}. Mohon ditransfer ke rekening berikut, lalu upload bukti transfernya di bawah ini ya.`
-                : "Upload bukti transfer/pembayaran kamu di bawah ini ya."}
-            </p>
 
-            {modalCard.price && (
+            {modalCard.billing_type === "MONTHLY" ? (
+              <>
+                <p className="text-sm text-bmos-text-light mb-2">
+                  Kelas ini bayar bulanan. Pilih mau bayar berapa bulan
+                  sekarang:
+                </p>
+                <div className="flex gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setCycleMonths(1)}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      cycleMonths === 1
+                        ? "bg-bmos-primary text-white border-bmos-primary"
+                        : "border-bmos-border text-bmos-text-light"
+                    }`}
+                  >
+                    1 Bulan
+                    <br />
+                    {formatRupiah(computeCycleAmount(modalCard.monthly_price ?? 0, 1, modalCard.three_month_discount_pct ?? 0))}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCycleMonths(3)}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      cycleMonths === 3
+                        ? "bg-bmos-primary text-white border-bmos-primary"
+                        : "border-bmos-border text-bmos-text-light"
+                    }`}
+                  >
+                    3 Bulan
+                    <br />
+                    {formatRupiah(computeCycleAmount(modalCard.monthly_price ?? 0, 3, modalCard.three_month_discount_pct ?? 0))}
+                    {(modalCard.three_month_discount_pct ?? 0) > 0 && (
+                      <span className="block font-normal">
+                        (diskon {modalCard.three_month_discount_pct}%)
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <p className="text-sm text-bmos-text-light mb-3">
+                  Mohon ditransfer ke rekening berikut, lalu upload bukti
+                  transfernya di bawah ini ya.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-bmos-text-light mb-3">
+                {modalCard.price
+                  ? `Biaya: ${formatRupiah(modalCard.price)}. Mohon ditransfer ke rekening berikut, lalu upload bukti transfernya di bawah ini ya.`
+                  : "Upload bukti transfer/pembayaran kamu di bawah ini ya."}
+              </p>
+            )}
+
+            {(modalCard.billing_type === "MONTHLY" || modalCard.price) && (
               <div className="bg-bmos-primary-soft rounded-xl px-4 py-3 mb-4 text-sm text-bmos-text">
                 <p className="font-semibold">{BANK_ACCOUNT.bank}</p>
                 <p>a/n {BANK_ACCOUNT.holder}</p>
@@ -408,6 +588,105 @@ export default function StudentClassBrowse({
                 className="flex-1 bg-bmos-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-50"
               >
                 {uploading ? "Mengirim..." : "Kirim Request Join"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {payingEnrollment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl">
+            <h3 className="font-bold text-bmos-text text-lg mb-1">
+              Bayar {payingEnrollment.className}
+            </h3>
+            <p className="text-sm text-bmos-text-light mb-2">
+              Pilih mau bayar berapa bulan sekarang:
+            </p>
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setPayCycleMonths(1)}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                  payCycleMonths === 1
+                    ? "bg-bmos-primary text-white border-bmos-primary"
+                    : "border-bmos-border text-bmos-text-light"
+                }`}
+              >
+                1 Bulan
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayCycleMonths(3)}
+                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                  payCycleMonths === 3
+                    ? "bg-bmos-primary text-white border-bmos-primary"
+                    : "border-bmos-border text-bmos-text-light"
+                }`}
+              >
+                3 Bulan
+              </button>
+            </div>
+            <p className="text-sm text-bmos-text-light mb-3">
+              Mohon ditransfer ke rekening berikut, lalu upload bukti
+              transfernya di bawah ini ya.
+            </p>
+
+            <div className="bg-bmos-primary-soft rounded-xl px-4 py-3 mb-4 text-sm text-bmos-text">
+              <p className="font-semibold">{BANK_ACCOUNT.bank}</p>
+              <p>a/n {BANK_ACCOUNT.holder}</p>
+              <button
+                type="button"
+                onClick={handleCopyAccountNumberPay}
+                className="flex items-center gap-2 font-bold tracking-wide mt-0.5 hover:opacity-80 transition"
+                title="Salin nomor rekening"
+              >
+                {BANK_ACCOUNT.number}
+                <span className="text-xs font-semibold text-bmos-primary">
+                  {payCopied ? "✓ Disalin" : "Salin"}
+                </span>
+              </button>
+            </div>
+
+            <label
+              htmlFor="monthly-payment-proof-input"
+              className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-bmos-border rounded-xl px-4 py-6 cursor-pointer text-center hover:border-bmos-primary-light transition"
+            >
+              <span className="text-sm font-semibold text-bmos-primary">
+                {payFile ? "Ganti File" : "Pilih Bukti Transfer"}
+              </span>
+              <span className="text-xs text-bmos-text-light">
+                {payFile ? payFile.name : "Foto/screenshot bukti transfer (JPG/PNG)"}
+              </span>
+            </label>
+            <input
+              id="monthly-payment-proof-input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPayFile(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+
+            {payError && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-lg px-2.5 py-1.5 mt-3">
+                {payError}
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={closePayModal}
+                disabled={payUploading}
+                className="flex-1 border border-bmos-border rounded-xl py-2.5 text-sm font-semibold text-bmos-text-light disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSubmitMonthlyPayment}
+                disabled={payUploading || !payFile}
+                className="flex-1 bg-bmos-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-bmos-primary-light transition disabled:opacity-50"
+              >
+                {payUploading ? "Mengirim..." : "Kirim Bukti Bayar"}
               </button>
             </div>
           </div>

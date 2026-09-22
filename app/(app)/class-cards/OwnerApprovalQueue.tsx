@@ -7,6 +7,7 @@ import {
   saveCommissionTiers,
   saveGoalTags,
   saveRegistrationFormUrl,
+  saveMinTeacherResourceMonths,
 } from "./actions";
 import { computeCommission, CommissionTier } from "@/lib/commission";
 import { ClassCard, formatRupiah } from "@/lib/classCards";
@@ -31,12 +32,14 @@ export default function OwnerApprovalQueue({
   goalTags,
   registrationFormUrl,
   canApprove,
+  minTeacherResourceMonths,
 }: {
   cards: ClassCard[];
   tiers: CommissionTier[];
   goalTags: string[];
   registrationFormUrl?: string | null;
   canApprove: boolean;
+  minTeacherResourceMonths?: number;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localTiers, setLocalTiers] = useState<CommissionTier[]>(tiers);
@@ -49,6 +52,9 @@ export default function OwnerApprovalQueue({
   const [formUrl, setFormUrl] = useState(registrationFormUrl ?? "");
   const [savingFormUrl, setSavingFormUrl] = useState(false);
   const [formUrlMsg, setFormUrlMsg] = useState("");
+  const [minMonths, setMinMonths] = useState(String(minTeacherResourceMonths ?? 3));
+  const [savingMinMonths, setSavingMinMonths] = useState(false);
+  const [minMonthsMsg, setMinMonthsMsg] = useState("");
 
   const pending = cards.filter((c) => c.approval_status === "PENDING");
   const others = cards.filter((c) => c.approval_status !== "PENDING");
@@ -137,6 +143,14 @@ export default function OwnerApprovalQueue({
     setFormUrlMsg(result.message);
   }
 
+  async function handleSaveMinMonths() {
+    setSavingMinMonths(true);
+    setMinMonthsMsg("");
+    const result = await saveMinTeacherResourceMonths(Number(minMonths) || 0);
+    setSavingMinMonths(false);
+    setMinMonthsMsg(result.message);
+  }
+
   function renderCard(c: ClassCard) {
     const comm = c.price ? computeCommission(c.price, tiers) : null;
     return (
@@ -203,7 +217,26 @@ export default function OwnerApprovalQueue({
           {c.registration_end || "-"}
         </p>
 
-        {c.price ? (
+        {c.billing_type === "MONTHLY" ? (
+          <div className="text-xs bg-gray-50 rounded-xl p-2.5">
+            <p className="text-bmos-text font-semibold">
+              {c.monthly_price ? formatRupiah(c.monthly_price) : "Harga belum diisi"}{" "}
+              <span className="font-normal text-bmos-text-light">/ bulan</span>
+            </p>
+            {(c.three_month_discount_pct ?? 0) > 0 && (
+              <p className="text-bmos-text-light">
+                Diskon {c.three_month_discount_pct}% kalau bayar 3 bulan sekaligus
+              </p>
+            )}
+            {c.monthly_price && comm && (
+              <>
+                <p className="text-bmos-text-light">
+                  Potong {comm.pct}% untuk Owner tiap siklus bayar
+                </p>
+              </>
+            )}
+          </div>
+        ) : c.price ? (
           <div className="text-xs bg-gray-50 rounded-xl p-2.5">
             <p className="text-bmos-text font-semibold">
               {formatRupiah(c.price)}{" "}
@@ -428,6 +461,39 @@ export default function OwnerApprovalQueue({
           </div>
           {formUrlMsg && (
             <p className="text-xs text-bmos-text-light mt-2">{formUrlMsg}</p>
+          )}
+        </div>
+      )}
+
+      {canApprove && (
+        <div className="bg-white border border-bmos-border rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-bmos-text uppercase tracking-wide mb-1">
+            Syarat Minimal Bahan Ajar buat Laoshi
+          </h2>
+          <p className="text-xs text-bmos-text-light mb-3">
+            Laoshi wajib beli & disetujui minimal segini bulan bahan ajar
+            (PPT) dulu dari BM sebelum bisa buka Class Card baru. Isi 0
+            kalau enggak mau ada syarat sama sekali.
+          </p>
+          <div className="flex gap-2 items-center">
+            <input
+              type="number"
+              min={0}
+              value={minMonths}
+              onChange={(e) => setMinMonths(e.target.value)}
+              className="w-24 border border-bmos-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bmos-primary-light"
+            />
+            <span className="text-xs text-bmos-text-light">bulan</span>
+            <button
+              onClick={handleSaveMinMonths}
+              disabled={savingMinMonths}
+              className="ml-auto bg-bmos-primary text-white rounded-xl px-4 py-2 text-xs font-semibold hover:bg-bmos-primary-light transition disabled:opacity-60"
+            >
+              {savingMinMonths ? "Menyimpan..." : "Simpan"}
+            </button>
+          </div>
+          {minMonthsMsg && (
+            <p className="text-xs text-bmos-text-light mt-2">{minMonthsMsg}</p>
           )}
         </div>
       )}
