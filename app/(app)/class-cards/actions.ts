@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { CLASS_DAYS, DEFAULT_GOAL_TAGS } from "@/lib/classCards";
 import {
   CommissionTier,
@@ -448,12 +449,16 @@ export async function submitClassCard(input: ClassCardInput) {
     return { success: false, message: lastError?.message || "Gagal membuat kartu kelas." };
   }
 
-  await notifyOwnerNewClassCard({
-    teacherName: ctx.fullName,
-    className: input.name.trim(),
-    isPrivate: input.isPrivate,
-    capacity,
-  });
+  // Dijadwalin lewat after() biar Laoshi enggak nunggu WA-nya kekirim
+  // dulu baru tombol "Submit ke BM" keliatan selesai.
+  after(() =>
+    notifyOwnerNewClassCard({
+      teacherName: ctx.fullName,
+      className: input.name.trim(),
+      isPrivate: input.isPrivate,
+      capacity,
+    })
+  );
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kartu kelas dikirim, nunggu di-approve BM." };
@@ -538,12 +543,16 @@ export async function resubmitClassCard(id: string, input: ClassCardInput) {
 
   if (error) return { success: false, message: error.message };
 
-  await notifyOwnerNewClassCard({
-    teacherName: ctx.fullName,
-    className: input.name.trim(),
-    isPrivate: input.isPrivate,
-    capacity,
-  });
+  // Dijadwalin lewat after() biar Laoshi enggak nunggu WA-nya kekirim
+  // dulu baru tombol "Submit ke BM" keliatan selesai.
+  after(() =>
+    notifyOwnerNewClassCard({
+      teacherName: ctx.fullName,
+      className: input.name.trim(),
+      isPrivate: input.isPrivate,
+      capacity,
+    })
+  );
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Kartu kelas dikirim ulang, nunggu di-approve BM." };
@@ -668,11 +677,19 @@ export async function approveClassCard(id: string) {
   if (error) return { success: false, message: error.message };
 
   if (cls?.created_by_teacher_id) {
-    await notifyTeacherClassCardStatus({
-      teacherId: cls.created_by_teacher_id,
-      className: cls.name,
-      approved: true,
-    });
+    // Dijadwalin lewat after() (bukan await langsung) -- kirim WA ke
+    // Fonnte itu manggil API luar yang bisa lelet, kalau di-await di
+    // sini Owner harus nunggu WA-nya kekirim dulu baru tombol Approve
+    // keliatan selesai. Dengan after(), DB update-nya (yang di atas)
+    // udah kesimpen & respons "berhasil" balik ke browser DULUAN, WA-nya
+    // nyusul kekirim di belakang layar.
+    after(() =>
+      notifyTeacherClassCardStatus({
+        teacherId: cls.created_by_teacher_id!,
+        className: cls.name,
+        approved: true,
+      })
+    );
   }
 
   // Begitu di-approve, langsung generate sesi bertanggal buat kelas ini
@@ -680,8 +697,10 @@ export async function approveClassCard(id: string) {
   // Schedule (Laoshi/Owner/Admin) tanpa Owner/Admin harus klik "Generate
   // Sessions" manual lagi. Murid yang nanti join kelas ini otomatis ikut
   // liat sesinya juga karena my-schedule/my-class dia baca dari sesi yang
-  // sama (di-filter berdasarkan class_id).
-  await generateSessionsForClass(id);
+  // sama (di-filter berdasarkan class_id). Dijadwalin lewat after() juga
+  // -- ini nulis banyak baris ke DB sekaligus, ga perlu bikin Owner
+  // nunggu sebelum tombol Approve keliatan selesai.
+  after(() => generateSessionsForClass(id));
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/classes");
@@ -721,12 +740,14 @@ export async function rejectClassCard(id: string, note: string) {
   if (error) return { success: false, message: error.message };
 
   if (cls?.created_by_teacher_id) {
-    await notifyTeacherClassCardStatus({
-      teacherId: cls.created_by_teacher_id,
-      className: cls.name,
-      approved: false,
-      rejectionNote: note.trim(),
-    });
+    after(() =>
+      notifyTeacherClassCardStatus({
+        teacherId: cls.created_by_teacher_id!,
+        className: cls.name,
+        approved: false,
+        rejectionNote: note.trim(),
+      })
+    );
   }
 
   revalidatePath("/class-cards", "layout");
@@ -960,23 +981,32 @@ export async function requestJoinClassCard(
     : cls.price ?? null;
 
   const enrollmentCode = await getNextEnrollmentCode(supabase);
-  const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
-    name: isMonthly ? `${cls.name} (${formatCycleLabel(chosenCycle)})` : cls.name,
-    price: cycleAmount,
-  });
 
-  const { error } = await supabase.from("enrollments").insert({
-    enrollment_code: enrollmentCode,
-    student_id: ctx.studentId,
-    class_id: cls.id,
-    status: "PENDING",
-    request_status: "PENDING",
-    payment_proof_url: proof.fileUrl,
-    payment_proof_path: proof.filePath,
-    ai_payment_note: aiNote,
-    requested_at: new Date().toISOString(),
-    billing_cycle_months: isMonthly ? chosenCycle : 1,
-  });
+  // Insert-nya LANGSUNG jalan tanpa nunggu AI baca gambar dulu --
+  // ai_payment_note diisi null sementara, nanti di-update belakangan.
+  // Baca bukti transfer pake Claude vision itu bisa makan waktu
+  // beberapa detik (download gambar + panggil API-nya), kalau di-await
+  // di sini Murid bakal liat tombol "Kirim Request Join" nge-loading
+  // lama padahal request-nya sendiri sebenarnya udah bisa langsung
+  // kesimpen. AI note-nya nyusul keisi begitu selesai dibaca di
+  // belakang layar (Admin tetap bisa lihat foto buktinya langsung dari
+  // awal walau AI note-nya belum muncul).
+  const { data: insertedEnrollment, error } = await supabase
+    .from("enrollments")
+    .insert({
+      enrollment_code: enrollmentCode,
+      student_id: ctx.studentId,
+      class_id: cls.id,
+      status: "PENDING",
+      request_status: "PENDING",
+      payment_proof_url: proof.fileUrl,
+      payment_proof_path: proof.filePath,
+      ai_payment_note: null,
+      requested_at: new Date().toISOString(),
+      billing_cycle_months: isMonthly ? chosenCycle : 1,
+    })
+    .select("id")
+    .single();
 
   if (error) return { success: false, message: error.message };
 
@@ -986,49 +1016,69 @@ export async function requestJoinClassCard(
   // udah isi nomor HP di Accounts) dikabarin ada request baru + hasil
   // baca AI yang SAMA biar bisa langsung nilai janggal/ga tanpa buka
   // app dulu. Approve/reject tetap manual sama BM -- ini cuma notif.
-  const { data: studentRow } = await supabase
-    .from("students")
-    .select("name, phone")
-    .eq("id", ctx.studentId)
-    .maybeSingle();
+  //
+  // Semua ini (baca AI, WA ke Murid, broadcast ke BM) dijadwalin lewat
+  // after() -- baca gambar pake AI + kirim WA (apalagi ke BEBERAPA akun
+  // BM sekaligus) itu manggil API luar yang bisa pelan, kalau di-await
+  // di sini Murid harus nunggu semuanya kelar dulu baru tombol "Kirim
+  // Request Join" keliatan selesai. Dengan after(), request join-nya
+  // (yang di atas) udah kesimpen & respons "berhasil" balik ke browser
+  // DULUAN, sisanya nyusul di belakang layar.
+  after(async () => {
+    const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
+      name: isMonthly ? `${cls.name} (${formatCycleLabel(chosenCycle)})` : cls.name,
+      price: cycleAmount,
+    });
 
-  if (studentRow?.phone) {
-    const studentMsg = `📝 Request join "${cls.name}" kamu sudah kekirim, lagi ditunggu review BM ya!`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
-      if (!result.success) {
+    await supabase
+      .from("enrollments")
+      .update({ ai_payment_note: aiNote })
+      .eq("id", insertedEnrollment.id);
+
+    const { data: studentRow } = await supabase
+      .from("students")
+      .select("name, phone")
+      .eq("id", ctx.studentId!)
+      .maybeSingle();
+
+    if (studentRow?.phone) {
+      const studentMsg = `📝 Request join "${cls.name}" kamu sudah kekirim, lagi ditunggu review BM ya!`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "request join terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif hasil baca AI request join "${cls.name}" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif hasil baca AI request join "${cls.name}" enggak bisa dikirim WA ke dia.`
+
+    await broadcastToBm(
+      `📥 Request Join Kelas baru!
+
+` +
+        `Murid: ${studentRow?.name || "-"}
+` +
+        `Kelas: ${cls.name}
+` +
+        `Biaya: ${cls.price ? `Rp ${cls.price.toLocaleString("id-ID")}` : "Gratis"}
+
+` +
+        `${aiNote}
+
+` +
+        `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
+      `Request Join Kelas dari ${studentRow?.name || "-"}`
     );
-  }
-
-  await broadcastToBm(
-    `📥 Request Join Kelas baru!
-
-` +
-      `Murid: ${studentRow?.name || "-"}
-` +
-      `Kelas: ${cls.name}
-` +
-      `Biaya: ${cls.price ? `Rp ${cls.price.toLocaleString("id-ID")}` : "Gratis"}
-
-` +
-      `${aiNote}
-
-` +
-      `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
-    `Request Join Kelas dari ${studentRow?.name || "-"}`
-  );
+  });
 
   revalidatePath("/class-cards", "layout");
   return {
@@ -1167,31 +1217,35 @@ export async function approveJoinRequest(enrollmentId: string) {
   }
 
   // Kabarin Murid lewat WhatsApp begitu request join-nya di-approve BM.
-  const { data: approvedStudent } = await supabase
-    .from("students")
-    .select("name, phone")
-    .eq("id", enrollment.student_id)
-    .maybeSingle();
+  // Dijadwalin lewat after() -- lihat komentar panjang di
+  // requestJoinClassCard soal kenapa ga di-await langsung.
+  after(async () => {
+    const { data: approvedStudent } = await supabase
+      .from("students")
+      .select("name, phone")
+      .eq("id", enrollment.student_id)
+      .maybeSingle();
 
-  if (approvedStudent?.phone) {
-    const studentMsg = `✅ Request join "${cls.name}" kamu sudah disetujui BM! Sampai ketemu di kelasnya ya.`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(approvedStudent.phone), studentMsg);
-      if (!result.success) {
+    if (approvedStudent?.phone) {
+      const studentMsg = `✅ Request join "${cls.name}" kamu sudah disetujui BM! Sampai ketemu di kelasnya ya.`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(approvedStudent.phone), studentMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "request join disetujui" ke Murid ${approvedStudent.name || "-"} (${approvedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${approvedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join disetujui" buat kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${approvedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join disetujui" buat kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
-    );
-  }
+  });
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/", "layout");
@@ -1233,31 +1287,34 @@ export async function rejectJoinRequest(enrollmentId: string, note: string) {
   if (error) return { success: false, message: error.message };
 
   // Kabarin Murid lewat WhatsApp begitu request join-nya ditolak BM,
-  // sekalian alasannya biar Murid tau harus benerin apa.
-  const [{ data: rejectedClass }, { data: rejectedStudent }] = await Promise.all([
-    supabase.from("classes").select("name").eq("id", enrollment.class_id).maybeSingle(),
-    supabase.from("students").select("name, phone").eq("id", enrollment.student_id).maybeSingle(),
-  ]);
+  // sekalian alasannya biar Murid tau harus benerin apa. Dijadwalin
+  // lewat after() -- sama alasannya kayak di approveJoinRequest.
+  after(async () => {
+    const [{ data: rejectedClass }, { data: rejectedStudent }] = await Promise.all([
+      supabase.from("classes").select("name").eq("id", enrollment.class_id).maybeSingle(),
+      supabase.from("students").select("name, phone").eq("id", enrollment.student_id).maybeSingle(),
+    ]);
 
-  if (rejectedStudent?.phone) {
-    const studentMsg = `❌ Request join "${rejectedClass?.name || "-"}" kamu ditolak BM. Alasan: ${cleanedNote}`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(rejectedStudent.phone), studentMsg);
-      if (!result.success) {
+    if (rejectedStudent?.phone) {
+      const studentMsg = `❌ Request join "${rejectedClass?.name || "-"}" kamu ditolak BM. Alasan: ${cleanedNote}`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(rejectedStudent.phone), studentMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "request join ditolak" ke Murid ${rejectedStudent.name || "-"} (${rejectedStudent.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${rejectedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join ditolak" buat kelas "${rejectedClass?.name || "-"}" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${rejectedStudent?.name || "-"} belum punya nomor HP di data Students, jadi notif "request join ditolak" buat kelas "${rejectedClass?.name || "-"}" enggak bisa dikirim WA ke dia.`
-    );
-  }
+  });
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Request join ditolak." };
@@ -1481,60 +1538,74 @@ export async function submitMonthlyPayment(
     cls.three_month_discount_pct ?? 0
   );
 
-  const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
-    name: `${cls.name} (${formatCycleLabel(chosenCycle)})`,
-    price: cycleAmount,
-  });
-
-  const { error } = await supabase.from("monthly_payments").insert({
-    enrollment_id: enrollmentId,
-    student_id: ctx.studentId,
-    class_id: cls.id,
-    cycle_months: chosenCycle,
-    amount: cycleAmount,
-    payment_proof_url: proof.fileUrl,
-    payment_proof_path: proof.filePath,
-    ai_payment_note: aiNote,
-    requested_at: new Date().toISOString(),
-  });
+  // Sama kayak requestJoinClassCard -- insert LANGSUNG tanpa nunggu AI
+  // baca gambar dulu, biar Murid enggak nunggu lama pas klik "Kirim
+  // Bukti Bayar". AI note + notif WA nyusul di after() di bawah.
+  const { data: insertedPayment, error } = await supabase
+    .from("monthly_payments")
+    .insert({
+      enrollment_id: enrollmentId,
+      student_id: ctx.studentId,
+      class_id: cls.id,
+      cycle_months: chosenCycle,
+      amount: cycleAmount,
+      payment_proof_url: proof.fileUrl,
+      payment_proof_path: proof.filePath,
+      ai_payment_note: null,
+      requested_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
   if (error) return { success: false, message: error.message };
 
-  const { data: studentRow } = await supabase
-    .from("students")
-    .select("name, phone")
-    .eq("id", ctx.studentId)
-    .maybeSingle();
+  after(async () => {
+    const aiNote = await readPaymentProofWithAI(proof.fileUrl, {
+      name: `${cls.name} (${formatCycleLabel(chosenCycle)})`,
+      price: cycleAmount,
+    });
 
-  if (studentRow?.phone) {
-    const studentMsg = `📝 Bukti bayar bulanan kamu buat kelas "${cls.name}" sudah kekirim, lagi ditunggu review BM ya!`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
-      if (!result.success) {
+    await supabase
+      .from("monthly_payments")
+      .update({ ai_payment_note: aiNote })
+      .eq("id", insertedPayment.id);
+
+    const { data: studentRow } = await supabase
+      .from("students")
+      .select("name, phone")
+      .eq("id", ctx.studentId!)
+      .maybeSingle();
+
+    if (studentRow?.phone) {
+      const studentMsg = `📝 Bukti bayar bulanan kamu buat kelas "${cls.name}" sudah kekirim, lagi ditunggu review BM ya!`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(studentRow.phone), studentMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "bukti bayar bulanan terkirim" ke Murid ${studentRow.name || "-"} (${studentRow.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif bukti bayar bulanan kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${studentRow?.name || "-"} belum punya nomor HP di data Students, jadi notif bukti bayar bulanan kelas "${cls.name}" enggak bisa dikirim WA ke dia.`
-    );
-  }
 
-  await broadcastToBm(
-    `💰 Bukti bayar bulanan baru!\n\n` +
-      `Murid: ${studentRow?.name || "-"}\n` +
-      `Kelas: ${cls.name}\n` +
-      `Siklus: ${formatCycleLabel(chosenCycle)}\n` +
-      `Nominal: Rp ${cycleAmount.toLocaleString("id-ID")}\n\n` +
-      `${aiNote}\n\n` +
-      `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
-    `Bukti Bayar Bulanan dari ${studentRow?.name || "-"}`
-  );
+    await broadcastToBm(
+      `💰 Bukti bayar bulanan baru!\n\n` +
+        `Murid: ${studentRow?.name || "-"}\n` +
+        `Kelas: ${cls.name}\n` +
+        `Siklus: ${formatCycleLabel(chosenCycle)}\n` +
+        `Nominal: Rp ${cycleAmount.toLocaleString("id-ID")}\n\n` +
+        `${aiNote}\n\n` +
+        `Cek & approve/tolak di sini: ${SITE_URL}/class-cards`,
+      `Bukti Bayar Bulanan dari ${studentRow?.name || "-"}`
+    );
+  });
 
   revalidatePath("/class-cards", "layout");
   return {
@@ -1638,31 +1709,33 @@ export async function approveMonthlyPayment(paymentId: string) {
     })
     .eq("id", payment.enrollment_id);
 
-  const { data: student } = await supabase
-    .from("students")
-    .select("name, phone")
-    .eq("id", payment.student_id)
-    .maybeSingle();
+  after(async () => {
+    const { data: student } = await supabase
+      .from("students")
+      .select("name, phone")
+      .eq("id", payment.student_id)
+      .maybeSingle();
 
-  if (student?.phone) {
-    const msg = `✅ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" sudah disetujui BM! Makasih ya.`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(student.phone), msg);
-      if (!result.success) {
+    if (student?.phone) {
+      const msg = `✅ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" sudah disetujui BM! Makasih ya.`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(student.phone), msg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "pembayaran bulanan disetujui" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan disetujui" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan disetujui" enggak bisa dikirim WA ke dia.`
-    );
-  }
+  });
 
   revalidatePath("/class-cards", "layout");
   revalidatePath("/", "layout");
@@ -1704,30 +1777,32 @@ export async function rejectMonthlyPayment(paymentId: string, note: string) {
     .eq("id", paymentId);
   if (error) return { success: false, message: error.message };
 
-  const [{ data: cls }, { data: student }] = await Promise.all([
-    supabase.from("classes").select("name").eq("id", payment.class_id).maybeSingle(),
-    supabase.from("students").select("name, phone").eq("id", payment.student_id).maybeSingle(),
-  ]);
+  after(async () => {
+    const [{ data: cls }, { data: student }] = await Promise.all([
+      supabase.from("classes").select("name").eq("id", payment.class_id).maybeSingle(),
+      supabase.from("students").select("name, phone").eq("id", payment.student_id).maybeSingle(),
+    ]);
 
-  if (student?.phone) {
-    const msg = `❌ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" ditolak BM. Alasan: ${cleanedNote}\n\nSilakan upload ulang bukti transfer yang bener ya.`;
-    try {
-      const result = await sendWhatsApp(normalizePhone(student.phone), msg);
-      if (!result.success) {
+    if (student?.phone) {
+      const msg = `❌ Bukti bayar bulanan kamu buat kelas "${cls?.name || "-"}" ditolak BM. Alasan: ${cleanedNote}\n\nSilakan upload ulang bukti transfer yang bener ya.`;
+      try {
+        const result = await sendWhatsApp(normalizePhone(student.phone), msg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
+    } else {
       await recordNotificationFailure(
-        `Gagal kirim notif "pembayaran bulanan ditolak" ke Murid ${student.name || "-"} (${student.phone}). Error: ${err instanceof Error ? err.message : String(err)}.`
+        `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan ditolak" enggak bisa dikirim WA ke dia.`
       );
     }
-  } else {
-    await recordNotificationFailure(
-      `Murid ${student?.name || "-"} belum punya nomor HP di data Students, jadi notif "pembayaran bulanan ditolak" enggak bisa dikirim WA ke dia.`
-    );
-  }
+  });
 
   revalidatePath("/class-cards", "layout");
   return { success: true, message: "Pembayaran bulanan ditolak." };

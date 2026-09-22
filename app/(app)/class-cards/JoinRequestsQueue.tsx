@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { approveJoinRequest, rejectJoinRequest, PendingJoinRequest } from "./actions";
 import { formatRupiah } from "@/lib/classCards";
 
@@ -70,11 +71,18 @@ export default function JoinRequestsQueue({
             )}
 
             {r.paymentProofUrl && (
-              <a href={r.paymentProofUrl} target="_blank" rel="noopener noreferrer">
-                <img
+              <a
+                href={r.paymentProofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full h-32 rounded-xl border border-bmos-border overflow-hidden"
+              >
+                <Image
                   src={r.paymentProofUrl}
                   alt="Bukti transfer"
-                  className="w-full h-32 object-cover rounded-xl border border-bmos-border"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover"
                 />
               </a>
             )}

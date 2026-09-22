@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 import { SITE_URL } from "@/lib/site";
@@ -146,7 +147,12 @@ export async function createAnnouncement(input: {
   // baru, cek di web", isi pengumumannya SENGAJA GA ditulis di WA (biar
   // orangnya buka web buat baca lengkapnya, dan biar pesan WA-nya tetap
   // pendek walau isi pengumumannya panjang).
-  await notifyAnnouncementTargets(input.audience);
+  //
+  // Dijadwalin lewat after() -- ini yang paling berat soalnya bisa
+  // ngirim ke SEMUA Laoshi + SEMUA Murid sekaligus satu-satu, paling
+  // lama kalau di-await langsung. Dengan after(), pengumumannya udah
+  // keposting & respons "berhasil" balik ke browser DULUAN.
+  after(() => notifyAnnouncementTargets(input.audience));
 
   revalidatePath("/", "layout");
   return { success: true, message: "Pengumuman berhasil diposting." };

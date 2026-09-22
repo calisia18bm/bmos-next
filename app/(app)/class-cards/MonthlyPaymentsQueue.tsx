@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   approveMonthlyPayment,
   rejectMonthlyPayment,
@@ -72,11 +73,18 @@ export default function MonthlyPaymentsQueue({
             )}
 
             {p.paymentProofUrl && (
-              <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer">
-                <img
+              <a
+                href={p.paymentProofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full h-32 rounded-xl border border-bmos-border overflow-hidden"
+              >
+                <Image
                   src={p.paymentProofUrl}
                   alt="Bukti transfer"
-                  className="w-full h-32 object-cover rounded-xl border border-bmos-border"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover"
                 />
               </a>
             )}

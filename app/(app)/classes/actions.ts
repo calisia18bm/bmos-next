@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 
@@ -87,7 +88,11 @@ export async function updateClass(
       before.end_time !== (formData.endTime || null));
 
   if (scheduleChanged) {
-    await notifyClassScheduleChanged(id, formData.name, formData.dayOfWeek, formData.startTime, formData.endTime);
+    // Dijadwalin lewat after() -- ngirim WA ke Laoshi + semua Murid
+    // kelas ini bisa lama, jangan bikin Admin nunggu tombol Simpan.
+    after(() =>
+      notifyClassScheduleChanged(id, formData.name, formData.dayOfWeek, formData.startTime, formData.endTime)
+    );
   }
 
   revalidatePath("/classes");

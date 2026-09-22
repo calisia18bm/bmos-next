@@ -6,20 +6,37 @@ import AddStudentButton from "./AddStudentButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function StudentsPage() {
+// Default-nya CUMA nampilin Murid yang statusnya ACTIVE (bukan semua
+// murid dari awal berdiri termasuk yang udah lulus/nonaktif) -- daftar
+// Murid Non-Aktif bakal terus numpuk seiring waktu, jadi kalau ga
+// dibatesin, halaman ini bakal makin berat kebuka. Klik "Tampilkan
+// Semua" buat lihat termasuk yang Non-Aktif kalau perlu.
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ all?: string }>;
+}) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
   const isStaff = profile.roles.includes("OWNER") || profile.roles.includes("ADMIN");
   if (!isStaff) redirect("/");
 
+  const { all } = await searchParams;
+  const showAll = all === "1";
+
   const supabase = await createClient();
 
+  const studentsQuery = supabase
+    .from("students")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (!showAll) {
+    studentsQuery.eq("status", "ACTIVE");
+  }
+
   const [{ data: students }, { data: classesList }] = await Promise.all([
-    supabase
-      .from("students")
-      .select("*")
-      .order("created_at", { ascending: false }),
+    studentsQuery,
     supabase
       .from("classes")
       .select("id, name, teacher_name")
@@ -40,6 +57,17 @@ export default async function StudentsPage() {
           </p>
         </div>
         <AddStudentButton classes={classesList ?? []} />
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <Link
+          href={showAll ? "/students" : "/students?all=1"}
+          className="text-xs font-semibold text-bmos-primary hover:underline"
+        >
+          {showAll
+            ? "Tampilkan yang Aktif saja"
+            : "Tampilkan Semua (termasuk Non-Aktif)"}
+        </Link>
       </div>
 
       <div className="bg-white border border-bmos-border rounded-2xl overflow-hidden">

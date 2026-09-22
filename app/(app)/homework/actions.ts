@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { sendWhatsApp, normalizePhone } from "@/lib/fonnte";
 import { recordNotificationFailure } from "@/lib/notifyFailure";
 
@@ -68,28 +69,31 @@ export async function createHomework(input: {
 
   // Kabarin semua Murid di kelas ini lewat WhatsApp begitu PR baru
   // dibuat -- best effort, gagal kirim ke 1 Murid ga bikin proses buat
-  // PR-nya gagal.
-  const { data: classStudents } = await supabase
-    .from("students")
-    .select("name, phone")
-    .eq("class_id", cls.id);
+  // PR-nya gagal. Dijadwalin lewat after() -- ngirim WA satu-satu ke
+  // banyak Murid bisa lumayan lama, jangan bikin Laoshi/Admin nunggu.
+  after(async () => {
+    const { data: classStudents } = await supabase
+      .from("students")
+      .select("name, phone")
+      .eq("class_id", cls.id);
 
-  const homeworkMsg = `📝 Ada PR baru "${title}" di kelas "${cls.name}"! Cek di halaman PR ya.`;
-  for (const s of classStudents ?? []) {
-    if (!s.phone) continue;
-    try {
-      const result = await sendWhatsApp(normalizePhone(s.phone), homeworkMsg);
-      if (!result.success) {
+    const homeworkMsg = `📝 Ada PR baru "${title}" di kelas "${cls.name}"! Cek di halaman PR ya.`;
+    for (const s of classStudents ?? []) {
+      if (!s.phone) continue;
+      try {
+        const result = await sendWhatsApp(normalizePhone(s.phone), homeworkMsg);
+        if (!result.success) {
+          await recordNotificationFailure(
+            `Gagal kirim notif "PR baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${cls.name}". Alasan: ${result.reason || "tidak diketahui"}.`
+          );
+        }
+      } catch (err) {
         await recordNotificationFailure(
-          `Gagal kirim notif "PR baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${cls.name}". Alasan: ${result.reason || "tidak diketahui"}.`
+          `Gagal kirim notif "PR baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${cls.name}". Error: ${err instanceof Error ? err.message : String(err)}.`
         );
       }
-    } catch (err) {
-      await recordNotificationFailure(
-        `Gagal kirim notif "PR baru" ke Murid ${s.name || "-"} (${s.phone}) buat kelas "${cls.name}". Error: ${err instanceof Error ? err.message : String(err)}.`
-      );
     }
-  }
+  });
 
   revalidatePath("/homework", "layout");
   return { success: true, message: "PR berhasil dibuat." };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   approveResourcePurchase,
   rejectResourcePurchase,
@@ -76,11 +77,18 @@ export default function ResourcePurchaseQueue({
             {!!r.price && <p className="text-xs text-bmos-text-light">{formatRupiah(r.price)}</p>}
 
             {r.paymentProofUrl && (
-              <a href={r.paymentProofUrl} target="_blank" rel="noopener noreferrer">
-                <img
+              <a
+                href={r.paymentProofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block w-full h-32 rounded-xl border border-amber-200 overflow-hidden"
+              >
+                <Image
                   src={r.paymentProofUrl}
                   alt="Bukti transfer"
-                  className="w-full h-32 object-cover rounded-xl border border-amber-200"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover"
                 />
               </a>
             )}

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import AddContentButton from "./AddContentButton";
 import ContentStatusSelect from "./ContentStatusSelect";
 
@@ -53,11 +54,15 @@ export default async function ContentCalendarPage() {
               <tr key={c.id} className="border-b border-bmos-border last:border-0">
                 <td className="px-5 py-3">
                   {c.image_url ? (
-                    <img
-                      src={c.image_url}
-                      alt={c.title}
-                      className="w-12 h-12 object-cover rounded-lg border border-bmos-border"
-                    />
+                    <div className="relative w-12 h-12 rounded-lg border border-bmos-border overflow-hidden">
+                      <Image
+                        src={c.image_url}
+                        alt={c.title}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="w-12 h-12 rounded-lg bg-bmos-primary-soft flex items-center justify-center text-lg">
                       📷
