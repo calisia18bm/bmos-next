@@ -59,11 +59,13 @@ export async function saveAttendance(
 
   // Hapus dulu absensi lama buat kelas+tanggal ini (biar bisa di-edit ulang
   // tanpa numpuk baris dobel kalau disimpan berkali-kali).
-  await supabase
+  const { error: deleteError } = await supabase
     .from("attendance")
     .delete()
     .eq("class_id", classId)
     .eq("attendance_date", date);
+
+  if (deleteError) return { success: false, message: deleteError.message };
 
   const rows = records.map((r) => ({
     class_id: classId,

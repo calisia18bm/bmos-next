@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { saveAttendance } from "./actions";
 
 type Student = { id: string; name: string; student_code: string };
@@ -24,12 +23,11 @@ export default function AttendanceForm({
   students: Student[];
   existing: ExistingAttendance[];
 }) {
-  const router = useRouter();
   const [statuses, setStatuses] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
+    const existingMap = new Map(existing.map((e) => [e.student_id, e.status]));
     students.forEach((s) => {
-      const found = existing.find((e) => e.student_id === s.id);
-      initial[s.id] = found?.status || "HADIR";
+      initial[s.id] = existingMap.get(s.id) || "HADIR";
     });
     return initial;
   });
@@ -49,10 +47,8 @@ export default function AttendanceForm({
 
     setLoading(false);
     setMessage(result.message);
-
-    if (result.success) {
-      router.refresh();
-    }
+    // Ga perlu router.refresh() lagi: saveAttendance() udah revalidatePath,
+    // dan tampilan di layar udah sama persis dengan yang baru disimpan.
   }
 
   if (students.length === 0) {

@@ -26,14 +26,22 @@ export default async function AttendancePage({
 
   const supabase = await createClient();
 
-  const { data: classes } = await supabase
+  let students: { id: string; name: string; student_code: string }[] = [];
+  let existing: { student_id: string; status: string }[] = [];
+
+  // Daftar kelas diambil BARENGAN (paralel) sama data murid & absensi,
+  // bukan nunggu satu-satu -- jadi total waktu tunggu = query paling lama,
+  // bukan jumlah semua query.
+  const classesPromise = supabase
     .from("classes")
     .select("id, name")
     .eq("active", true)
     .order("name");
+  let classes: { id: string; name: string }[] = [];
 
-  let students: { id: string; name: string; student_code: string }[] = [];
-  let existing: { student_id: string; status: string }[] = [];
+  if (!classId) {
+    classes = (await classesPromise).data ?? [];
+  }
 
   if (classId) {
     // Murid bisa "kedaftar" di suatu kelas lewat dua cara di data yang ada
@@ -42,7 +50,8 @@ export default async function AttendancePage({
     // `students.class_id` (dipakai waktu murid ditambah/diedit dari
     // halaman Students, tanpa bikin baris enrollment). Supaya murid nggak
     // "hilang" dari Attendance, kita gabung dua sumber ini.
-    const [enrollmentResult, directResult, attendanceResult] = await Promise.all([
+    const [classesResult, enrollmentResult, directResult, attendanceResult] = await Promise.all([
+      classesPromise,
       supabase
         .from("enrollments")
         .select("students(id, name, student_code, status)")
@@ -59,6 +68,8 @@ export default async function AttendancePage({
         .eq("class_id", classId)
         .eq("attendance_date", date),
     ]);
+
+    classes = classesResult.data ?? [];
 
     type EnrolledStudent = { id: string; name: string; student_code: string; status: string };
     const enrolledRows = (enrollmentResult.data ?? []) as unknown as { students: EnrolledStudent | null }[];
@@ -92,7 +103,7 @@ export default async function AttendancePage({
         Catat kehadiran murid per sesi kelas.
       </p>
 
-      <ClassDateSelector classes={classes ?? []} />
+      <ClassDateSelector classes={classes} />
 
       {!classId ? (
         <div className="bg-white border border-bmos-border rounded-2xl p-10 text-center text-bmos-text-light">
@@ -100,6 +111,7 @@ export default async function AttendancePage({
         </div>
       ) : (
         <AttendanceForm
+          key={`${classId}-${date}`}
           classId={classId}
           date={date}
           students={students}
