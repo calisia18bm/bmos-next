@@ -25,9 +25,12 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() memverifikasi token LOKAL (tanpa nembak server Supabase
+  // Auth tiap klik/pindah halaman) kalau project pakai signing key
+  // asimetris; kalau belum, otomatis jatuh balik ke cek ke server seperti
+  // sebelumnya -- jadi aman di dua kondisi. Refresh token tetap jalan.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ?? null;
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/login");
 

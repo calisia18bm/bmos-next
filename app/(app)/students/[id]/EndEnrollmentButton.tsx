@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { endEnrollment } from "../actions";
 
 export default function EndEnrollmentButton({
@@ -11,7 +10,6 @@ export default function EndEnrollmentButton({
   enrollmentId: string;
   studentId: string;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -19,7 +17,6 @@ export default function EndEnrollmentButton({
     setLoading(true);
     await endEnrollment(enrollmentId, studentId);
     setLoading(false);
-    router.refresh();
   }
 
   return (

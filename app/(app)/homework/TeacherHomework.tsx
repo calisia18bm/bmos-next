@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createHomework, deleteHomework } from "./actions";
 
 type ClassOption = { id: string; name: string };
@@ -50,7 +49,6 @@ export default function TeacherHomework({
   isStaff: boolean;
   myTeacherId: string | null;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [classId, setClassId] = useState(classes[0]?.id || "");
   const [title, setTitle] = useState("");
@@ -86,7 +84,6 @@ export default function TeacherHomework({
     setDeletingId(id);
     await deleteHomework(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   function canDelete(hw: HomeworkItem) {

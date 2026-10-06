@@ -167,7 +167,6 @@ export default function VocabManage({
     setDeletingId(id);
     await deleteVocabWord(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   return (

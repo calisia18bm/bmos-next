@@ -196,7 +196,6 @@ export default function QuestionManage({ questions }: { questions: Question[] })
     setDeletingId(id);
     await deleteQuestion(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   return (

@@ -182,7 +182,6 @@ export default function AddStudentButton({
 
     reset();
     setOpen(false);
-    router.refresh();
   }
 
   return (

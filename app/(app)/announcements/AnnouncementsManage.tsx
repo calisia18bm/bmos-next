@@ -74,7 +74,6 @@ export default function AnnouncementsManage({
     setDeletingId(id);
     await deleteAnnouncement(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { CHARACTERS, getCharacterFile } from "@/lib/characters";
 // Avatar di sidebar ini sekarang MILIK MASING-MASING orang (murid, laoshi,
 // admin, owner) -- disimpan di user_profiles.character_key punya akun yang
@@ -16,7 +15,6 @@ export default function CharacterPicker({
 }: {
   characterKey: string | null;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const currentFile = getCharacterFile(characterKey);
@@ -26,7 +24,6 @@ export default function CharacterPicker({
     await updateMyCharacter(key);
     setLoading(false);
     setOpen(false);
-    router.refresh();
   }
 
   return (

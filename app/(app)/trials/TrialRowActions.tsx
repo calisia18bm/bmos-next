@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateTrialStatus, convertTrialToStudent } from "./actions";
 
 const STATUSES = ["SCHEDULED", "DONE", "NO_SHOW", "CONVERTED"];
@@ -13,7 +12,6 @@ export default function TrialRowActions({
   id: string;
   status: string;
 }) {
-  const router = useRouter();
   const [current, setCurrent] = useState(status);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -23,7 +21,6 @@ export default function TrialRowActions({
     setLoading(true);
     await updateTrialStatus(id, newStatus);
     setLoading(false);
-    router.refresh();
   }
 
   async function handleConvert() {
@@ -33,7 +30,6 @@ export default function TrialRowActions({
     setMessage(result.message);
     if (result.success) {
       setCurrent("CONVERTED");
-      router.refresh();
     }
   }
 

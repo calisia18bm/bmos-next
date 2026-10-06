@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { sendPollsNow } from "./actions";
 
 export default function SendPollsButton() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -15,7 +13,6 @@ export default function SendPollsButton() {
     const result = await sendPollsNow();
     setLoading(false);
     setMessage(result.message);
-    if (result.success) router.refresh();
   }
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { transferClass } from "../actions";
 
 type ClassOption = { id: string; name: string; teacher_name: string | null };
@@ -20,7 +19,6 @@ export default function TransferClassButton({
   activeEnrollments: ActiveEnrollment[];
   classes: ClassOption[];
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [fromEnrollmentId, setFromEnrollmentId] = useState(
     activeEnrollments.length === 1 ? activeEnrollments[0].id : ""
@@ -52,7 +50,6 @@ export default function TransferClassButton({
     setNewClassId("");
     setReason("");
     setOpen(false);
-    router.refresh();
   }
 
   if (activeEnrollments.length === 0) return null;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toggleFollowUp } from "./actions";
 
 export default function FollowUpCheckbox({
@@ -11,7 +10,6 @@ export default function FollowUpCheckbox({
   id: string;
   completed: boolean;
 }) {
-  const router = useRouter();
   const [checked, setChecked] = useState(completed);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +19,6 @@ export default function FollowUpCheckbox({
     setChecked(newValue);
     await toggleFollowUp(id, newValue);
     setLoading(false);
-    router.refresh();
   }
 
   return (

@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BannerItem } from "@/lib/characters";
 import { saveBannerLayout } from "./actions";
 
 export default function BannerEditor({ initialItems }: { initialItems: BannerItem[] }) {
-  const router = useRouter();
   const [items, setItems] = useState<BannerItem[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -35,7 +33,6 @@ export default function BannerEditor({ initialItems }: { initialItems: BannerIte
     const result = await saveBannerLayout(items);
     setSaving(false);
     setMessage(result.message);
-    if (result.success) router.refresh();
   }
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { addAdditionalClass } from "../actions";
 
 type ClassOption = { id: string; name: string; teacher_name: string | null };
@@ -13,7 +12,6 @@ export default function AddAdditionalClassButton({
   studentId: string;
   classes: ClassOption[];
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [classId, setClassId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +33,6 @@ export default function AddAdditionalClassButton({
 
     setClassId("");
     setOpen(false);
-    router.refresh();
   }
 
   return (

@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { generateUpcomingSessions } from "./actions";
 
 export default function GenerateSessionsButton() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -15,7 +13,6 @@ export default function GenerateSessionsButton() {
     const result = await generateUpcomingSessions(60);
     setLoading(false);
     setMessage(result.message);
-    if (result.success) router.refresh();
   }
 
   return (

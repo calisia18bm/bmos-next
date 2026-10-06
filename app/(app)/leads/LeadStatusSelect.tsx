@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateLeadStatus } from "./actions";
 
 const STATUSES = [
@@ -33,7 +32,6 @@ export default function LeadStatusSelect({
   id: string;
   status: string;
 }) {
-  const router = useRouter();
   const [current, setCurrent] = useState(status);
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +40,6 @@ export default function LeadStatusSelect({
     setLoading(true);
     await updateLeadStatus(id, newStatus);
     setLoading(false);
-    router.refresh();
   }
 
   return (

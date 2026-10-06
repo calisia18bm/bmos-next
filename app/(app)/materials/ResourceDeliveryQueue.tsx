@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { sendResourceToClasses, ResourceDelivery } from "./actions";
 
 // Widget buat Owner/Admin di halaman Materi -- daftar bahan ajar yang
@@ -16,7 +15,6 @@ export default function ResourceDeliveryQueue({
 }: {
   deliveries: ResourceDelivery[];
 }) {
-  const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -48,7 +46,6 @@ export default function ResourceDeliveryQueue({
     if (result.success) {
       setSelected({});
       setOpenId(null);
-      router.refresh();
     }
   }
 

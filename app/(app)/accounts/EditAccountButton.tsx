@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import {
   resetAccountPassword,
   setAccountPassword,
@@ -36,7 +35,6 @@ export default function EditAccountButton({
   teachers: Person[];
   students: Person[];
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(account.full_name || "");
   const [phone, setPhone] = useState(account.phone || "");
@@ -133,7 +131,6 @@ export default function EditAccountButton({
       return;
     }
     setEmailSaved(true);
-    router.refresh();
   }
 
   async function handleDelete() {
@@ -154,7 +151,6 @@ export default function EditAccountButton({
       setDeleteError(res.message);
       return;
     }
-    router.refresh();
     setOpen(false);
   }
 
@@ -186,7 +182,6 @@ export default function EditAccountButton({
       return;
     }
 
-    router.refresh();
     setOpen(false);
   }
 

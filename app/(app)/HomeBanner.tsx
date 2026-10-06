@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BannerItem, defaultBannerPositions } from "@/lib/characters";
 import { saveBannerLayout } from "./settings/branding/actions";
@@ -20,7 +19,6 @@ export default function HomeBanner({
   items: BannerItem[];
   canEdit: boolean;
 }) {
-  const router = useRouter();
 
   const draggableItems = items.filter(
     (it) => !GLOBAL_STATIC_KEYS.has(it.key)
@@ -190,7 +188,6 @@ export default function HomeBanner({
     await saveBannerLayout(localItems);
     setSaving(false);
     setEditMode(false);
-    router.refresh();
   }
 
   function handleCancel() {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { submitDayTest } from "./actions";
 
 type Word = {
@@ -122,7 +121,6 @@ function QuizSection({
   onPassed: () => void;
   disabled?: boolean;
 }) {
-  const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>(() => buildQuestions(words));
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [result, setResult] = useState<{ score: number; message: string } | null>(null);
@@ -152,7 +150,6 @@ function QuizSection({
     setResult({ score, message: res.message });
     if (res.passed) {
       onPassed();
-      router.refresh();
     }
   }
 

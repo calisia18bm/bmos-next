@@ -113,7 +113,6 @@ export default function MaterialsManage({
     setDeletingId(id);
     await deleteMaterial(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   function canDelete(m: Material) {

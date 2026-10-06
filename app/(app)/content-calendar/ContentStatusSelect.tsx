@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateContentStatus } from "./actions";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -17,7 +16,6 @@ export default function ContentStatusSelect({
   id: string;
   status: string;
 }) {
-  const router = useRouter();
   const [current, setCurrent] = useState(status);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +24,6 @@ export default function ContentStatusSelect({
     setLoading(true);
     await updateContentStatus(id, newStatus);
     setLoading(false);
-    router.refresh();
   }
 
   return (

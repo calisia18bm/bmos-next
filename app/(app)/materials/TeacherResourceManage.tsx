@@ -93,7 +93,6 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
         setError(res.message);
         return;
       }
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal upload file.");
     } finally {
@@ -112,7 +111,6 @@ function SubmissionReviewRow({ s }: { s: Submission }) {
     }
     setShowReject(false);
     setRejectNote("");
-    router.refresh();
   }
 
   return (
@@ -353,7 +351,6 @@ export default function TeacherResourceManage({
     setDeletingId(id);
     await deleteTeacherResource(id);
     setDeletingId(null);
-    router.refresh();
   }
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { confirmChoice } from "./actions";
 
 type ClassOption = {
@@ -24,7 +23,6 @@ export default function ChoiceSelector({
   currentChoice: string;
   confirmed: boolean;
 }) {
-  const router = useRouter();
   const [selected, setSelected] = useState(currentChoice);
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +31,6 @@ export default function ChoiceSelector({
     setLoading(true);
     await confirmChoice(studentId, classGroupName, selected);
     setLoading(false);
-    router.refresh();
   }
 
   return (

@@ -166,24 +166,25 @@ export default async function HomeworkPage({
         .maybeSingle();
 
       if (student?.class_id) {
-        const { data } = await supabase
-          .from("homework")
-          .select("id, title, description, due_date, created_at")
-          .eq("class_id", student.class_id)
-          .order("created_at", { ascending: false });
-        homeworks = data ?? [];
-
-        const homeworkIds = homeworks.map((h) => h.id);
-        if (homeworkIds.length) {
-          const { data: subs } = await supabase
+        // PR kelas & submission murid ini diambil BARENGAN (dulu satu-satu).
+        // Submission difilter per murid saja, lalu dicocokkan ke daftar PR
+        // di bawah.
+        const [{ data: hw }, { data: subs }] = await Promise.all([
+          supabase
+            .from("homework")
+            .select("id, title, description, due_date, created_at")
+            .eq("class_id", student.class_id)
+            .order("created_at", { ascending: false }),
+          supabase
             .from("homework_submissions")
             .select("homework_id, submission_type, answer_text, file_url, file_name, submitted_at")
-            .eq("student_id", student.id)
-            .in("homework_id", homeworkIds);
-          (subs ?? []).forEach((s) => {
-            mySubmissions[s.homework_id] = s;
-          });
-        }
+            .eq("student_id", student.id),
+        ]);
+        homeworks = hw ?? [];
+        const homeworkIds = new Set(homeworks.map((h) => h.id));
+        (subs ?? []).forEach((s) => {
+          if (homeworkIds.has(s.homework_id)) mySubmissions[s.homework_id] = s;
+        });
       }
     }
 

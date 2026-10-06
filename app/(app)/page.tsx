@@ -43,8 +43,11 @@ function getMondayOfWeek(): string {
 export default async function DashboardPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
-  const savedBannerLayout = await getBannerLayout();
-  const profile = await getCurrentProfile();
+  // Dua-duanya independen -- diambil barengan, bukan satu-satu.
+  const [savedBannerLayout, profile] = await Promise.all([
+    getBannerLayout(),
+    getCurrentProfile(),
+  ]);
   const canEditBanner = profile?.roles?.includes("OWNER") ?? false;
 
   // Laoshi, Murid, & Admin liat Home yang disederhanakan (banner karakter +
@@ -72,8 +75,6 @@ export default async function DashboardPage() {
     );
   }
 
-  const announcements = await getAnnouncements(5);
-
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
@@ -100,6 +101,12 @@ export default async function DashboardPage() {
     { data: recentPayments },
     { count: trialsCount },
     { data: paymentsLast6Months },
+    announcements,
+    { count: inactiveClassCount },
+    { data: confirmedChoices },
+    pendingClassCardCount,
+    unresolvedNotificationFailureCount,
+    challengeLaggardsRes,
   ] = await Promise.all([
     supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "ACTIVE"),
     supabase.from("classes").select("*", { count: "exact", head: true }).eq("active", true),
@@ -111,14 +118,49 @@ export default async function DashboardPage() {
     supabase.from("payments").select("id, student_name, amount, payment_date").order("payment_date", { ascending: false }).limit(5),
     supabase.from("trials").select("*", { count: "exact", head: true }).eq("status", "SCHEDULED"),
     supabase.from("payments").select("amount, payment_date").gte("payment_date", sixMonthsAgo),
+    // Query-query di bawah ini dulunya jalan SATU-SATU setelah query di
+    // atas selesai (antrean panjang ~11x tunggu server). Sekarang semua
+    // yang ga saling bergantung diambil barengan di sini.
+    getAnnouncements(5),
+    supabase.from("classes").select("*", { count: "exact", head: true }).eq("active", false),
+    supabase.from("weekly_choices").select("student_id").eq("week_start", getMondayOfWeek()).eq("confirmed", true),
+    getPendingClassCardCount(),
+    getUnresolvedNotificationFailureCount(),
+    getChallengeLaggards(),
   ]);
 
-  // ===== Class Occupancy =====
+  // Query tahap 2: butuh hasil tahap 1 (daftar kelas & murid), tapi tiga-tiganya
+  // tetap jalan barengan.
   const classIds = (classesForOccupancy ?? []).map((c) => c.id);
-  const { data: studentCounts } = classIds.length
-    ? await supabase.from("students").select("class_id").in("class_id", classIds).eq("status", "ACTIVE")
-    : { data: [] };
+  const studentIds = [...new Set((paymentsThisMonth ?? []).map((p) => p.student_id).filter(Boolean))];
+  const byName: Record<string, number> = {};
+  const nameToClassIds: Record<string, string[]> = {};
+  (classesForOccupancy ?? []).forEach((c) => {
+    byName[c.name] = (byName[c.name] || 0) + 1;
+    nameToClassIds[c.name] = [...(nameToClassIds[c.name] || []), c.id];
+  });
+  const flexibleClassIds = Object.entries(byName)
+    .filter(([, count]) => count > 1)
+    .flatMap(([name]) => nameToClassIds[name]);
 
+  const [{ data: studentCounts }, { data: enrollmentsForRevenue }, { data: flexStudents }] =
+    await Promise.all([
+      classIds.length
+        ? supabase.from("students").select("class_id").in("class_id", classIds).eq("status", "ACTIVE")
+        : Promise.resolve({ data: [] as { class_id: string | null }[] }),
+      studentIds.length
+        ? supabase
+            .from("enrollments")
+            .select("student_id, classes(name)")
+            .in("student_id", studentIds)
+            .eq("status", "ACTIVE")
+        : Promise.resolve({ data: [] as unknown[] }),
+      flexibleClassIds.length
+        ? supabase.from("students").select("id").in("class_id", flexibleClassIds).eq("status", "ACTIVE")
+        : Promise.resolve({ data: [] as { id: string }[] }),
+    ]);
+
+  // ===== Class Occupancy =====
   const countByClass: Record<string, number> = {};
   (studentCounts ?? []).forEach((s) => {
     if (s.class_id) countByClass[s.class_id] = (countByClass[s.class_id] || 0) + 1;
@@ -168,14 +210,6 @@ export default async function DashboardPage() {
   // Kalau murid ikut 2+ kelas sekaligus, pemasukannya dibagi rata ke
   // tiap kelas -- biar total tetap akurat (nggak dobel hitung) tapi
   // tetap adil ke masing-masing kelas.
-  const studentIds = [...new Set((paymentsThisMonth ?? []).map((p) => p.student_id).filter(Boolean))];
-  const { data: enrollmentsForRevenue } = studentIds.length
-    ? await supabase
-        .from("enrollments")
-        .select("student_id, classes(name)")
-        .in("student_id", studentIds)
-        .eq("status", "ACTIVE")
-    : { data: [] };
 
   type EnrollmentRow = { student_id: string; classes: { name: string } | null };
   const classesByStudent: Record<string, string[]> = {};
@@ -220,11 +254,6 @@ export default async function DashboardPage() {
   type Attention = { icon: string; title: string; subtitle: string; href: string };
   const attentionItems: Attention[] = [];
 
-  const { count: inactiveClassCount } = await supabase
-    .from("classes")
-    .select("*", { count: "exact", head: true })
-    .eq("active", false);
-
   if (inactiveClassCount && inactiveClassCount > 0) {
     attentionItems.push({
       icon: "📕",
@@ -234,28 +263,7 @@ export default async function DashboardPage() {
     });
   }
 
-  const byName: Record<string, number> = {};
-  const nameToClassIds: Record<string, string[]> = {};
-  (classesForOccupancy ?? []).forEach((c) => {
-    byName[c.name] = (byName[c.name] || 0) + 1;
-    nameToClassIds[c.name] = [...(nameToClassIds[c.name] || []), c.id];
-  });
-  const flexibleClassIds = Object.entries(byName)
-    .filter(([, count]) => count > 1)
-    .flatMap(([name]) => nameToClassIds[name]);
-
   if (flexibleClassIds.length > 0) {
-    const weekStart = getMondayOfWeek();
-    const { data: flexStudents } = await supabase
-      .from("students")
-      .select("id")
-      .in("class_id", flexibleClassIds)
-      .eq("status", "ACTIVE");
-    const { data: confirmedChoices } = await supabase
-      .from("weekly_choices")
-      .select("student_id")
-      .eq("week_start", weekStart)
-      .eq("confirmed", true);
     const confirmedIds = new Set((confirmedChoices ?? []).map((c) => c.student_id));
     const unconfirmed = (flexStudents ?? []).filter((s) => !confirmedIds.has(s.id)).length;
 
@@ -270,7 +278,6 @@ export default async function DashboardPage() {
   }
 
   // ===== Class Card yang lagi PENDING (nunggu di-approve) =====
-  const pendingClassCardCount = await getPendingClassCardCount();
   if (pendingClassCardCount > 0) {
     attentionItems.push({
       icon: "🗂️",
@@ -282,7 +289,6 @@ export default async function DashboardPage() {
 
   // ===== Notifikasi WA yang gagal terkirim (nomor kosong / error Fonnte)
   //       -- lihat lib/notifyFailure.ts buat detail kapan ini kecatet =====
-  const unresolvedNotificationFailureCount = await getUnresolvedNotificationFailureCount();
   if (unresolvedNotificationFailureCount > 0) {
     attentionItems.push({
       icon: "⚠️",
@@ -294,7 +300,6 @@ export default async function DashboardPage() {
 
   // ===== Challenge 30 Hari -- murid yang belum ngerjain hari ini /
   //       lagi kepepet mau reset karena freeze abis =====
-  const challengeLaggardsRes = await getChallengeLaggards();
   const urgentChallengeLaggards = (challengeLaggardsRes.success ? challengeLaggardsRes.laggards ?? [] : [])
     .filter((l) => l.status === "TERANCAM_RESET" || l.status === "PAKE_FREEZE");
   if (urgentChallengeLaggards.length > 0) {
