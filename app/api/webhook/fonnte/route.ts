@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWhatsApp, normalizePhone, choiceLabel } from "@/lib/fonnte";
 import { parsePollName } from "@/lib/weeklyChoicePoll";
 import Anthropic from "@anthropic-ai/sdk";
+import { after } from "next/server";
 
 const DEFAULT_SYSTEM_PROMPT = `Kamu adalah admin virtual BM Mandarin, sekolah les Mandarin.
 Jawab pesan WhatsApp dari murid/calon murid dengan ramah, singkat, dan jelas
@@ -159,6 +160,18 @@ export async function POST(req: NextRequest) {
 
     await sendWhatsApp(senderPhone, reply);
 
+    // Catat tanya-jawab + kategorinya buat ditarik ke Google Sheets.
+    // Dijalankan SETELAH response dikirim, jadi tidak memperlambat balasan.
+    after(() =>
+      logAiConversation(client, supabase, {
+        senderPhone,
+        studentId: student?.id ?? null,
+        senderName: student?.name ?? null,
+        question: messageText,
+        answer: reply,
+      })
+    );
+
     return NextResponse.json({ success: true, message: "Dibalas AI" });
   } catch (error) {
     console.error("Gagal proses AI reply:", error);
@@ -225,4 +238,63 @@ async function handleWeeklyChoiceVote(
   );
 
   return { success: true, message: "Weekly choice dikonfirmasi (poll)" };
+}
+
+const AI_CATEGORIES = [
+  "Harga & Paket",
+  "Jadwal & Kelas",
+  "Pendaftaran",
+  "Pembayaran",
+  "Trial",
+  "Materi & PR",
+  "Komplain",
+  "Lainnya",
+];
+
+// Simpan tanya-jawab ke tabel ai_conversations. Kalau tabelnya belum dibuat
+// (SQL belum dijalankan) atau ada error, diabaikan -- balasan WA ke murid
+// sudah terkirim dan tidak boleh terganggu.
+async function logAiConversation(
+  client: Anthropic,
+  supabase: ReturnType<typeof createAdminClient>,
+  info: {
+    senderPhone: string;
+    studentId: string | null;
+    senderName: string | null;
+    question: string;
+    answer: string;
+  }
+) {
+  try {
+    let category = "Lainnya";
+    try {
+      const res = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 20,
+        system: `Kelompokkan pesan WhatsApp ke SATU kategori dari daftar ini: ${AI_CATEGORIES.join(
+          ", "
+        )}. Jawab hanya nama kategorinya, tanpa tambahan.`,
+        messages: [{ role: "user", content: info.question }],
+      });
+      const block = res.content.find((b) => b.type === "text");
+      const text = block && "text" in block ? block.text.trim() : "";
+      category = AI_CATEGORIES.find((cat) => text.includes(cat)) ?? "Lainnya";
+    } catch {
+      // kategori gagal ditentukan -> tetap simpan sebagai "Lainnya"
+    }
+
+    await supabase.from("ai_conversations").insert({
+      source: "WHATSAPP",
+      sender_phone: info.senderPhone,
+      student_id: info.studentId,
+      sender_name: info.senderName,
+      is_registered_student: Boolean(info.studentId),
+      question: info.question,
+      answer: info.answer,
+      category,
+      forwarded_to_admin: /diteruskan|admin (manusia|akan)/i.test(info.answer),
+    });
+  } catch (error) {
+    console.error("Gagal mencatat tanya-jawab AI:", error);
+  }
 }

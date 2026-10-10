@@ -13,6 +13,10 @@
       "schedule": "0 1 * * *"
     },
     {
+      "path": "/api/cron/sheets-sync",
+      "schedule": "0 18 * * *"
+    },
+    {
       "path": "/api/cron/monthly-payment-due",
       "schedule": "0 2 * * *"
     }

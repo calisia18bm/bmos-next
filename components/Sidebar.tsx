@@ -210,6 +210,12 @@ const NAV_GROUPS = [
         label: "AI Assistant",
         icon: "🤖",
       },
+      {
+        href: "/sheets-sync",
+        menu: "sheets-sync",
+        label: "Google Sheets",
+        icon: "📊",
+      },
     ],
   },
 ];

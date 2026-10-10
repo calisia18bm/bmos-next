@@ -23,6 +23,7 @@ export const ROLE_MENU_ACCESS: Record<string, string[]> = {
     "expenses",
     "reports",
     "ai-assistant",
+    "sheets-sync",
     "branding",
     "accounts",
     "materials",
